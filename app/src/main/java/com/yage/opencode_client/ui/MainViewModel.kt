@@ -194,7 +194,11 @@ class MainViewModel @Inject constructor(
 
     fun selectSession(sessionId: String) {
         settingsManager.currentSessionId = sessionId
-        _state.update { it.copy(currentSessionId = sessionId) }
+        _state.update { it.copy(
+            currentSessionId = sessionId,
+            messages = emptyList(),
+            messageLimit = 6
+        )}
         loadMessages(sessionId)
         loadSessionStatus()
     }
@@ -230,10 +234,10 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** Load messages with short delay when triggered by SSE (server may need time to persist). */
+    /** Load messages with delay when triggered by SSE/send (server may need time to persist). */
     private fun loadMessagesWithRetry(sessionId: String, resetLimit: Boolean = true) {
         viewModelScope.launch {
-            delay(150)
+            delay(400)
             if (sessionId == _state.value.currentSessionId) {
                 loadMessages(sessionId, resetLimit)
             }
@@ -335,6 +339,7 @@ class MainViewModel @Inject constructor(
                 .onSuccess {
                     _state.update { it.copy(inputText = "", error = null) }
                     loadMessagesWithRetry(sessionId)
+                    launch { delay(1200); loadMessagesWithRetry(sessionId, resetLimit = false) }
                 }
                 .onFailure { e ->
                     _state.update { it.copy(error = e.message) }

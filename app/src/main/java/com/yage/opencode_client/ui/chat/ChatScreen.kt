@@ -370,7 +370,7 @@ private fun MessageList(
                 }
             }
         }
-        items(messages, key = { it.info.id }) { message ->
+        items(messages.reversed(), key = { it.info.id }) { message ->
             MessageRow(
                 message = message,
                 streamingPartTexts = streamingPartTexts,

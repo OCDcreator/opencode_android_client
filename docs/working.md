@@ -250,3 +250,8 @@
 ### 状态栏 insets (2026-03-03 续)
 - **Scaffold contentWindowInsets**：PhoneLayout 添加 `WindowInsets.statusBars`，避免内容与状态栏重叠
 - **TabletLayout**：Row 添加 `windowInsetsPadding(WindowInsets.statusBars)`，Sessions 标题不再与状态栏重叠
+
+### 状态更新与消息顺序 (2026-03-03 续)
+- **selectSession 清空**：切换 session 时立即清空 messages，避免短暂显示上一 session 内容
+- **loadMessagesWithRetry**：延迟 150ms→400ms；发送后增加 1.2s 二次加载
+- **消息显示顺序**：API 返回 [旧→新]，LazyColumn reverseLayout 需 reversed() 使最新消息在底部；ModelTests 新增 `message display order reverses API chronological order`

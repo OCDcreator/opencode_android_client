@@ -320,6 +320,22 @@ class ModelTests {
     }
 
     @Test
+    fun `message display order reverses API chronological order`() {
+        // API returns [oldest, ..., newest]; ChatScreen uses reversed() so newest is at bottom
+        val apiJson = """
+            [
+            {"info":{"id":"msg_1","role":"user","sessionID":"ses_1","time":{"created":1000}},"parts":[{"type":"text","text":"first","id":"p1","sessionID":"ses_1","messageID":"msg_1"}]},
+            {"info":{"id":"msg_2","role":"assistant","sessionID":"ses_1","time":{"created":2000}},"parts":[{"type":"text","text":"second","id":"p2","sessionID":"ses_1","messageID":"msg_2"}]},
+            {"info":{"id":"msg_3","role":"user","sessionID":"ses_1","time":{"created":3000}},"parts":[{"type":"text","text":"third","id":"p3","sessionID":"ses_1","messageID":"msg_3"}]}
+            ]
+        """.trimIndent()
+        val messages = json.decodeFromString<List<MessageWithParts>>(apiJson)
+        val displayOrder = messages.reversed()
+        assertEquals("msg_3", displayOrder.first().info.id)
+        assertEquals("msg_1", displayOrder.last().info.id)
+    }
+
+    @Test
     fun `MessageWithParts parses files as object array`() {
         val apiJson = """
             [{"info":{"id":"msg_1","role":"assistant","sessionID":"ses_1"},"parts":[
