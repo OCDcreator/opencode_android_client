@@ -231,3 +231,7 @@
 - **字号缩小**：全局 Typography 缩小一号（bodyLarge 16→14sp，titleLarge 22→20sp 等）；平板 compactTypography 同步缩小
 - **Tablet 隐藏 Session 按钮**：平板布局左侧已有 Session 列表，TopBar 不再显示 Session 下拉按钮（showSessionListInTopBar=false）
 - **Model 列表修复**：API `/config/providers` 的 `default` 字段实际为 `Map<providerId, modelId>` 而非单对象；ProvidersResponse 改为解析 Map，default 取首项；新增 ModelTests 验证解析
+
+### Tool 卡片样式 (2026-03-03 续)
+- **文件名换行**：Tool/Patch 展开后文件名支持多行换行（移除 maxLines=1），便于查看长路径
+- **write/patch 蓝色**：write 与 patch 类型工具卡片使用浅蓝背景（ToolWritePatchBackground），深色主题用深蓝（ToolWritePatchBackgroundDark）

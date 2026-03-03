@@ -22,6 +22,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.yage.opencode_client.data.model.*
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.ui.MainViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.yage.opencode_client.ui.theme.ToolWritePatchBackground
+import com.yage.opencode_client.ui.theme.ToolWritePatchBackgroundDark
 import com.yage.opencode_client.ui.theme.UserMessageBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -614,11 +617,14 @@ private fun ToolCard(
     val isRunning = status == "running"
     var expanded by remember { mutableStateOf(isRunning) }
     val firstFile = filePaths.firstOrNull()
+    val isWriteOrPatch = toolName == "write" || toolName == "patch" || toolName.contains("write")
+    val writePatchColor = if (isSystemInDarkTheme()) ToolWritePatchBackgroundDark else ToolWritePatchBackground
+    val cardColor = if (isWriteOrPatch) writePatchColor else MaterialTheme.colorScheme.surfaceContainerHighest
 
     Card(
         modifier = modifier.padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = cardColor
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -670,14 +676,12 @@ private fun ToolCard(
                 filePaths.forEach { path ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Text(
                             text = path,
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = FontFamily.Monospace,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -703,10 +707,11 @@ private fun PatchCard(
     onFileClick: (String) -> Unit,
     modifier: Modifier = Modifier.fillMaxWidth()
 ) {
+    val writePatchColor = if (isSystemInDarkTheme()) ToolWritePatchBackgroundDark else ToolWritePatchBackground
     Card(
         modifier = modifier.padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = writePatchColor
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -723,7 +728,7 @@ private fun PatchCard(
             filePaths.forEach { path ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
                     Text(
                         path,
