@@ -194,3 +194,11 @@
 - **自动连接**：App 启动及回到前台时自动调用 testConnection()，无需手动点 Settings → Test Connection
 - **消息加载修复**：loadSessions 成功且已有 currentSessionId 时，同时调用 loadMessages(currentId)，修复「No messages yet」问题
 - **MessageWithParts 解析测试**：ModelTests 新增 `MessageWithParts parses real API format`，验证 info/parts 与真实 API 响应格式一致
+
+### 消息解析与 UI 修复 (2026-03-03 续)
+- **Part.files 解析**：API 可能返回 `["path1","path2"]` 或 `[{path,...}]`，新增 PartFilesSerializer 兼容两种格式
+- **loadMessages 错误日志**：失败时 Log.e 输出完整堆栈，便于 logcat 排查
+- **Files 后退按钮**：修复路径无 `/` 时（如 `.github`）无法返回根目录，parentPath 正确计算
+- **Chat TopBar 下拉**：Model/Agent/Session 的 IconButton+DropdownMenu 用 Box 包裹，修复 iPad 上定位
+- **平板布局**：移除 TabRow，左栏默认 SessionList，header 增加 Settings 图标；SettingsScreen 支持 onBack 显示返回按钮
+- **Chat 标题**：titleSmall + maxLines=1 + Ellipsis，长标题省略；平板隐藏 Settings 按钮（左栏已有）

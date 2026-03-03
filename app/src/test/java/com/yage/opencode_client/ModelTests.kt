@@ -235,13 +235,15 @@ class ModelTests {
     @Test
     fun `MessageWithParts parses real API format`() {
         // Minimal JSON matching actual API: GET /session/{id}/message
+        // Note: API may return files as ["path1","path2"] (strings) or [{path,...}] (objects)
         val apiJson = """
             [{"info":{"id":"msg_1","role":"assistant","sessionID":"ses_1","parentID":"msg_0",
             "providerID":"anthropic","modelID":"claude-opus-4-6","time":{"created":1772559632705,"completed":1772559683414},
             "finish":"stop","tokens":{"total":100,"input":1,"output":99}},"parts":[
             {"type":"step-start","snapshot":"abc123","id":"prt_1","sessionID":"ses_1","messageID":"msg_1"},
             {"type":"reasoning","text":"Some reasoning content","metadata":{"anthropic":{"signature":"xyz"}},"id":"prt_2","sessionID":"ses_1","messageID":"msg_1"},
-            {"type":"text","text":"Hello world","id":"prt_3","sessionID":"ses_1","messageID":"msg_1"}
+            {"type":"text","text":"Hello world","id":"prt_3","sessionID":"ses_1","messageID":"msg_1"},
+            {"type":"tool","tool":"bash","id":"prt_4","sessionID":"ses_1","messageID":"msg_1","files":["/path/to/file1","/path/to/file2"]}
             ]}]
         """.trimIndent()
         val list = json.decodeFromString<List<MessageWithParts>>(apiJson)
@@ -250,11 +252,32 @@ class ModelTests {
         assertEquals("msg_1", mwp.info.id)
         assertEquals("assistant", mwp.info.role)
         assertEquals("ses_1", mwp.info.sessionId)
-        assertEquals(3, mwp.parts.size)
+        assertEquals(4, mwp.parts.size)
         assertEquals("step-start", mwp.parts[0].type)
         assertEquals("reasoning", mwp.parts[1].type)
         assertEquals("Some reasoning content", mwp.parts[1].text)
         assertEquals("text", mwp.parts[2].type)
         assertEquals("Hello world", mwp.parts[2].text)
+        // files as string array (API format)
+        val toolPart = mwp.parts[3]
+        assertEquals("tool", toolPart.type)
+        assertEquals(2, toolPart.files?.size)
+        assertEquals("/path/to/file1", toolPart.files!![0].path)
+        assertEquals("/path/to/file2", toolPart.files!![1].path)
+    }
+
+    @Test
+    fun `MessageWithParts parses files as object array`() {
+        val apiJson = """
+            [{"info":{"id":"msg_1","role":"assistant","sessionID":"ses_1"},"parts":[
+            {"type":"tool","id":"prt_1","sessionID":"ses_1","messageID":"msg_1","files":[{"path":"/a/b","additions":1,"deletions":0}]}
+            ]}]
+        """.trimIndent()
+        val list = json.decodeFromString<List<MessageWithParts>>(apiJson)
+        val toolPart = list[0].parts[0]
+        assertEquals(1, toolPart.files?.size)
+        assertEquals("/a/b", toolPart.files!![0].path)
+        assertEquals(1, toolPart.files!![0].additions)
+        assertEquals(0, toolPart.files!![0].deletions)
     }
 }

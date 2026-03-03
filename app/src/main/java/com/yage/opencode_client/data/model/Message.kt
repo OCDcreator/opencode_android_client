@@ -1,12 +1,18 @@
 package com.yage.opencode_client.data.model
 
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 
 @Serializable
 data class Message(
@@ -88,7 +94,7 @@ data class Part(
     @SerialName("callID") val callId: String? = null,
     val state: PartState? = null,
     val metadata: PartMetadata? = null,
-    val files: List<FileChange>? = null
+    @Serializable(with = PartFilesSerializer::class) val files: List<FileChange>? = null
 ) {
     val isText: Boolean get() = type == "text"
     val isReasoning: Boolean get() = type == "reasoning"
@@ -128,6 +134,39 @@ data class Part(
         val deletions: Int? = null,
         val status: String? = null
     )
+}
+
+/** Handles API returning files as either ["path1","path2"] or [{path,additions,...}]. */
+private object PartFilesSerializer : KSerializer<List<Part.FileChange>?> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("PartFiles", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: List<Part.FileChange>?) {
+        encoder.encodeSerializableValue(JsonArray.serializer(), kotlinx.serialization.json.buildJsonArray {
+            value?.forEach { add(kotlinx.serialization.json.JsonObject(mapOf("path" to kotlinx.serialization.json.JsonPrimitive(it.path)))) }
+        })
+    }
+
+    override fun deserialize(decoder: Decoder): List<Part.FileChange>? {
+        val element = decoder.decodeSerializableValue(JsonElement.serializer())
+        if (element is JsonNull) return null
+        val arr = element as? JsonArray ?: return null
+        return arr.mapNotNull { item ->
+            when (item) {
+                is JsonPrimitive -> Part.FileChange(path = item.content)
+                is JsonObject -> {
+                    val path = (item["path"] as? JsonPrimitive)?.content ?: return@mapNotNull null
+                    Part.FileChange(
+                        path = path,
+                        additions = (item["additions"] as? JsonPrimitive)?.content?.toIntOrNull(),
+                        deletions = (item["deletions"] as? JsonPrimitive)?.content?.toIntOrNull(),
+                        status = (item["status"] as? JsonPrimitive)?.content
+                    )
+                }
+                else -> null
+            }
+        }
+    }
 }
 
 @Serializable(with = PartStateSerializer::class)

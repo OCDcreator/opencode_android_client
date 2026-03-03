@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
@@ -28,7 +29,8 @@ import com.yage.opencode_client.ui.theme.UserMessageBackground
 fun ChatScreen(
     viewModel: MainViewModel = hiltViewModel(),
     onNavigateToFiles: (String) -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    showSettingsButton: Boolean = true
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -47,7 +49,8 @@ fun ChatScreen(
             onAbort = { viewModel.abortSession() },
             onSelectAgent = { viewModel.selectAgent(it) },
             onSelectModel = { viewModel.selectModel(it) },
-            onNavigateToSettings = onNavigateToSettings
+            onNavigateToSettings = onNavigateToSettings,
+            showSettingsButton = showSettingsButton
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -115,7 +118,8 @@ private fun TopBar(
     onAbort: () -> Unit,
     onSelectAgent: (String) -> Unit,
     onSelectModel: (Int) -> Unit,
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    showSettingsButton: Boolean = true
 ) {
     var showSessionMenu by remember { mutableStateOf(false) }
     var showAgentMenu by remember { mutableStateOf(false) }
@@ -124,7 +128,12 @@ private fun TopBar(
     TopAppBar(
         title = {
             val currentSession = sessions.find { it.id == currentSessionId }
-            Text(currentSession?.title ?: currentSession?.directory?.split("/")?.lastOrNull() ?: "OpenCode")
+            Text(
+                text = currentSession?.title ?: currentSession?.directory?.split("/")?.lastOrNull() ?: "OpenCode",
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         },
         actions = {
             contextUsage?.let { usage ->
@@ -132,47 +141,51 @@ private fun TopBar(
                 Spacer(modifier = Modifier.width(4.dp))
             }
 
-            IconButton(onClick = { showModelMenu = true }) {
-                Icon(Icons.Default.Tune, contentDescription = "Model")
-            }
-            DropdownMenu(
-                expanded = showModelMenu,
-                onDismissRequest = { showModelMenu = false }
-            ) {
-                availableModels.forEachIndexed { index, model ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                model.displayName,
-                                color = if (index == selectedModelIndex)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        onClick = {
-                            onSelectModel(index)
-                            showModelMenu = false
-                        }
-                    )
+            Box {
+                IconButton(onClick = { showModelMenu = true }) {
+                    Icon(Icons.Default.Tune, contentDescription = "Model")
+                }
+                DropdownMenu(
+                    expanded = showModelMenu,
+                    onDismissRequest = { showModelMenu = false }
+                ) {
+                    availableModels.forEachIndexed { index, model ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    model.displayName,
+                                    color = if (index == selectedModelIndex)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = {
+                                onSelectModel(index)
+                                showModelMenu = false
+                            }
+                        )
+                    }
                 }
             }
 
-            IconButton(onClick = { showAgentMenu = true }) {
-                Icon(Icons.Default.SmartToy, contentDescription = "Agent")
-            }
-            DropdownMenu(
-                expanded = showAgentMenu,
-                onDismissRequest = { showAgentMenu = false }
-            ) {
-                agents.forEach { agent ->
-                    DropdownMenuItem(
-                        text = { Text(agent.shortName) },
-                        onClick = {
-                            onSelectAgent(agent.name)
-                            showAgentMenu = false
-                        }
-                    )
+            Box {
+                IconButton(onClick = { showAgentMenu = true }) {
+                    Icon(Icons.Default.SmartToy, contentDescription = "Agent")
+                }
+                DropdownMenu(
+                    expanded = showAgentMenu,
+                    onDismissRequest = { showAgentMenu = false }
+                ) {
+                    agents.forEach { agent ->
+                        DropdownMenuItem(
+                            text = { Text(agent.shortName) },
+                            onClick = {
+                                onSelectAgent(agent.name)
+                                showAgentMenu = false
+                            }
+                        )
+                    }
                 }
             }
 
@@ -182,16 +195,14 @@ private fun TopBar(
                 }
             }
 
-            IconButton(onClick = { showSessionMenu = true }) {
-                Icon(Icons.Default.List, contentDescription = "Sessions")
-            }
-            IconButton(onClick = onNavigateToSettings) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
-            }
-            DropdownMenu(
-                expanded = showSessionMenu,
-                onDismissRequest = { showSessionMenu = false }
-            ) {
+            Box {
+                IconButton(onClick = { showSessionMenu = true }) {
+                    Icon(Icons.Default.List, contentDescription = "Sessions")
+                }
+                DropdownMenu(
+                    expanded = showSessionMenu,
+                    onDismissRequest = { showSessionMenu = false }
+                ) {
                 DropdownMenuItem(
                     text = { Text("New Session") },
                     onClick = {
@@ -216,6 +227,12 @@ private fun TopBar(
                             showSessionMenu = false
                         }
                     )
+                }
+                }
+            }
+            if (showSettingsButton) {
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
                 }
             }
         }

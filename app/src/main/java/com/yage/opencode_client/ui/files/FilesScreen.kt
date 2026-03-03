@@ -82,7 +82,11 @@ fun FilesScreen(
             navigationIcon = {
                 if (currentPath.isNotEmpty()) {
                     IconButton(onClick = {
-                        val parentPath = currentPath.substringBeforeLast("/")
+                        val parentPath = if ("/" in currentPath) {
+                            currentPath.substringBeforeLast("/")
+                        } else {
+                            ""  // one level deep, parent is root
+                        }
                         currentPath = parentPath
                         loadFiles(parentPath)
                     }) {

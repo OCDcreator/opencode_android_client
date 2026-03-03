@@ -184,38 +184,23 @@ private fun TabletLayout(viewModel: MainViewModel, repository: OpenCodeRepositor
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // Left panel: Workspace (Session list) or Settings — 25%
+        // Left panel: Session list or Settings — 25% (no tabs on tablet)
         Column(
             modifier = Modifier
                 .weight(0.25f)
                 .fillMaxHeight()
         ) {
-            TabRow(
-                selectedTabIndex = selectedTab,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Workspace") },
-                    icon = { Icon(Icons.Default.Folder, contentDescription = null) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Settings") },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) }
-                )
-            }
-
             if (selectedTab == 1) {
-                SettingsScreen()
+                SettingsScreen(
+                    onBack = { selectedTab = 0 }
+                )
             } else {
                 SessionList(
                     sessions = state.sessions,
                     currentSessionId = state.currentSessionId,
                     onSelectSession = { viewModel.selectSession(it) },
-                    onCreateSession = { viewModel.createSession() }
+                    onCreateSession = { viewModel.createSession() },
+                    onOpenSettings = { selectedTab = 1 }
                 )
             }
         }
@@ -246,7 +231,8 @@ private fun TabletLayout(viewModel: MainViewModel, repository: OpenCodeRepositor
         ) {
             ChatScreen(
                 onNavigateToFiles = { },
-                onNavigateToSettings = onOpenSettings
+                onNavigateToSettings = onOpenSettings,
+                showSettingsButton = false
             )
         }
     }
@@ -257,7 +243,8 @@ private fun SessionList(
     sessions: List<Session>,
     currentSessionId: String?,
     onSelectSession: (String) -> Unit,
-    onCreateSession: () -> Unit
+    onCreateSession: () -> Unit,
+    onOpenSettings: (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Surface(
@@ -278,6 +265,11 @@ private fun SessionList(
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = onCreateSession) {
                     Text("New")
+                }
+                if (onOpenSettings != null) {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yage.opencode_client.data.model.*
@@ -207,6 +208,7 @@ class MainViewModel @Inject constructor(
                     )}
                 }
                 .onFailure { e ->
+                    Log.e("MainViewModel", "loadMessages failed: ${e.message}", e)
                     _state.update { it.copy(
                         isLoadingMessages = false,
                         error = "Failed to load messages: ${e.message}"
