@@ -256,7 +256,8 @@ private fun TabletLayout(viewModel: MainViewModel, repository: OpenCodeRepositor
                     },
                     onNavigateToSettings = onOpenSettings,
                     showSettingsButton = false,
-                    showNewSessionInTopBar = false
+                    showNewSessionInTopBar = false,
+                    showSessionListInTopBar = false
                 )
             }
         }

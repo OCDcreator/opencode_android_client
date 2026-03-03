@@ -264,6 +264,21 @@ class ModelTests {
     }
 
     @Test
+    fun `ProvidersResponse parses API default format Map providerId to modelId`() {
+        val apiJson = """
+            {"providers":[{"id":"mistral","name":"Mistral","models":{"m1":{"id":"m1","name":"Model 1","providerID":"mistral","limit":{"context":128000}}}}],
+            "default":{"anthropic":"claude-sonnet-4-6","openai":"gpt-5.3-codex"}}
+        """.trimIndent()
+        val resp = json.decodeFromString<ProvidersResponse>(apiJson)
+        assertEquals(1, resp.providers.size)
+        assertEquals(1, resp.providers[0].models.size)
+        assertEquals("Model 1", resp.providers[0].models["m1"]?.name)
+        assertNotNull(resp.default)
+        assertTrue(resp.default!!.providerId in listOf("anthropic", "openai"))
+        assertTrue(resp.default!!.modelId.isNotEmpty())
+    }
+
+    @Test
     fun `PermissionResponse values`() {
         assertEquals("once", PermissionResponse.ONCE.value)
         assertEquals("always", PermissionResponse.ALWAYS.value)

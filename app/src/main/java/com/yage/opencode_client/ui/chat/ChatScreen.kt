@@ -31,7 +31,8 @@ fun ChatScreen(
     onNavigateToFiles: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     showSettingsButton: Boolean = true,
-    showNewSessionInTopBar: Boolean = true
+    showNewSessionInTopBar: Boolean = true,
+    showSessionListInTopBar: Boolean = true
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -52,7 +53,8 @@ fun ChatScreen(
             onSelectModel = { viewModel.selectModel(it) },
             onNavigateToSettings = onNavigateToSettings,
             showSettingsButton = showSettingsButton,
-            showNewSessionInTopBar = showNewSessionInTopBar
+            showNewSessionInTopBar = showNewSessionInTopBar,
+            showSessionListInTopBar = showSessionListInTopBar
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -124,7 +126,8 @@ private fun TopBar(
     onSelectModel: (Int) -> Unit,
     onNavigateToSettings: () -> Unit = {},
     showSettingsButton: Boolean = true,
-    showNewSessionInTopBar: Boolean = true
+    showNewSessionInTopBar: Boolean = true,
+    showSessionListInTopBar: Boolean = true
 ) {
     var showSessionMenu by remember { mutableStateOf(false) }
     var showAgentMenu by remember { mutableStateOf(false) }
@@ -212,6 +215,7 @@ private fun TopBar(
                 }
             }
 
+            if (showSessionListInTopBar) {
             Box {
                 IconButton(onClick = { showSessionMenu = true }) {
                     Icon(Icons.Default.List, contentDescription = "Sessions")
@@ -248,6 +252,7 @@ private fun TopBar(
                     )
                 }
                 }
+            }
             }
             if (showSettingsButton) {
                 IconButton(onClick = onNavigateToSettings) {

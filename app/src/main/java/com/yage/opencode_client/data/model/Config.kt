@@ -15,8 +15,14 @@ data class HealthResponse(
 @Serializable
 data class ProvidersResponse(
     val providers: List<ConfigProvider> = emptyList(),
-    val default: DefaultProvider? = null
-)
+    @SerialName("default") val defaultByProvider: Map<String, String> = emptyMap()
+) {
+    /** First default provider/model when API returns Map<providerId, modelId>. */
+    val default: DefaultProvider?
+        get() = defaultByProvider.entries.firstOrNull()?.let {
+            DefaultProvider(providerId = it.key, modelId = it.value)
+        }
+}
 
 @Serializable
 data class ConfigProvider(
@@ -45,6 +51,6 @@ data class ProviderModelLimit(
 
 @Serializable
 data class DefaultProvider(
-    @SerialName("providerID") val providerId: String,
-    @SerialName("modelID") val modelId: String
+    val providerId: String,
+    val modelId: String
 )

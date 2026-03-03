@@ -249,6 +249,9 @@ class MainViewModel @Inject constructor(
                 .onSuccess { providers ->
                     _state.update { it.copy(providers = providers) }
                 }
+                .onFailure { e ->
+                    Log.e("MainViewModel", "loadProviders failed: ${e.message}", e)
+                }
         }
     }
 

@@ -226,3 +226,8 @@
 - **Tool/Patch 布局**：一行显示两个 tool（或两个 patch），并排；Tool 收起时仅显示类型 + 打开图标，展开后仅显示文件名列表（不显示 Input/Output）
 - **Files 文件预览**：查看文件时隐藏 Files TopAppBar，仅保留 FileContentViewer 的 TopAppBar（叉号+文件名），去除中间大块空白
 - **文件跳转调试**：FilesScreen 与 MainViewModel 添加 Log.d 便于 logcat 排查 pathToShow/relPath；路径规范化（trimStart('/')）兼容有无前导斜杠；空目录显示 "Directory (empty or path not found)"
+
+### 字号与布局 (2026-03-03 续)
+- **字号缩小**：全局 Typography 缩小一号（bodyLarge 16→14sp，titleLarge 22→20sp 等）；平板 compactTypography 同步缩小
+- **Tablet 隐藏 Session 按钮**：平板布局左侧已有 Session 列表，TopBar 不再显示 Session 下拉按钮（showSessionListInTopBar=false）
+- **Model 列表修复**：API `/config/providers` 的 `default` 字段实际为 `Map<providerId, modelId>` 而非单对象；ProvidersResponse 改为解析 Map，default 取首项；新增 ModelTests 验证解析
