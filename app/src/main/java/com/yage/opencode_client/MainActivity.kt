@@ -142,6 +142,9 @@ private fun PhoneLayout(repository: OpenCodeRepository) {
                 ChatScreen(
                     onNavigateToFiles = { path ->
                         navController.navigate(Screen.Files.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
                     }
                 )
             }
@@ -162,6 +165,8 @@ private fun PhoneLayout(repository: OpenCodeRepository) {
 
 @Composable
 private fun TabletLayout(repository: OpenCodeRepository) {
+    var showSettings by remember { mutableStateOf(false) }
+
     Row(modifier = Modifier.fillMaxSize()) {
         // Left panel: Workspace (Files + Settings)
         Column(
@@ -169,8 +174,6 @@ private fun TabletLayout(repository: OpenCodeRepository) {
                 .weight(1f)
                 .fillMaxHeight()
         ) {
-            var showSettings by remember { mutableStateOf(false) }
-
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 tonalElevation = 1.dp
@@ -228,7 +231,8 @@ private fun TabletLayout(repository: OpenCodeRepository) {
                 .fillMaxHeight()
         ) {
             ChatScreen(
-                onNavigateToFiles = { }
+                onNavigateToFiles = { },
+                onNavigateToSettings = { showSettings = true }
             )
         }
     }

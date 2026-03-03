@@ -27,7 +27,8 @@ import com.yage.opencode_client.ui.theme.UserMessageBackground
 @Composable
 fun ChatScreen(
     viewModel: MainViewModel = hiltViewModel(),
-    onNavigateToFiles: (String) -> Unit = {}
+    onNavigateToFiles: (String) -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -45,7 +46,8 @@ fun ChatScreen(
             onCreateSession = { viewModel.createSession() },
             onAbort = { viewModel.abortSession() },
             onSelectAgent = { viewModel.selectAgent(it) },
-            onSelectModel = { viewModel.selectModel(it) }
+            onSelectModel = { viewModel.selectModel(it) },
+            onNavigateToSettings = onNavigateToSettings
         )
 
         Box(modifier = Modifier.weight(1f)) {
@@ -112,7 +114,8 @@ private fun TopBar(
     onCreateSession: () -> Unit,
     onAbort: () -> Unit,
     onSelectAgent: (String) -> Unit,
-    onSelectModel: (Int) -> Unit
+    onSelectModel: (Int) -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     var showSessionMenu by remember { mutableStateOf(false) }
     var showAgentMenu by remember { mutableStateOf(false) }
@@ -181,6 +184,9 @@ private fun TopBar(
 
             IconButton(onClick = { showSessionMenu = true }) {
                 Icon(Icons.Default.List, contentDescription = "Sessions")
+            }
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(Icons.Default.Settings, contentDescription = "Settings")
             }
             DropdownMenu(
                 expanded = showSessionMenu,
@@ -266,7 +272,12 @@ private fun EmptyState(
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (!isConnected) {
-                Button(onClick = onConnect) {
+                Button(
+                    onClick = onConnect,
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .minimumInteractiveComponentSize()
+                ) {
                     Text("Connect")
                 }
             }
