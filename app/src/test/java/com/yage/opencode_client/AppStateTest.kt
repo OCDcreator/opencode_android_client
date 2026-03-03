@@ -1,6 +1,7 @@
 package com.yage.opencode_client
 
 import com.yage.opencode_client.ui.AppState
+import com.yage.opencode_client.ui.ModelPresets
 import com.yage.opencode_client.data.model.*
 import com.yage.opencode_client.util.ThemeMode
 import org.junit.Assert.*
@@ -132,54 +133,25 @@ class AppStateTest {
     }
 
     @Test
-    fun `availableModels returns empty when providers is null`() {
-        val state = AppState(providers = null)
-        assertTrue(state.availableModels.isEmpty())
-    }
-
-    @Test
-    fun `availableModels returns empty when providers list is empty`() {
-        val state = AppState(providers = ProvidersResponse(providers = emptyList()))
-        assertTrue(state.availableModels.isEmpty())
-    }
-
-    @Test
-    fun `availableModels returns models from single provider`() {
-        val providers = makeProviders(
-            Triple("openai", "gpt-4", "GPT-4"),
-            Triple("openai", "gpt-3.5", null)
-        )
-        val state = AppState(providers = providers)
+    fun `availableModels returns curated presets (filtered like iOS)`() {
+        val state = AppState()
         val models = state.availableModels
 
-        assertEquals(2, models.size)
-        assertEquals("GPT-4", models[0].displayName)
-        assertEquals("openai", models[0].providerId)
-        assertEquals("gpt-4", models[0].modelId)
-        assertEquals("gpt-3.5", models[1].displayName)
+        assertEquals(ModelPresets.list.size, models.size)
+        assertEquals(ModelPresets.list, models)
+        assertEquals("GLM-5", models[0].displayName)
+        assertEquals("zai-coding-plan", models[0].providerId)
+        assertEquals("glm-5", models[0].modelId)
+        assertEquals("Opus 4.6", models[1].displayName)
+        assertEquals("anthropic", models[1].providerId)
     }
 
     @Test
-    fun `availableModels returns models from multiple providers`() {
-        val providers = makeProviders(
-            Triple("openai", "gpt-4", "GPT-4"),
-            Triple("anthropic", "claude-3", "Claude 3")
-        )
-        val state = AppState(providers = providers)
-        val models = state.availableModels
-
-        assertEquals(2, models.size)
-        val providerIds = models.map { it.providerId }.toSet()
-        assertTrue(providerIds.contains("openai"))
-        assertTrue(providerIds.contains("anthropic"))
-    }
-
-    @Test
-    fun `availableModels uses model id as displayName when name is null`() {
-        val providers = makeProviders(Triple("provider1", "model-x", null))
-        val state = AppState(providers = providers)
-
-        assertEquals("model-x", state.availableModels[0].displayName)
+    fun `availableModels independent of providers`() {
+        val stateWithProviders = AppState(providers = makeProviders(Triple("openai", "gpt-4", "GPT-4")))
+        val stateWithoutProviders = AppState(providers = null)
+        assertEquals(stateWithProviders.availableModels, stateWithoutProviders.availableModels)
+        assertEquals(ModelPresets.list, stateWithProviders.availableModels)
     }
 
     private fun makeContextUsageState(

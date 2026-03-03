@@ -57,16 +57,9 @@ data class AppState(
     val visibleAgents: List<AgentInfo>
         get() = agents.filter { it.isVisible }
 
+    /** Curated model list (filtered like iOS), not the full API response. */
     val availableModels: List<ModelOption>
-        get() = providers?.providers?.flatMap { provider ->
-            provider.models.map { (_, model) ->
-                ModelOption(
-                    displayName = model.name ?: model.id,
-                    providerId = provider.id,
-                    modelId = model.id
-                )
-            }
-        } ?: emptyList()
+        get() = ModelPresets.list
 
     private val providerModelsIndex: Map<String, ProviderModel>
         get() = providers?.providers?.flatMap { provider ->
@@ -114,9 +107,14 @@ class MainViewModel @Inject constructor(
             username = settingsManager.username,
             password = settingsManager.password
         )
+        val savedModelIndex = settingsManager.selectedModelIndex
+        val clampedModelIndex = savedModelIndex.coerceIn(0, ModelPresets.list.size - 1)
+        if (clampedModelIndex != savedModelIndex) {
+            settingsManager.selectedModelIndex = clampedModelIndex
+        }
         _state.update { it.copy(
             currentSessionId = settingsManager.currentSessionId,
-            selectedModelIndex = settingsManager.selectedModelIndex,
+            selectedModelIndex = clampedModelIndex,
             selectedAgentName = settingsManager.selectedAgentName ?: "build",
             themeMode = settingsManager.themeMode
         )}
@@ -338,8 +336,9 @@ class MainViewModel @Inject constructor(
     }
 
     fun selectModel(index: Int) {
-        settingsManager.selectedModelIndex = index
-        _state.update { it.copy(selectedModelIndex = index) }
+        val clamped = index.coerceIn(0, ModelPresets.list.size - 1)
+        settingsManager.selectedModelIndex = clamped
+        _state.update { it.copy(selectedModelIndex = clamped) }
     }
 
     fun setThemeMode(mode: ThemeMode) {
