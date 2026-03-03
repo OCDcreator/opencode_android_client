@@ -130,8 +130,9 @@ private fun PhoneLayout(viewModel: MainViewModel, repository: OpenCodeRepository
                         onClick = {
                             if (currentRoute != screen.route) {
                                 navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
+                                    popUpTo(Screen.Chat.route) {
                                         saveState = true
+                                        inclusive = (screen.route == Screen.Chat.route)
                                     }
                                     launchSingleTop = true
                                     restoreState = true
@@ -173,6 +174,7 @@ private fun PhoneLayout(viewModel: MainViewModel, repository: OpenCodeRepository
                 FilesScreen(
                     repository = repository,
                     pathToShow = state.filePathToShowInFiles,
+                    sessionDirectory = state.currentSession?.directory,
                     onCloseFile = { viewModel.clearFileToShow() },
                     onFileClick = { }
                 )
@@ -228,6 +230,7 @@ private fun TabletLayout(viewModel: MainViewModel, repository: OpenCodeRepositor
                 FilesScreen(
                 repository = repository,
                 pathToShow = state.filePathToShowInFiles,
+                sessionDirectory = state.currentSession?.directory,
                 onCloseFile = { viewModel.clearFileToShow() },
                 onFileClick = { }
             )

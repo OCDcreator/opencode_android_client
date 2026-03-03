@@ -426,13 +426,13 @@ private fun PartView(
                 input = part.toolInputSummary,
                 output = part.toolOutput,
                 todos = part.toolTodos,
-                filePaths = part.filePathsForNavigation,
+                filePaths = part.filePathsForNavigationFiltered,
                 onFileClick = onFileClick
             )
         }
-        part.isPatch -> {
+        part.isPatch && part.filePathsForNavigationFiltered.isNotEmpty() -> {
             PatchCard(
-                filePaths = part.filePathsForNavigation,
+                filePaths = part.filePathsForNavigationFiltered,
                 onFileClick = onFileClick
             )
         }

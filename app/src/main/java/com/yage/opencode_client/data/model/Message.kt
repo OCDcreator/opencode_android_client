@@ -127,6 +127,12 @@ data class Part(
             return result
         }
 
+    /** Paths that look like files (have extension), not directories. API often returns dirs in patch. */
+    val filePathsForNavigationFiltered: List<String>
+        get() = filePathsForNavigation.filter { path ->
+            path.substringAfterLast("/").contains(".")
+        }
+
     @Serializable
     data class FileChange(
         val path: String,

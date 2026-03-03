@@ -138,6 +138,21 @@ class ModelTests {
     }
 
     @Test
+    fun `Part filePathsForNavigationFiltered excludes directories`() {
+        val part = Part(
+            id = "p1",
+            type = "patch",
+            files = listOf(
+                Part.FileChange(path = "adhoc_jobs"),
+                Part.FileChange(path = "src/main.kt"),
+                Part.FileChange(path = "README.md"),
+                Part.FileChange(path = "ai_builder_courses/circle_context")
+            )
+        )
+        assertEquals(listOf("src/main.kt", "README.md"), part.filePathsForNavigationFiltered)
+    }
+
+    @Test
     fun `AgentInfo visibility checks`() {
         val primaryAgent = AgentInfo(
             name = "Sisyphus",

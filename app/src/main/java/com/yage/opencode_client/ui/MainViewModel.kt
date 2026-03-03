@@ -9,6 +9,7 @@ import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -101,6 +102,7 @@ class MainViewModel @Inject constructor(
     val state: StateFlow<AppState> = _state.asStateFlow()
 
     private var sseJob: Job? = null
+    private var pollJob: Job? = null
 
     init {
         loadSettings()
@@ -185,6 +187,8 @@ class MainViewModel @Inject constructor(
             repository.getSessionStatus()
                 .onSuccess { statuses ->
                     _state.update { it.copy(sessionStatuses = statuses) }
+                    val currentId = _state.value.currentSessionId ?: return@onSuccess
+                    if (statuses[currentId]?.isBusy == true) startPollingWhenBusy()
                 }
         }
     }
@@ -409,6 +413,9 @@ class MainViewModel @Inject constructor(
                     _state.update { it.copy(
                         sessionStatuses = it.sessionStatuses + (sessionId to status)
                     )}
+                    if (sessionId == _state.value.currentSessionId && status.isBusy) {
+                        startPollingWhenBusy()
+                    }
                 } catch (e: Exception) { }
             }
             "message.created" -> {
@@ -429,8 +436,21 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun startPollingWhenBusy() {
+        pollJob?.cancel()
+        pollJob = viewModelScope.launch {
+            while (true) {
+                delay(2000)
+                val sessionId = _state.value.currentSessionId ?: break
+                if (!_state.value.isCurrentSessionBusy) break
+                loadMessages(sessionId, resetLimit = false)
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         sseJob?.cancel()
+        pollJob?.cancel()
     }
 }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 fun FilesScreen(
     repository: OpenCodeRepository,
     pathToShow: String? = null,
+    sessionDirectory: String? = null,
     onCloseFile: () -> Unit = {},
     onFileClick: (String) -> Unit = {}
 ) {
@@ -40,17 +41,38 @@ fun FilesScreen(
 
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(pathToShow) {
+    LaunchedEffect(pathToShow, sessionDirectory) {
         if (pathToShow == null) {
             selectedFilePath = null
             selectedFileContent = null
         } else {
-            repository.getFileContent(pathToShow)
+            val relPath = when {
+                sessionDirectory != null && pathToShow.startsWith(sessionDirectory) ->
+                    pathToShow.removePrefix(sessionDirectory).trimStart('/')
+                else -> pathToShow
+            }
+            repository.getFileContent(relPath)
                 .onSuccess { content ->
-                    selectedFileContent = content.text
-                    selectedFilePath = pathToShow
+                    if (!content.text.isNullOrBlank()) {
+                        selectedFileContent = content.text
+                        selectedFilePath = pathToShow
+                    } else {
+                        repository.getFileTree(relPath)
+                            .onSuccess { tree ->
+                                selectedFilePath = pathToShow
+                                selectedFileContent = "Directory:\n" + tree.joinToString("\n") { it.path }
+                            }
+                            .onFailure { error = it.message }
+                    }
                 }
-                .onFailure { error = it.message }
+                .onFailure {
+                    repository.getFileTree(relPath)
+                        .onSuccess { tree ->
+                            selectedFilePath = pathToShow
+                            selectedFileContent = "Directory:\n" + tree.joinToString("\n") { it.path }
+                        }
+                        .onFailure { error = it.message }
+                }
         }
     }
 

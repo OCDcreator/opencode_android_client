@@ -215,8 +215,8 @@
 - **FilesScreen**：支持 `pathToShow` 与 `onCloseFile` 参数，可从 Chat 面板跳转并展示指定文件
 - **测试**：AppStateTest 新增 filePathToShowInFiles 默认值与读写；ModelTests 新增 Part.filePathsForNavigation 测试
 
-### 待修复 (2026-03-03)
-- 工具/补丁内容更新缓慢
-- Patch 显示文件夹而非文件（需查 API 响应）
-- Files 面板加载文件内容为空
-- 手机模式：从 Chat 点 patch 跳 Files 后，底部 Tab 无法切回 Chat
+### 修复 (2026-03-03)
+- **工具/补丁更新加速**：session 为 busy 时每 2 秒轮询 loadMessages，弥补 SSE 延迟
+- **Patch 过滤目录**：API 返回 session 级目录列表，新增 `filePathsForNavigationFiltered` 仅含带扩展名路径，Patch/Tool 卡片仅展示文件
+- **Files 面板**：传入 `sessionDirectory`，绝对路径转相对；getFileContent 为空时 fallback 到 getFileTree 展示目录
+- **手机导航**：修复 popUpTo(Screen.Chat.route) { inclusive = true }，从 Files 点 Chat Tab 可正确返回
