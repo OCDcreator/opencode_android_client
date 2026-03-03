@@ -1,92 +1,127 @@
-# OpenCode Android Client Working Log
+# OpenCode Android 客户端工作日志
 
 ## 2026-02-23
 
-### Initial Setup
-- Created project structure with Android Studio
-- Initialized git repository
-- Created docs/PRD.md and docs/RFC.md
+### 项目初始化
+- 使用 Android Studio 创建项目结构
+- 初始化 git 仓库
+- 创建 docs/PRD.md 和 docs/RFC.md
 
-### Dependencies
-- Added OkHttp, Retrofit, Kotlinx Serialization, Hilt, Navigation, Security, Lifecycle dependencies to libs.versions.toml
-- Updated app/build.gradle.kts with all required dependencies
+### 依赖
+- 在 libs.versions.toml 中添加 OkHttp、Retrofit、Kotlinx Serialization、Hilt、Navigation、Security、Lifecycle 等依赖
+- 更新 app/build.gradle.kts 引入全部所需依赖
 
-### Data Models
-- Created Session, SessionStatus models (Session.kt)
-- Created Message, MessageWithParts, Part, PartState models with custom serializers (Message.kt)
-- Created AgentInfo model with visibility logic (AgentInfo.kt)
-- Created TodoItem model (TodoItem.kt)
-- Created FileNode, FileContent, FileStatusEntry, FileDiff models (File.kt)
-- Created HealthResponse, ProvidersResponse, ConfigProvider, ProviderModel models (Config.kt)
-- Created SSEEvent, SSEPayload models (SSE.kt)
-- Created PermissionRequest, PermissionResponse models (Permission.kt)
+### 数据模型
+- 创建 Session、SessionStatus 模型 (Session.kt)
+- 创建 Message、MessageWithParts、Part、PartState 模型及自定义序列化器 (Message.kt)
+- 创建带可见性逻辑的 AgentInfo 模型 (AgentInfo.kt)
+- 创建 TodoItem 模型 (TodoItem.kt)
+- 创建 FileNode、FileContent、FileStatusEntry、FileDiff 模型 (File.kt)
+- 创建 HealthResponse、ProvidersResponse、ConfigProvider、ProviderModel 模型 (Config.kt)
+- 创建 SSEEvent、SSEPayload 模型 (SSE.kt)
+- 创建 PermissionRequest、PermissionResponse 模型 (Permission.kt)
 
-### Network Layer
-- Implemented OpenCodeApi interface with all REST endpoints (OpenCodeApi.kt)
-- Implemented SSEClient with OkHttp SSE support (SSEClient.kt)
-- Implemented OpenCodeRepository with Retrofit and authentication (OpenCodeRepository.kt)
+### 网络层
+- 实现 OpenCodeApi 接口及全部 REST 端点 (OpenCodeApi.kt)
+- 实现基于 OkHttp SSE 的 SSEClient (SSEClient.kt)
+- 实现带 Retrofit 与认证的 OpenCodeRepository (OpenCodeRepository.kt)
 
-### DI & App Setup
-- Created AppModule for Hilt dependency injection (AppModule.kt)
-- Created OpenCodeApp Application class (OpenCodeApp.kt)
+### DI 与应用配置
+- 创建 Hilt 依赖注入的 AppModule (AppModule.kt)
+- 创建 OpenCodeApp Application 类 (OpenCodeApp.kt)
 
-### UI Theme
-- Created Theme.kt with Light/Dark theme support
-- Updated Color.kt with message and file status colors
-- Updated Type.kt with Typography settings
+### UI 主题
+- 创建 Theme.kt，支持浅色/深色主题
+- 更新 Color.kt 的消息与文件状态颜色
+- 更新 Type.kt 的 Typography 配置
 
-### Utility Classes
-- Created SettingsManager with EncryptedSharedPreferences for secure storage (SettingsManager.kt)
-- Created ThemeMode enum for theme selection
+### 工具类
+- 创建 SettingsManager，使用 EncryptedSharedPreferences 安全存储 (SettingsManager.kt)
+- 创建 ThemeMode 枚举用于主题选择
 
-### State Management
-- Created AppState data class with all UI state
-- Created MainViewModel with StateFlow and SSE handling (MainViewModel.kt)
+### 状态管理
+- 创建 AppState 数据类承载全部 UI 状态
+- 创建 MainViewModel，使用 StateFlow 与 SSE 处理 (MainViewModel.kt)
 
-### UI Implementation
-- Created ChatScreen with message list, input bar, permission cards (ChatScreen.kt)
-- Created FilesScreen with file tree and content viewer (FilesScreen.kt)
-- Created SettingsScreen with connection and appearance settings (SettingsScreen.kt)
-- Updated MainActivity with bottom navigation and screen routing
+### UI 实现
+- 创建 ChatScreen：消息列表、输入栏、权限卡片 (ChatScreen.kt)
+- 创建 FilesScreen：文件树与内容查看 (FilesScreen.kt)
+- 创建 SettingsScreen：连接与外观设置 (SettingsScreen.kt)
+- 更新 MainActivity：底部导航与页面路由
 
-### Configuration
-- Added network_security_config.xml for HTTP cleartext traffic
-- Updated AndroidManifest.xml with INTERNET permission and network security config
+### 配置
+- 添加 network_security_config.xml 支持 HTTP 明文流量
+- 更新 AndroidManifest.xml：INTERNET 权限与网络安全配置
 
-### Tests
-- Created ModelTests with serialization and model logic tests (ModelTests.kt)
-- Created AppStateTest with state management tests (AppStateTest.kt)
+### 测试
+- 创建 ModelTests：序列化与模型逻辑测试 (ModelTests.kt)
+- 创建 AppStateTest：状态管理测试 (AppStateTest.kt)
 
 ---
 
 ## 2026-02-24
 
-### Build Fixes
-- Migrated kapt → KSP for AGP 9 built-in Kotlin compatibility
-- Upgraded KSP to 2.3.6 for kotlin.sourceSets DSL fix
-- Fixed MainActivity icons (FolderOutlined/SettingsOutlined → Folder/Settings)
-- Fixed Message.kt SerialDescriptor and booleanOrNull
-- Fixed Permission.kt SerialName import
-- Fixed Session.kt isRetry getter syntax
-- Fixed OpenCodeRepository Retrofit converter import
-- Added material-icons-extended dependency
-- Renamed OpenCodeTheme in Theme.kt
+### 构建修复
+- 迁移 kapt → KSP，适配 AGP 9 内置 Kotlin 兼容
+- 升级 KSP 至 2.3.6 修复 kotlin.sourceSets DSL
+- 修复 MainActivity 图标 (FolderOutlined/SettingsOutlined → Folder/Settings)
+- 修复 Message.kt 的 SerialDescriptor 与 booleanOrNull
+- 修复 Permission.kt 的 SerialName 导入
+- 修复 Session.kt 的 isRetry getter 语法
+- 修复 OpenCodeRepository 的 Retrofit converter 导入
+- 添加 material-icons-extended 依赖
+- 重命名 Theme.kt 中的 OpenCodeTheme
 
 ### AGENTS.md
-- Created AGENTS.md with Android Studio JDK build instructions
+- 创建 AGENTS.md，包含 Android Studio JDK 构建说明
 
-### App Icon / Logo
-- Copied logo from opencode_ios_client (AppIcon.png)
-- scripts/resize_icon.py: generates Android mipmap + adaptive icon foreground
-- Replaced default Android icon with OpenCode logo
+### 应用图标 / Logo
+- 从 opencode_ios_client 复制 logo (AppIcon.png)
+- scripts/resize_icon.py：生成 Android mipmap 与自适应图标前景
+- 用 OpenCode logo 替换默认 Android 图标
 
-### Test Coverage & Integration Tests
-- Added Kover for unit test coverage (`./gradlew koverHtmlReport`)
-- Added OpenCodeRepositoryTest with MockWebServer (checkHealth, getSessions, getAgents)
-- Added .env for integration test credentials (copy .env.example to .env, fill in)
-- Dynamic credential loading via Gradle: reads .env at build time, passes to instrumentation args
-- Added OpenCodeIntegrationTest (checkHealth, getSessions, getAgents)
-- Run integration tests: `./gradlew connectedDebugAndroidTest` (requires emulator/device + .env)
+### Settings 页面修复
+- 从 SettingsManager 加载已保存的 URL/用户名/密码
+- Test Connection：实际调用 testConnection() 并显示结果（之前会卡住）
+- Save 按钮将设置持久化到 EncryptedSharedPreferences
 
-### Android Studio Run Configuration
-- Added .idea/runConfigurations/app.xml for Android App run config (fixes grayed-out Run button when module shows \<no module\>)
+### 测试覆盖率与集成测试
+- 添加 Kover 做单元测试覆盖率 (`./gradlew koverHtmlReport`)
+- 添加 OpenCodeRepositoryTest，使用 MockWebServer (checkHealth、getSessions、getAgents)
+- 添加 .env 用于集成测试凭证（复制 .env.example 为 .env 并填写）
+- Gradle 动态加载凭证：构建时读取 .env，传入 instrumentation args
+- 添加 OpenCodeIntegrationTest (checkHealth、getSessions、getAgents)
+- 运行集成测试：`./gradlew connectedDebugAndroidTest`（需模拟器/真机 + .env）
+
+### Android Studio 运行配置
+- 添加 .idea/runConfigurations/app.xml 作为 Android App 运行配置（解决 Run 按钮灰显、模块显示 \<no module\> 的问题）
+
+---
+
+## 2026-03-02
+
+### 代码审查发现的 Bug
+
+1. **OpenCodeRepository lazy re-init**: `okHttpClient` 和 `retrofit` 用 `by lazy` 初始化，但 `configure()` 只修改字段值，不会重建实例。用户在 Settings 修改 URL 后，实际请求仍然发到旧地址。
+2. **network_security_config.xml**: `base-config cleartextTrafficPermitted="true"` 允许所有域名 HTTP 明文流量，domain-config 形同虚设。应该限制为仅私有 IP + Tailscale。
+3. **主题切换未生效**: SettingsScreen 的 `selectedTheme` 是局部 remember 状态，未写入 SettingsManager.themeMode，也未传给 OpenCodeTheme。
+4. **SSE 无重连**: 连接断开后不重试。
+5. **模型选择无 UI**: selectedModelIndex 和 providers 数据已存储，但 ChatScreen 没有模型选择下拉框。
+
+### Sprint 计划 (2026-03-02)
+
+**目标功能**:
+- Markdown 渲染 (Chat 消息 + 文件预览)
+- 主题切换修复 (persist + apply)
+- 模型选择 UI
+- Context Usage 环形进度
+- 平板三栏布局
+- Tailscale *.ts.net HTTP exception
+- Bug fixes (Repository re-init, network_security_config, SSE reconnect)
+- 测试覆盖
+
+**不做的功能**:
+- 打字机效果 / delta 增量渲染
+- 语音输入
+- SSH Tunnel
+- Session 变更文件列表
