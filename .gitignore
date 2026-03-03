@@ -21,6 +21,7 @@
 # Local config
 *.properties
 !gradle/wrapper/gradle-wrapper.properties
+!gradle.properties
 
 # Keystore (never commit)
 *.jks
