@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui.files
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,32 +47,53 @@ fun FilesScreen(
             selectedFilePath = null
             selectedFileContent = null
         } else {
+            val sessionNorm = sessionDirectory?.trimStart('/') ?: ""
+            val pathNorm = pathToShow.trimStart('/')
             val relPath = when {
-                sessionDirectory != null && pathToShow.startsWith(sessionDirectory) ->
-                    pathToShow.removePrefix(sessionDirectory).trimStart('/')
-                else -> pathToShow
+                sessionNorm.isNotEmpty() && (pathNorm == sessionNorm || pathNorm.startsWith("$sessionNorm/")) ->
+                    pathNorm.removePrefix(sessionNorm).trimStart('/')
+                else -> pathNorm
             }
+            Log.d("FilesScreen", "pathToShow=$pathToShow sessionDirectory=$sessionDirectory relPath=$relPath")
             repository.getFileContent(relPath)
                 .onSuccess { content ->
+                    Log.d("FilesScreen", "getFileContent success type=${content.type} hasText=${!content.text.isNullOrBlank()}")
                     if (!content.text.isNullOrBlank()) {
                         selectedFileContent = content.text
                         selectedFilePath = pathToShow
                     } else {
                         repository.getFileTree(relPath)
                             .onSuccess { tree ->
+                                Log.d("FilesScreen", "getFileTree fallback count=${tree.size} paths=${tree.take(5).map { it.path }}")
                                 selectedFilePath = pathToShow
-                                selectedFileContent = "Directory:\n" + tree.joinToString("\n") { it.path }
+                                selectedFileContent = if (tree.isEmpty()) {
+                                    "Directory (empty or path not found): $relPath"
+                                } else {
+                                    "Directory:\n" + tree.joinToString("\n") { it.path }
+                                }
                             }
-                            .onFailure { error = it.message }
+                            .onFailure { e ->
+                                Log.e("FilesScreen", "getFileTree fallback failed", e)
+                                error = e.message
+                            }
                     }
                 }
-                .onFailure {
+                .onFailure { e ->
+                    Log.e("FilesScreen", "getFileContent failed, trying getFileTree", e)
                     repository.getFileTree(relPath)
                         .onSuccess { tree ->
+                            Log.d("FilesScreen", "getFileTree (content failed) count=${tree.size} paths=${tree.take(5).map { it.path }}")
                             selectedFilePath = pathToShow
-                            selectedFileContent = "Directory:\n" + tree.joinToString("\n") { it.path }
+                            selectedFileContent = if (tree.isEmpty()) {
+                                "Directory (empty or path not found): $relPath"
+                            } else {
+                                "Directory:\n" + tree.joinToString("\n") { it.path }
+                            }
                         }
-                        .onFailure { error = it.message }
+                        .onFailure { e2 ->
+                            Log.e("FilesScreen", "getFileTree also failed", e2)
+                            error = e2.message
+                        }
                 }
         }
     }
@@ -115,32 +137,34 @@ fun FilesScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(currentPath.ifEmpty { "Files" }) },
-            navigationIcon = {
-                if (currentPath.isNotEmpty()) {
-                    IconButton(onClick = {
-                        val parentPath = if ("/" in currentPath) {
-                            currentPath.substringBeforeLast("/")
-                        } else {
-                            ""  // one level deep, parent is root
+        if (selectedFilePath == null) {
+            TopAppBar(
+                title = { Text(currentPath.ifEmpty { "Files" }) },
+                navigationIcon = {
+                    if (currentPath.isNotEmpty()) {
+                        IconButton(onClick = {
+                            val parentPath = if ("/" in currentPath) {
+                                currentPath.substringBeforeLast("/")
+                            } else {
+                                ""  // one level deep, parent is root
+                            }
+                            currentPath = parentPath
+                            loadFiles(parentPath)
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
-                        currentPath = parentPath
-                        loadFiles(parentPath)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        loadFiles(currentPath)
+                        loadFileStatuses()
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 }
-            },
-            actions = {
-                IconButton(onClick = {
-                    loadFiles(currentPath)
-                    loadFileStatuses()
-                }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                }
-            }
-        )
+            )
+        }
 
         if (error != null) {
             Snackbar(

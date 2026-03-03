@@ -9,7 +9,6 @@ import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,7 +37,9 @@ data class AppState(
     val inputText: String = "",
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val filePathToShowInFiles: String? = null
+    val filePathToShowInFiles: String? = null,
+    val streamingPartTexts: Map<String, String> = emptyMap(),
+    val streamingReasoningPart: Part? = null
 ) {
     data class ModelOption(val displayName: String, val providerId: String, val modelId: String)
 
@@ -102,7 +103,6 @@ class MainViewModel @Inject constructor(
     val state: StateFlow<AppState> = _state.asStateFlow()
 
     private var sseJob: Job? = null
-    private var pollJob: Job? = null
 
     init {
         loadSettings()
@@ -187,8 +187,6 @@ class MainViewModel @Inject constructor(
             repository.getSessionStatus()
                 .onSuccess { statuses ->
                     _state.update { it.copy(sessionStatuses = statuses) }
-                    val currentId = _state.value.currentSessionId ?: return@onSuccess
-                    if (statuses[currentId]?.isBusy == true) startPollingWhenBusy()
                 }
         }
     }
@@ -371,6 +369,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun showFileInFiles(path: String) {
+        android.util.Log.d("MainViewModel", "showFileInFiles path=$path currentSessionDir=${_state.value.currentSession?.directory}")
         _state.update { it.copy(filePathToShowInFiles = path) }
     }
 
@@ -413,8 +412,11 @@ class MainViewModel @Inject constructor(
                     _state.update { it.copy(
                         sessionStatuses = it.sessionStatuses + (sessionId to status)
                     )}
-                    if (sessionId == _state.value.currentSessionId && status.isBusy) {
-                        startPollingWhenBusy()
+                    if (sessionId == _state.value.currentSessionId && !status.isBusy) {
+                        _state.update { it.copy(
+                            streamingPartTexts = emptyMap(),
+                            streamingReasoningPart = null
+                        )}
                     }
                 } catch (e: Exception) { }
             }
@@ -427,7 +429,24 @@ class MainViewModel @Inject constructor(
             "message.part.updated" -> {
                 val sessionId = event.payload.getString("sessionID")
                 if (sessionId == _state.value.currentSessionId) {
+                val partObj = event.payload.getJsonObject("part")
+                val msgId = (partObj?.get("messageID") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                val partId = (partObj?.get("id") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                val partType = (partObj?.get("type") as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "text"
+                val delta = event.payload.getString("delta")
+                if (msgId != null && partId != null && !delta.isNullOrBlank()) {
+                    val key = "$msgId:$partId"
+                    val prev = _state.value.streamingPartTexts[key] ?: ""
+                    _state.update { it.copy(
+                        streamingPartTexts = it.streamingPartTexts + (key to (prev + delta)),
+                        streamingReasoningPart = if (partType == "reasoning") {
+                            Part(id = partId, messageId = msgId, sessionId = sessionId, type = "reasoning")
+                        } else it.streamingReasoningPart
+                    )}
+                } else {
+                    _state.update { it.copy(streamingPartTexts = emptyMap(), streamingReasoningPart = null) }
                     loadMessages(sessionId!!, resetLimit = false)
+                }
                 }
             }
             "permission.asked" -> {
@@ -436,21 +455,8 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun startPollingWhenBusy() {
-        pollJob?.cancel()
-        pollJob = viewModelScope.launch {
-            while (true) {
-                delay(2000)
-                val sessionId = _state.value.currentSessionId ?: break
-                if (!_state.value.isCurrentSessionBusy) break
-                loadMessages(sessionId, resetLimit = false)
-            }
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         sseJob?.cancel()
-        pollJob?.cancel()
     }
 }

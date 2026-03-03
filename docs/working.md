@@ -220,3 +220,8 @@
 - **Patch 过滤目录**：API 返回 session 级目录列表，新增 `filePathsForNavigationFiltered` 仅含带扩展名路径，Patch/Tool 卡片仅展示文件
 - **Files 面板**：传入 `sessionDirectory`，绝对路径转相对；getFileContent 为空时 fallback 到 getFileTree 展示目录
 - **手机导航**：修复 popUpTo(Screen.Chat.route) { inclusive = true }，从 Files 点 Chat Tab 可正确返回
+
+### UI 改进 (2026-03-03 续)
+- **Tool 卡片**：标题改为扳手图标 + tool 类型（read/patch/bash）；文件路径两列并排，不展开也显示「Show in Files」图标；展开后显示 Input/Tasks/Output
+- **Files 文件预览**：查看文件时隐藏 Files TopAppBar，仅保留 FileContentViewer 的 TopAppBar（叉号+文件名），去除中间大块空白
+- **文件跳转调试**：FilesScreen 与 MainViewModel 添加 Log.d 便于 logcat 排查 pathToShow/relPath；路径规范化（trimStart('/')）兼容有无前导斜杠；空目录显示 "Directory (empty or path not found)"

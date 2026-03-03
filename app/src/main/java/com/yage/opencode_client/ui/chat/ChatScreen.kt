@@ -64,6 +64,8 @@ fun ChatScreen(
             } else {
                 MessageList(
                     messages = state.messages,
+                    streamingPartTexts = state.streamingPartTexts,
+                    streamingReasoningPart = state.streamingReasoningPart,
                     isLoading = state.isLoadingMessages,
                     onLoadMore = { viewModel.loadMoreMessages() },
                     onFileClick = onNavigateToFiles
@@ -322,6 +324,8 @@ private fun EmptyState(
 @Composable
 private fun MessageList(
     messages: List<MessageWithParts>,
+    streamingPartTexts: Map<String, String>,
+    streamingReasoningPart: Part?,
     isLoading: Boolean,
     onLoadMore: () -> Unit,
     onFileClick: (String) -> Unit
@@ -340,9 +344,27 @@ private fun MessageList(
         reverseLayout = true,
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
+        if (streamingReasoningPart != null) {
+            val streamingKey = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
+            val streamingText = streamingPartTexts[streamingKey] ?: ""
+            item(key = "streaming-reasoning") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    ReasoningCard(
+                        text = streamingText,
+                        title = streamingReasoningPart.toolReason,
+                        isStreaming = true
+                    )
+                }
+            }
+        }
         items(messages, key = { it.info.id }) { message ->
             MessageRow(
                 message = message,
+                streamingPartTexts = streamingPartTexts,
                 onFileClick = onFileClick
             )
         }
@@ -380,6 +402,7 @@ private fun MessageList(
 @Composable
 private fun MessageRow(
     message: MessageWithParts,
+    streamingPartTexts: Map<String, String>,
     onFileClick: (String) -> Unit
 ) {
     val isUser = message.info.isUser
@@ -390,9 +413,12 @@ private fun MessageRow(
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         message.parts.forEach { part ->
+            val streamingKey = "${message.info.id}:${part.id}"
+            val streamingText = streamingPartTexts[streamingKey]
             PartView(
                 part = part,
                 isUser = isUser,
+                streamingTextOverride = streamingText,
                 onFileClick = onFileClick
             )
         }
@@ -403,19 +429,21 @@ private fun MessageRow(
 private fun PartView(
     part: Part,
     isUser: Boolean,
+    streamingTextOverride: String?,
     onFileClick: (String) -> Unit
 ) {
     when {
         part.isText -> {
             TextPart(
-                text = part.text ?: "",
+                text = streamingTextOverride ?: part.text ?: "",
                 isUser = isUser
             )
         }
         part.isReasoning -> {
             ReasoningCard(
-                text = part.text ?: "",
-                title = part.toolReason
+                text = streamingTextOverride ?: part.text ?: "",
+                title = part.toolReason,
+                isStreaming = false
             )
         }
         part.isTool -> {
@@ -471,9 +499,14 @@ private fun TextPart(
 @Composable
 private fun ReasoningCard(
     text: String,
-    title: String?
+    title: String?,
+    isStreaming: Boolean = false
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(isStreaming) }
+
+    LaunchedEffect(isStreaming) {
+        if (isStreaming) expanded = true
+    }
 
     Card(
         modifier = Modifier
@@ -501,18 +534,20 @@ private fun ReasoningCard(
                     style = MaterialTheme.typography.labelLarge
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (!isStreaming) {
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
-            if (expanded && text.isNotBlank()) {
+            if ((expanded || isStreaming) && text.isNotBlank()) {
                 Markdown(
                     content = text,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -560,7 +595,7 @@ private fun ToolCard(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    reason ?: toolName,
+                    text = toolName.ifEmpty { reason ?: "tool" },
                     style = MaterialTheme.typography.labelLarge
                 )
                 Spacer(modifier = Modifier.weight(1f))
@@ -573,6 +608,44 @@ private fun ToolCard(
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
+                }
+            }
+
+            filePaths.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pair.forEach { path ->
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = path.substringAfterLast("/").ifEmpty { path },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            IconButton(
+                                onClick = { onFileClick(path) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.OpenInNew,
+                                    contentDescription = "Show in Files",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (pair.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
 
@@ -626,28 +699,18 @@ private fun ToolCard(
                     }
                 }
 
-                filePaths.forEach { path ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            path,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { onFileClick(path) },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.OpenInNew,
-                                contentDescription = "Show in Files",
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                output?.let {
+                    Text(
+                        "Output:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                 }
             }
         }
