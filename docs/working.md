@@ -173,9 +173,8 @@
 - **TabletLayout**：hoist `showSettings` 状态，支持从 Chat 面板直接打开 Settings
 
 ### 默认服务器
-- 默认 Server URL 改为 `http://quantum.tail63c3c5.ts.net:4096`（Tailscale MagicDNS）
+- 默认 Server URL 改为 localhost
 - 更新 SettingsManager、OpenCodeRepository、SettingsScreen placeholder
-- 新增单元测试：`default server URL is Tailscale quantum`
 
 ### 平板布局改进
 - **Tab 切换**：左侧面板用 TabRow [Workspace] [Settings] 替代图标，便于在 Files 与 Settings 间切换
@@ -270,3 +269,10 @@
 - **Model/Agent 高亮修复**：loadMessages 成功后从最后一条 assistant 消息同步 selectedModelIndex 和 selectedAgentName，下拉菜单正确高亮当前 session 的 model 与 agent
 - **Message.agent**：解析 API 返回的 agent 字段
 - **消息分页**：初始加载 30 条，上滑时自动 loadMore（每次 +30），messages.size < messageLimit 时不再触发
+
+### 安全加固 (2026-03-03 续)
+- **HTTP 限制**：base-config cleartextTrafficPermitted="false"，仅 localhost、127.0.0.1、10.0.2.2、ts.net 允许 HTTP，其余强制 HTTPS
+- **日志清理**：移除可能泄露路径、错误体、sessionId 的 Log 语句（FilesScreen、MainViewModel、OpenCodeRepository）
+- **备份排除**：backup_rules.xml 排除 shared_prefs；data_extraction_rules 的 cloud-backup 与 device-transfer 排除 shared_prefs
+- **文档脱敏**：working.md 移除 ts.net 具体节点名；RFC/PRD 更新网络安全描述
+- **Release 混淆**：isMinifyEnabled=true、isShrinkResources=true，ProGuard 增加 kotlinx.serialization 与 errorprone dontwarn

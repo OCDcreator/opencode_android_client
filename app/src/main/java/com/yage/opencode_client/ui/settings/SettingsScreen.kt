@@ -81,7 +81,7 @@ fun SettingsScreen(
                 testResult = null
             },
             label = { Text("Server URL") },
-            placeholder = { Text("http://quantum.tail63c3c5.ts.net:4096") },
+            placeholder = { Text("http://localhost:4096") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             leadingIcon = {

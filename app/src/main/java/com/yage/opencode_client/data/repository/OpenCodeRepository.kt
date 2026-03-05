@@ -1,6 +1,5 @@
 package com.yage.opencode_client.data.repository
 
-import android.util.Log
 import com.yage.opencode_client.data.api.*
 import com.yage.opencode_client.data.model.*
 import kotlinx.coroutines.flow.Flow
@@ -117,7 +116,6 @@ class OpenCodeRepository @Inject constructor() {
         val response = api.promptAsync(sessionId, request)
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string() ?: response.message()
-            Log.e("OpenCode", "sendMessage failed: ${response.code()} $errorBody")
             throw Exception("Send failed ${response.code()}: $errorBody")
         }
     }
@@ -169,6 +167,6 @@ class OpenCodeRepository @Inject constructor() {
     fun connectSSE(): Flow<Result<SSEEvent>> = sseClient.connect(baseUrl, username, password)
 
     companion object {
-        const val DEFAULT_SERVER = "http://quantum.tail63c3c5.ts.net:4096"
+        const val DEFAULT_SERVER = "http://localhost:4096"
     }
 }

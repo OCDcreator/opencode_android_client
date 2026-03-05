@@ -1,6 +1,5 @@
 package com.yage.opencode_client.ui.files
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -55,17 +54,14 @@ fun FilesScreen(
                     pathNorm.removePrefix(sessionNorm).trimStart('/')
                 else -> pathNorm
             }
-            Log.d("FilesScreen", "pathToShow=$pathToShow sessionDirectory=$sessionDirectory relPath=$relPath")
             repository.getFileContent(relPath)
                 .onSuccess { content ->
-                    Log.d("FilesScreen", "getFileContent success type=${content.type} hasText=${!content.text.isNullOrBlank()}")
                     if (!content.text.isNullOrBlank()) {
                         selectedFileContent = content.text
                         selectedFilePath = pathToShow
                     } else {
                         repository.getFileTree(relPath)
                             .onSuccess { tree ->
-                                Log.d("FilesScreen", "getFileTree fallback count=${tree.size} paths=${tree.take(5).map { it.path }}")
                                 selectedFilePath = pathToShow
                                 selectedFileContent = if (tree.isEmpty()) {
                                     "Directory (empty or path not found): $relPath"
@@ -74,16 +70,13 @@ fun FilesScreen(
                                 }
                             }
                             .onFailure { e ->
-                                Log.e("FilesScreen", "getFileTree fallback failed", e)
                                 error = e.message
                             }
                     }
                 }
                 .onFailure { e ->
-                    Log.e("FilesScreen", "getFileContent failed, trying getFileTree", e)
                     repository.getFileTree(relPath)
                         .onSuccess { tree ->
-                            Log.d("FilesScreen", "getFileTree (content failed) count=${tree.size} paths=${tree.take(5).map { it.path }}")
                             selectedFilePath = pathToShow
                             selectedFileContent = if (tree.isEmpty()) {
                                 "Directory (empty or path not found): $relPath"
@@ -92,7 +85,6 @@ fun FilesScreen(
                             }
                         }
                         .onFailure { e2 ->
-                            Log.e("FilesScreen", "getFileTree also failed", e2)
                             error = e2.message
                         }
                 }

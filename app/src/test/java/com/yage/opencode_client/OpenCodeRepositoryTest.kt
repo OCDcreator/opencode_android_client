@@ -36,9 +36,9 @@ class OpenCodeRepositoryTest {
     }
 
     @Test
-    fun `default server URL is Tailscale quantum`() {
+    fun `default server URL is localhost`() {
         assertEquals(
-            "http://quantum.tail63c3c5.ts.net:4096",
+            "http://localhost:4096",
             OpenCodeRepository.DEFAULT_SERVER
         )
     }

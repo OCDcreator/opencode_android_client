@@ -1,9 +1,17 @@
 # Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
+
+# Kotlinx Serialization - keep @Serializable class names for reflection
+-keepattributes *Annotation*, InnerClasses
+-dontwarn kotlinx.serialization.**
+-keep,includedescriptorclasses class com.yage.opencode_client.data.model.** { *; }
+
+# EncryptedSharedPreferences / Tink - errorprone annotations are compile-only
+-dontwarn com.google.errorprone.annotations.**
+
+# Hilt - applied via consumerProguardFiles from dependencies
+# Retrofit/OkHttp - applied via consumerProguardFiles
 
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface

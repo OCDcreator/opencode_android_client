@@ -53,7 +53,7 @@ class SettingsManager @Inject constructor(
         set(value) = encryptedPrefs.edit().putString(KEY_THEME, value.name).apply()
 
     companion object {
-        const val DEFAULT_SERVER = "http://quantum.tail63c3c5.ts.net:4096"
+        const val DEFAULT_SERVER = "http://localhost:4096"
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_USERNAME = "username"
         private const val KEY_PASSWORD = "password"

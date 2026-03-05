@@ -67,20 +67,7 @@
 
 ### 2.1 HTTP 连接配置
 
-Android 9+ 默认禁止明文流量，需要配置 `network_security_config.xml`：
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
-    </domain-config>
-</network-security-config>
-```
-
-对于局域网 IP，可以动态添加用户配置的服务器地址。
+Android 9+ 默认禁止明文流量。`network_security_config.xml` 设置 base-config cleartextTrafficPermitted="false"，仅对 localhost、127.0.0.1、10.0.2.2、ts.net（Tailscale MagicDNS）开放 HTTP，其余强制 HTTPS。Android 不支持 IP 段匹配，局域网 IP 需使用 HTTPS 或 Tailscale。
 
 ### 2.2 SSH 库选型（可选）
 

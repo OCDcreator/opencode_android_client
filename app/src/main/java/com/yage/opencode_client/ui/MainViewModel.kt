@@ -1,6 +1,5 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yage.opencode_client.data.model.*
@@ -225,12 +224,10 @@ class MainViewModel @Inject constructor(
                             selectedAgentName = agentName ?: it.selectedAgentName
                         )}
                     } else {
-                        Log.d("MainViewModel", "loadMessages ignored stale result sessionId=$sessionId current=${_state.value.currentSessionId}")
                         _state.update { it.copy(isLoadingMessages = false) }
                     }
                 }
                 .onFailure { e ->
-                    Log.e("MainViewModel", "loadMessages failed: ${e.message}", e)
                     if (sessionId == _state.value.currentSessionId) {
                         _state.update { it.copy(
                             isLoadingMessages = false,
@@ -294,9 +291,7 @@ class MainViewModel @Inject constructor(
                 .onSuccess { providers ->
                     _state.update { it.copy(providers = providers) }
                 }
-                .onFailure { e ->
-                    Log.e("MainViewModel", "loadProviders failed: ${e.message}", e)
-                }
+                .onFailure { e -> }
         }
     }
 
@@ -420,7 +415,6 @@ class MainViewModel @Inject constructor(
     }
 
     fun showFileInFiles(path: String) {
-        android.util.Log.d("MainViewModel", "showFileInFiles path=$path currentSessionDir=${_state.value.currentSession?.directory}")
         _state.update { it.copy(filePathToShowInFiles = path) }
     }
 
