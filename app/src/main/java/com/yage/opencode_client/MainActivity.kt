@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -24,6 +25,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -218,6 +220,7 @@ private fun TabletLayout(viewModel: MainViewModel, repository: OpenCodeRepositor
                     currentSessionId = state.currentSessionId,
                     onSelectSession = { viewModel.selectSession(it) },
                     onCreateSession = { viewModel.createSession() },
+                    onDeleteSession = { viewModel.deleteSession(it) },
                     onOpenSettings = { selectedTab = 1 }
                 )
             }
@@ -280,6 +283,7 @@ private fun SessionList(
     currentSessionId: String?,
     onSelectSession: (String) -> Unit,
     onCreateSession: () -> Unit,
+    onDeleteSession: (String) -> Unit,
     onOpenSettings: (() -> Unit)? = null
 ) {
     var displayedCount by remember { mutableStateOf(SESSION_PAGE_SIZE) }
@@ -332,23 +336,49 @@ private fun SessionList(
             itemsIndexed(sessionsToShow, key = { _, s -> s.id }) { index, session ->
                 val isSelected = session.id == currentSessionId
                 val altBg = index % 2 == 1
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { false }
+                )
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                if (altBg) MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .clickable { onSelectSession(session.id) }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        modifier = Modifier.fillMaxWidth(),
+                        enableDismissFromStartToEnd = false,
+                        enableDismissFromEndToStart = true,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.error)
+                                    .clickable { onDeleteSession(session.id) },
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete session",
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.padding(horizontal = 20.dp)
+                                )
+                            }
+                        }
                     ) {
-                        Text(
-                            text = session.displayName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (altBg) MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.surface
+                                )
+                                .clickable { onSelectSession(session.id) }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = session.displayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                     if (index < sessionsToShow.size - 1) {
                         HorizontalDivider(

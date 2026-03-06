@@ -287,3 +287,6 @@
 ### 物理键盘 IME 栏遮挡输入框修复
 - **InputBar imePadding**：接物理键盘时底部会显示 IME 栏，遮挡输入框。为 InputBar 的 Surface 添加 `imePadding()`，使输入框随键盘/IME 栏上移，保持可见
 - **测试**：新增 InputBarInsetsTest，验证 AndroidManifest 中 `windowSoftInputMode="adjustResize"` 配置正确（imePadding 依赖此配置）
+
+### 删除 Session 功能
+- **左滑删除**：Session 列表（平板左侧）支持左滑显示红色删除按钮，点击删除。使用 Material 3 `SwipeToDismissBox`，`confirmValueChange` 返回 false 仅展示背景，删除由点击红色区域触发
