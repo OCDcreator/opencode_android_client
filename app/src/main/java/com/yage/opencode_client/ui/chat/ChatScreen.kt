@@ -52,6 +52,7 @@ fun ChatScreen(
             contextUsage = state.contextUsage,
             onSelectSession = { viewModel.selectSession(it) },
             onCreateSession = { viewModel.createSession() },
+            onDeleteSession = { viewModel.deleteSession(it) },
             onAbort = { viewModel.abortSession() },
             onSelectAgent = { viewModel.selectAgent(it) },
             onSelectModel = { viewModel.selectModel(it) },
@@ -126,6 +127,7 @@ private fun TopBar(
     contextUsage: AppState.ContextUsage?,
     onSelectSession: (String) -> Unit,
     onCreateSession: () -> Unit,
+    onDeleteSession: (String) -> Unit,
     onAbort: () -> Unit,
     onSelectAgent: (String) -> Unit,
     onSelectModel: (Int) -> Unit,
@@ -250,13 +252,31 @@ private fun TopBar(
                 sessions.forEach { session ->
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                session.displayName,
-                                color = if (session.id == currentSessionId)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    session.displayName,
+                                    color = if (session.id == currentSessionId)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        onDeleteSession(session.id)
+                                        showSessionMenu = false
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete session",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         },
                         onClick = {
                             onSelectSession(session.id)

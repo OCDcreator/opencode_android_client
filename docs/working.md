@@ -55,3 +55,4 @@
 - InputBarInsetsTest 验证 windowSoftInputMode=adjustResize
 - Session 列表左滑显示红色删除按钮，点击删除，SwipeToDismissBox backgroundContent
 - 修复部分 item 左滑无响应：gesturesEnabled = !listState.isScrollInProgress，避免 LazyColumn 滚动与 SwipeToDismissBox 手势冲突
+- 手机端 Session 删除：TopBar 的 Session 下拉菜单中每项右侧添加红色删除图标，点击删除
