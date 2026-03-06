@@ -54,3 +54,4 @@
 - InputBar 添加 imePadding，物理键盘 IME 栏不再遮挡输入框
 - InputBarInsetsTest 验证 windowSoftInputMode=adjustResize
 - Session 列表左滑显示红色删除按钮，点击删除，SwipeToDismissBox backgroundContent
+- 修复部分 item 左滑无响应：gesturesEnabled = !listState.isScrollInProgress，避免 LazyColumn 滚动与 SwipeToDismissBox 手势冲突

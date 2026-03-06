@@ -345,6 +345,7 @@ private fun SessionList(
                         modifier = Modifier.fillMaxWidth(),
                         enableDismissFromStartToEnd = false,
                         enableDismissFromEndToStart = true,
+                        gesturesEnabled = !listState.isScrollInProgress,
                         backgroundContent = {
                             Box(
                                 modifier = Modifier
