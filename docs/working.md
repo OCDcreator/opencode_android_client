@@ -102,3 +102,9 @@
 - 根据 Oracle 审查补充 guard-rail：新增空输入/无 session 发送短路测试、`message.part.updated` 缺失 delta 的补刷测试、空 session SSE 防崩测试，并修复 `MainViewModel` 中该空 session 分支的 NPE
 - 执行验证：`./gradlew testDebugUnitTest` 通过
 - 生成覆盖率报告：`./gradlew koverHtmlReport`，报告位于 `app/build/reports/kover/html/index.html`
+- 新建完整重构分支：`feature/full-refactor-phase2`
+- 更新 `docs/dev_code_review.md`，将审查结论转换为本轮可执行 checklist
+- 将 `SettingsScreen` 拆分为连接、外观、语音、About 四个 section 组件，主屏只保留状态编排
+- 将 `FilesScreen` 拆分为浏览区、预览区与纯 helper（路径归一化、目录预览文案），并补充 `FileNavigationUtilsTest`
+- 将 Chat UI 拆分为顶栏、消息内容、输入栏三个文件；同时把 `MessageSelectionTest` 从单文件断言改成 chat package 级行为断言，避免后续继续拆文件时产生伪失败
+- 执行验证：`./gradlew testDebugUnitTest` 通过
