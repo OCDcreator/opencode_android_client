@@ -2,22 +2,24 @@ package com.yage.opencode_client.ui.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.yage.opencode_client.ui.AIBuilderSettings
-import com.yage.opencode_client.ui.MainViewModel
-import com.yage.opencode_client.util.ThemeMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yage.opencode_client.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +43,6 @@ fun SettingsScreen(
     var aiBuilderTerminology by remember { mutableStateOf(savedAIBuilder.terminology) }
     var showAIBuilderToken by remember { mutableStateOf(false) }
 
-    // Update test result when connection test completes
     LaunchedEffect(state.isConnecting) {
         if (!state.isConnecting && isTesting) {
             isTesting = false
@@ -62,88 +63,40 @@ fun SettingsScreen(
                 title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
+
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-        Text(
-            "Server Connection",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = serverUrl,
-            onValueChange = {
-                serverUrl = it
-                testResult = null
-            },
-            label = { Text("Server URL") },
-            placeholder = { Text("http://localhost:4096") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            leadingIcon = {
-                Icon(Icons.Default.Cloud, contentDescription = null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = {
-                username = it
-                testResult = null
-            },
-            label = { Text("Username (optional)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            leadingIcon = {
-                Icon(Icons.Default.Person, contentDescription = null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                testResult = null
-            },
-            label = { Text("Password (optional)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = { showPassword = !showPassword }) {
-                    Icon(
-                        if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showPassword) "Hide password" else "Show password"
-                    )
-                }
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Lock, contentDescription = null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
+            ServerConnectionSection(
+                serverUrl = serverUrl,
+                username = username,
+                password = password,
+                showPassword = showPassword,
+                isTesting = isTesting,
+                state = state,
+                testResult = testResult,
+                onServerUrlChange = {
+                    serverUrl = it
+                    testResult = null
+                },
+                onUsernameChange = {
+                    username = it
+                    testResult = null
+                },
+                onPasswordChange = {
+                    password = it
+                    testResult = null
+                },
+                onTogglePasswordVisibility = { showPassword = !showPassword },
+                onTestConnection = {
                     isTesting = true
                     testResult = null
                     viewModel.configureServer(
@@ -153,211 +106,40 @@ fun SettingsScreen(
                     )
                     viewModel.testConnection()
                 },
-                enabled = serverUrl.isNotBlank() && !isTesting
-            ) {
-                if (isTesting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Test Connection")
-            }
-
-            OutlinedButton(
-                onClick = {
+                onSave = {
                     viewModel.configureServer(
                         url = serverUrl,
                         username = username.ifBlank { null },
                         password = password.ifBlank { null }
                     )
                     testResult = TestResult(success = true, message = "Settings saved")
-                },
-                enabled = serverUrl.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        }
-
-        testResult?.let { result ->
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (result.success)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        if (result.success) Icons.Default.Check else Icons.Default.Error,
-                        contentDescription = null,
-                        tint = if (result.success)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        result.message,
-                        color = if (result.success)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer
-                    )
                 }
-            }
-        }
+            )
 
-        if (state.isConnected) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Connected",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                state.serverVersion?.let { version ->
-                    Text(
-                        " (v$version)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-            }
-        }
+            SettingsSectionDivider()
 
-        Spacer(modifier = Modifier.height(32.dp))
+            AppearanceSection(
+                themeMode = state.themeMode,
+                onThemeSelected = viewModel::setThemeMode
+            )
 
-        HorizontalDivider()
+            SettingsSectionDivider()
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            "Appearance",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column {
-            ThemeMode.values().forEach { mode ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = state.themeMode == mode,
-                        onClick = { viewModel.setThemeMode(mode) }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        when (mode) {
-                            ThemeMode.LIGHT -> "Light"
-                            ThemeMode.DARK -> "Dark"
-                            ThemeMode.SYSTEM -> "System default"
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            "Speech Recognition",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = aiBuilderBaseURL,
-            onValueChange = { aiBuilderBaseURL = it },
-            label = { Text("AI Builder Base URL") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            leadingIcon = {
-                Icon(Icons.Default.Cloud, contentDescription = null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = aiBuilderToken,
-            onValueChange = { aiBuilderToken = it },
-            label = { Text("AI Builder Token") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = if (showAIBuilderToken) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = { showAIBuilderToken = !showAIBuilderToken }) {
-                    Icon(
-                        if (showAIBuilderToken) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showAIBuilderToken) "Hide token" else "Show token"
-                    )
-                }
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Lock, contentDescription = null)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = aiBuilderCustomPrompt,
-            onValueChange = { aiBuilderCustomPrompt = it },
-            label = { Text("Custom Prompt") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            maxLines = 6
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = aiBuilderTerminology,
-            onValueChange = { aiBuilderTerminology = it },
-            label = { Text("Terminology") },
-            placeholder = { Text("comma-separated terms") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
+            SpeechRecognitionSection(
+                state = state,
+                aiBuilderBaseURL = aiBuilderBaseURL,
+                aiBuilderToken = aiBuilderToken,
+                aiBuilderCustomPrompt = aiBuilderCustomPrompt,
+                aiBuilderTerminology = aiBuilderTerminology,
+                showAIBuilderToken = showAIBuilderToken,
+                onBaseUrlChange = { aiBuilderBaseURL = it },
+                onTokenChange = { aiBuilderToken = it },
+                onPromptChange = { aiBuilderCustomPrompt = it },
+                onTerminologyChange = { aiBuilderTerminology = it },
+                onToggleTokenVisibility = { showAIBuilderToken = !showAIBuilderToken },
+                onTestConnection = {
                     viewModel.saveAIBuilderSettings(
-                        AIBuilderSettings(
+                        buildAIBuilderSettings(
                             baseURL = aiBuilderBaseURL,
                             token = aiBuilderToken,
                             customPrompt = aiBuilderCustomPrompt,
@@ -366,107 +148,21 @@ fun SettingsScreen(
                     )
                     viewModel.testAIBuilderConnection()
                 },
-                enabled = aiBuilderBaseURL.isNotBlank() && !state.isTestingAIBuilderConnection
-            ) {
-                if (state.isTestingAIBuilderConnection) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Test Connection")
-            }
-
-            OutlinedButton(
-                onClick = {
+                onSave = {
                     viewModel.saveAIBuilderSettings(
-                        AIBuilderSettings(
+                        buildAIBuilderSettings(
                             baseURL = aiBuilderBaseURL,
                             token = aiBuilderToken,
                             customPrompt = aiBuilderCustomPrompt,
                             terminology = aiBuilderTerminology
                         )
                     )
-                },
-                enabled = aiBuilderBaseURL.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        }
-
-        if (state.aiBuilderConnectionOK || state.aiBuilderConnectionError != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (state.aiBuilderConnectionOK)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val success = state.aiBuilderConnectionOK
-                    Icon(
-                        if (success) Icons.Default.Check else Icons.Default.Error,
-                        contentDescription = null,
-                        tint = if (success)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (success) "Connected successfully" else (state.aiBuilderConnectionError ?: "Connection failed"),
-                        color = if (success)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onErrorContainer
-                    )
                 }
-            }
-        }
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            SettingsSectionDivider()
 
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            "About",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "OpenCode Android Client",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Text(
-            "Version 1.0",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            "A native Android client for OpenCode AI coding agent.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline
-        )
+            AboutSection()
         }
     }
 }
-
-private data class TestResult(
-    val success: Boolean,
-    val message: String
-)
