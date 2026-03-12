@@ -11,14 +11,19 @@ import java.io.File
 class MessageSelectionTest {
 
     @Test
-    fun `ChatScreen uses SelectionContainer for message copy`() {
-        val chatScreen = (
-            File("app/src/main/java/com/yage/opencode_client/ui/chat/ChatScreen.kt").takeIf { it.exists() }
-                ?: File("src/main/java/com/yage/opencode_client/ui/chat/ChatScreen.kt")
-        ).readText()
+    fun `chat package keeps SelectionContainer for message copy`() {
+        val chatDir = (
+            File("app/src/main/java/com/yage/opencode_client/ui/chat").takeIf { it.exists() }
+                ?: File("src/main/java/com/yage/opencode_client/ui/chat")
+        )
+        val contents = chatDir
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .joinToString("\n") { it.readText() }
+
         assertTrue(
-            "ChatScreen must use SelectionContainer for user/AI message copy",
-            chatScreen.contains("SelectionContainer")
+            "Chat UI must keep SelectionContainer for user/AI message copy",
+            contents.contains("SelectionContainer")
         )
     }
 }

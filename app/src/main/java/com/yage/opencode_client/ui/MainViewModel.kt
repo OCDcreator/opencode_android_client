@@ -3,7 +3,6 @@ package com.yage.opencode_client.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.data.audio.AudioRecorderManager
 import com.yage.opencode_client.data.model.*
 import com.yage.opencode_client.data.repository.OpenCodeRepository
@@ -11,7 +10,6 @@ import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -121,27 +119,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun loadSettings() {
-        repository.configure(
-            baseUrl = settingsManager.serverUrl,
-            username = settingsManager.username,
-            password = settingsManager.password
-        )
-        val savedModelIndex = settingsManager.selectedModelIndex
-        val clampedModelIndex = savedModelIndex.coerceIn(0, ModelPresets.list.size - 1)
-        if (clampedModelIndex != savedModelIndex) {
-            settingsManager.selectedModelIndex = clampedModelIndex
-        }
-        _state.update { it.copy(
-            currentSessionId = settingsManager.currentSessionId,
-            selectedModelIndex = clampedModelIndex,
-            selectedAgentName = settingsManager.selectedAgentName ?: "build",
-            themeMode = settingsManager.themeMode
-        )}
-        val savedSig = settingsManager.aiBuilderLastOKSignature
-        val currentSig = aiBuilderSignature(settingsManager.aiBuilderBaseURL, settingsManager.aiBuilderToken)
-        if (savedSig != null && savedSig == currentSig) {
-            _state.update { it.copy(aiBuilderConnectionOK = true) }
-        }
+        applySavedSettings(repository, settingsManager, _state)
     }
 
     fun configureServer(url: String, username: String? = null, password: String? = null) {
@@ -174,52 +152,15 @@ class MainViewModel @Inject constructor(
     }
 
     fun testAIBuilderConnection() {
-        viewModelScope.launch {
-            _state.update { it.copy(isTestingAIBuilderConnection = true, aiBuilderConnectionError = null) }
-            val token = AIBuildersAudioClient.sanitizeBearerToken(settingsManager.aiBuilderToken)
-            if (token.isEmpty()) {
-                _state.update {
-                    it.copy(
-                        isTestingAIBuilderConnection = false,
-                        aiBuilderConnectionOK = false,
-                        aiBuilderConnectionError = "AI Builder token is empty"
-                    )
-                }
-                return@launch
-            }
-            val baseURL = settingsManager.aiBuilderBaseURL.trim()
-            AIBuildersAudioClient.testConnection(baseURL, token)
-                .onSuccess {
-                    val sig = aiBuilderSignature(baseURL, token)
-                    settingsManager.aiBuilderLastOKSignature = sig
-                    settingsManager.aiBuilderLastOKTestedAt = System.currentTimeMillis()
-                    _state.update {
-                        it.copy(
-                            isTestingAIBuilderConnection = false,
-                            aiBuilderConnectionOK = true,
-                            aiBuilderConnectionError = null
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    settingsManager.aiBuilderLastOKSignature = null
-                    _state.update {
-                        it.copy(
-                            isTestingAIBuilderConnection = false,
-                            aiBuilderConnectionOK = false,
-                            aiBuilderConnectionError = e.message ?: "Connection failed"
-                        )
-                    }
-                }
-        }
+        launchAIBuilderConnectionTest(viewModelScope, settingsManager, _state)
     }
 
     fun toggleRecording() {
         val currentState = _state.value
-        val token = AIBuildersAudioClient.sanitizeBearerToken(settingsManager.aiBuilderToken)
+        val speechConfig = currentSpeechInputConfig(settingsManager)
         Log.d(
             TAG,
-            "toggleRecording clicked: recording=${currentState.isRecording}, transcribing=${currentState.isTranscribing}, aiBuilderOK=${currentState.aiBuilderConnectionOK}, tokenSet=${token.isNotEmpty()}"
+            "toggleRecording clicked: recording=${currentState.isRecording}, transcribing=${currentState.isTranscribing}, aiBuilderOK=${currentState.aiBuilderConnectionOK}, tokenSet=${speechConfig.token.isNotEmpty()}"
         )
         if (currentState.isTranscribing) {
             Log.w(TAG, "Ignoring toggle while transcription is in progress")
@@ -236,58 +177,17 @@ class MainViewModel @Inject constructor(
                 _state.update { it.copy(isTranscribing = false, speechError = "Recording failed: no file") }
                 return
             }
-            val prefix = currentState.inputText
-            viewModelScope.launch {
-                try {
-                    Log.d(TAG, "Converting recorded audio to PCM: ${file.absolutePath}")
-                    val pcmData = audioRecorderManager.convertToPCM(file)
-                    val baseURL = settingsManager.aiBuilderBaseURL.trim()
-                    val prompt = settingsManager.aiBuilderCustomPrompt.trim()
-                    val terms = settingsManager.aiBuilderTerminology.trim()
-                    Log.d(TAG, "Submitting audio for transcription: bytes=${pcmData.size}")
-                    val result = AIBuildersAudioClient.transcribe(
-                        baseURL = baseURL,
-                        token = token,
-                        pcmAudio = pcmData,
-                        language = null,
-                        prompt = prompt.ifEmpty { null },
-                        terms = terms.ifEmpty { null },
-                        onPartialTranscript = { partial ->
-                            _state.update { it.copy(inputText = mergedSpeechInput(prefix, partial)) }
-                        }
-                    )
-                    result.onSuccess { response ->
-                        val cleaned = response.text.trim()
-                        Log.d(TAG, "Transcription success: chars=${cleaned.length}")
-                        _state.update {
-                            it.copy(
-                                inputText = mergedSpeechInput(prefix, cleaned),
-                                isTranscribing = false
-                            )
-                        }
-                    }.onFailure { e ->
-                        Log.e(TAG, "Transcription failed", e)
-                        _state.update {
-                            it.copy(
-                                inputText = prefix,
-                                isTranscribing = false,
-                                speechError = e.message ?: "Transcription failed"
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Speech processing failed", e)
-                    _state.update {
-                        it.copy(
-                            inputText = prefix,
-                            isTranscribing = false,
-                            speechError = e.message ?: "Transcription failed"
-                        )
-                    }
-                }
-            }
+            launchSpeechTranscription(
+                scope = viewModelScope,
+                state = _state,
+                audioRecorderManager = audioRecorderManager,
+                config = speechConfig,
+                recordingFile = file,
+                existingInput = currentState.inputText,
+                tag = TAG
+            )
         } else {
-            if (token.isEmpty()) {
+            if (speechConfig.token.isEmpty()) {
                 Log.w(TAG, "Speech start blocked: missing AI Builder token")
                 _state.update {
                     it.copy(speechError = "Speech recognition requires an AI Builder token. Configure it in Settings.")
@@ -307,7 +207,7 @@ class MainViewModel @Inject constructor(
                 _state.update { it.copy(isRecording = true) }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start recording", e)
-                _state.update { it.copy(speechError = "Failed to start recording: ${e.message}") }
+                _state.update { it.copy(speechError = "Failed to start recording: ${errorMessageOrFallback(e, "unknown error")}") }
             }
         }
     }
@@ -320,36 +220,11 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(speechError = message) }
     }
 
-    private fun aiBuilderSignature(baseURL: String, token: String): String {
-        val input = "$baseURL|$token"
-        return java.security.MessageDigest.getInstance("SHA-256")
-            .digest(input.toByteArray())
-            .joinToString("") { "%02x".format(it) }
-    }
-
     fun testConnection() {
-        viewModelScope.launch {
-            _state.update { it.copy(isConnecting = true, error = null) }
-            repository.checkHealth()
-                .onSuccess { health ->
-                    _state.update { it.copy(
-                        isConnected = health.healthy,
-                        serverVersion = health.version,
-                        isConnecting = false
-                    )}
-                    if (health.healthy) {
-                        loadInitialData()
-                        startSSE()
-                        startBusyPolling()
-                    }
-                }
-                .onFailure { e ->
-                    _state.update { it.copy(
-                        isConnected = false,
-                        isConnecting = false,
-                        error = e.message
-                    )}
-                }
+        launchConnectionTest(viewModelScope, repository, _state) {
+            loadInitialData()
+            startSSE()
+            startBusyPolling()
         }
     }
 
@@ -360,113 +235,38 @@ class MainViewModel @Inject constructor(
     }
 
     fun loadSessions() {
-        viewModelScope.launch {
-            repository.getSessions()
-                .onSuccess { sessions ->
-                    _state.update { it.copy(sessions = sessions) }
-                    val currentId = _state.value.currentSessionId
-                    if (currentId == null && sessions.isNotEmpty()) {
-                        selectSession(sessions.first().id)
-                    } else if (currentId != null) {
-                        loadSessionStatus()
-                        loadMessages(currentId)
-                    }
-                }
-        }
+        launchLoadSessions(
+            scope = viewModelScope,
+            repository = repository,
+            state = _state,
+            onSelectSession = ::selectSession,
+            onLoadSessionStatus = ::loadSessionStatus,
+            onLoadMessages = { sessionId -> loadMessages(sessionId) }
+        )
     }
 
     private fun loadSessionStatus() {
-        viewModelScope.launch {
-            repository.getSessionStatus()
-                .onSuccess { statuses ->
-                    _state.update { it.copy(sessionStatuses = statuses) }
-                }
-        }
+        launchLoadSessionStatus(viewModelScope, repository, _state)
     }
 
     fun selectSession(sessionId: String) {
-        settingsManager.currentSessionId = sessionId
-        _state.update { it.copy(
-            currentSessionId = sessionId,
-            messages = emptyList(),
-            messageLimit = 30
-        )}
+        selectSessionState(_state, settingsManager, sessionId)
         loadMessages(sessionId)
         loadSessionStatus()
     }
 
     fun loadMessages(sessionId: String, resetLimit: Boolean = true) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoadingMessages = true) }
-            val limit = if (resetLimit) 30 else _state.value.messageLimit
-            repository.getMessages(sessionId, limit)
-                .onSuccess { messages ->
-                    if (sessionId == _state.value.currentSessionId) {
-                        val lastAssistant = messages.lastOrNull { it.info.isAssistant }
-                        val modelIndex = lastAssistant?.info?.resolvedModel?.let { model ->
-                            ModelPresets.list.indexOfFirst {
-                                it.providerId == model.providerId && it.modelId == model.modelId
-                            }.takeIf { it >= 0 }
-                        }
-                        val agentName = lastAssistant?.info?.agent
-                        _state.update { it.copy(
-                            messages = messages,
-                            messageLimit = limit,
-                            isLoadingMessages = false,
-                            selectedModelIndex = modelIndex ?: it.selectedModelIndex,
-                            selectedAgentName = agentName ?: it.selectedAgentName
-                        )}
-                    } else {
-                        _state.update { it.copy(isLoadingMessages = false) }
-                    }
-                }
-                .onFailure { e ->
-                    if (sessionId == _state.value.currentSessionId) {
-                        _state.update { it.copy(
-                            isLoadingMessages = false,
-                            error = "Failed to load messages: ${e.message}"
-                        )}
-                    } else {
-                        _state.update { it.copy(isLoadingMessages = false) }
-                    }
-                }
-        }
+        launchLoadMessages(viewModelScope, repository, _state, sessionId, resetLimit)
     }
 
     /** Load messages with delay when triggered by SSE/send (server may need time to persist). */
     private fun loadMessagesWithRetry(sessionId: String, resetLimit: Boolean = true) {
-        viewModelScope.launch {
-            delay(400)
-            if (sessionId == _state.value.currentSessionId) {
-                loadMessages(sessionId, resetLimit)
-            }
-        }
+        launchLoadMessagesWithRetry(viewModelScope, sessionId, _state, resetLimit, ::loadMessages)
     }
 
     fun loadMoreMessages() {
         val sessionId = _state.value.currentSessionId ?: return
-        if (_state.value.isLoadingMessages) return
-        val newLimit = _state.value.messageLimit + 30
-        viewModelScope.launch {
-            _state.update { it.copy(isLoadingMessages = true) }
-            repository.getMessages(sessionId, newLimit)
-                .onSuccess { messages ->
-                    if (sessionId == _state.value.currentSessionId) {
-                        _state.update { it.copy(
-                            messages = messages,
-                            messageLimit = newLimit,
-                            isLoadingMessages = false
-                        )}
-                    } else {
-                        _state.update { it.copy(isLoadingMessages = false) }
-                    }
-                }
-                .onFailure {
-                    if (sessionId == _state.value.currentSessionId) {
-                        _state.update { it.copy(isLoadingMessages = false) }
-                    }
-                }
-        }
+        launchLoadMoreMessages(viewModelScope, repository, _state, sessionId)
     }
 
     private fun loadAgents() {
@@ -475,59 +275,28 @@ class MainViewModel @Inject constructor(
                 .onSuccess { agents ->
                     _state.update { it.copy(agents = agents) }
                 }
+                .onFailure { error ->
+                    reportNonFatalIssue(TAG, "Failed to load agents", error)
+                }
         }
     }
 
     private fun loadProviders() {
-        viewModelScope.launch {
-            repository.getProviders()
-                .onSuccess { providers ->
-                    _state.update { it.copy(providers = providers) }
-                }
-                .onFailure { e -> }
+        launchLoadProviders(viewModelScope, repository, _state) { message, error ->
+            reportNonFatalIssue(TAG, message, error)
         }
     }
 
     fun createSession(title: String? = null) {
-        viewModelScope.launch {
-            repository.createSession(title)
-                .onSuccess { session ->
-                    _state.update { it.copy(sessions = listOf(session) + it.sessions) }
-                    selectSession(session.id)
-                }
-        }
+        launchCreateSession(viewModelScope, repository, _state, title, ::selectSession)
     }
 
     fun updateSessionTitle(sessionId: String, title: String) {
-        viewModelScope.launch {
-            repository.updateSession(sessionId, title)
-                .onSuccess { updated ->
-                    _state.update { it.copy(
-                        sessions = it.sessions.map { s -> if (s.id == sessionId) updated else s }
-                    )}
-                }
-        }
+        launchUpdateSessionTitle(viewModelScope, repository, _state, sessionId, title)
     }
 
     fun deleteSession(sessionId: String) {
-        viewModelScope.launch {
-            repository.deleteSession(sessionId)
-                .onSuccess {
-                    val newSessions = _state.value.sessions.filter { it.id != sessionId }
-                    _state.update { it.copy(sessions = newSessions) }
-                    if (_state.value.currentSessionId == sessionId) {
-                        val newCurrent = newSessions.firstOrNull()?.id
-                        if (newCurrent != null) {
-                            selectSession(newCurrent)
-                        } else {
-                            _state.update { it.copy(
-                                currentSessionId = null,
-                                messages = emptyList()
-                            )}
-                        }
-                    }
-                }
-        }
+        launchDeleteSession(viewModelScope, repository, _state, sessionId, ::selectSession)
     }
 
     fun sendMessage() {
@@ -536,30 +305,27 @@ class MainViewModel @Inject constructor(
         if (text.isEmpty()) return
 
         val agent = _state.value.selectedAgentName
-        val selectedModel = _state.value.availableModels.getOrNull(_state.value.selectedModelIndex)
-        val model = selectedModel?.let {
-            Message.ModelInfo(it.providerId, it.modelId)
-        } ?: _state.value.providers?.default?.let {
-            Message.ModelInfo(it.providerId, it.modelId)
-        }
+        val model = buildSelectedModel(_state.value)
 
-        viewModelScope.launch {
-            repository.sendMessage(sessionId, text, agent, model)
-                .onSuccess {
-                    _state.update { it.copy(inputText = "", error = null) }
-                    loadMessagesWithRetry(sessionId)
-                    launch { delay(1200); loadMessagesWithRetry(sessionId, resetLimit = false) }
-                }
-                .onFailure { e ->
-                    _state.update { it.copy(error = e.message) }
-                }
-        }
+        launchSendMessage(
+            scope = viewModelScope,
+            repository = repository,
+            state = _state,
+            sessionId = sessionId,
+            text = text,
+            agent = agent,
+            model = model,
+            onRefreshMessages = ::loadMessagesWithRetry
+        )
     }
 
     fun abortSession() {
         val sessionId = _state.value.currentSessionId ?: return
         viewModelScope.launch {
             repository.abortSession(sessionId)
+                .onFailure { error ->
+                    _state.update { it.copy(error = errorMessageOrFallback(error, "Failed to abort session")) }
+                }
         }
     }
 
@@ -602,6 +368,9 @@ class MainViewModel @Inject constructor(
                         pendingPermissions = it.pendingPermissions.filter { p -> p.id != permissionId }
                     )}
                 }
+                .onFailure { error ->
+                    _state.update { it.copy(error = errorMessageOrFallback(error, "Failed to respond to permission")) }
+                }
         }
     }
 
@@ -610,6 +379,9 @@ class MainViewModel @Inject constructor(
             repository.getPendingPermissions()
                 .onSuccess { permissions ->
                     _state.update { it.copy(pendingPermissions = permissions) }
+                }
+                .onFailure { error ->
+                    reportNonFatalIssue(TAG, "Failed to load pending permissions", error)
                 }
         }
     }
@@ -629,93 +401,22 @@ class MainViewModel @Inject constructor(
     /** Poll loadMessages every 2s when session is busy, as SSE fallback. */
     private fun startBusyPolling() {
         pollJob?.cancel()
-        pollJob = viewModelScope.launch {
-            while (true) {
-                delay(2000)
-                val sessionId = _state.value.currentSessionId ?: continue
-                if (!_state.value.isCurrentSessionBusy) continue
-                loadMessages(sessionId, resetLimit = false)
-            }
-        }
+        pollJob = launchBusyPolling(viewModelScope, _state, ::loadMessages)
     }
 
     private fun startSSE() {
         sseJob?.cancel()
-        sseJob = viewModelScope.launch {
-            repository.connectSSE()
-                .catch { e ->
-                    _state.update { it.copy(error = "SSE Error: ${e.message}") }
-                }
-                .collect { result ->
-                    result.onSuccess { event -> handleSSEEvent(event) }
-                        .onFailure { e ->
-                            _state.update { it.copy(error = "SSE Error: ${e.message}") }
-                        }
-                }
-        }
+        sseJob = launchSseCollection(viewModelScope, repository, _state, ::handleSSEEvent)
     }
 
     private fun handleSSEEvent(event: SSEEvent) {
-        when (event.payload.type) {
-            "session.created" -> {
-                val sessionJson = event.payload.getJsonObject("session")
-                if (sessionJson != null) {
-                    try {
-                        val session = kotlinx.serialization.json.Json.decodeFromString<Session>(sessionJson.toString())
-                        _state.update { it.copy(sessions = listOf(session) + it.sessions) }
-                    } catch (e: Exception) { }
-                }
-            }
-            "session.status" -> {
-                val sessionId = event.payload.getString("sessionID") ?: return
-                val statusJson = event.payload.getJsonObject("status") ?: return
-                try {
-                    val status = kotlinx.serialization.json.Json.decodeFromString<SessionStatus>(statusJson.toString())
-                    _state.update { it.copy(
-                        sessionStatuses = it.sessionStatuses + (sessionId to status)
-                    )}
-                    if (sessionId == _state.value.currentSessionId && !status.isBusy) {
-                        _state.update { it.copy(
-                            streamingPartTexts = emptyMap(),
-                            streamingReasoningPart = null
-                        )}
-                        loadMessagesWithRetry(sessionId, resetLimit = false)
-                    }
-                } catch (e: Exception) { }
-            }
-            "message.created" -> {
-                val sessionId = event.payload.getString("sessionID")
-                if (sessionId != null && sessionId == _state.value.currentSessionId) {
-                    loadMessagesWithRetry(sessionId)
-                }
-            }
-            "message.part.updated" -> {
-                val sessionId = event.payload.getString("sessionID")
-                if (sessionId != null && sessionId == _state.value.currentSessionId) {
-                val partObj = event.payload.getJsonObject("part")
-                val msgId = (partObj?.get("messageID") as? kotlinx.serialization.json.JsonPrimitive)?.content
-                val partId = (partObj?.get("id") as? kotlinx.serialization.json.JsonPrimitive)?.content
-                val partType = (partObj?.get("type") as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "text"
-                val delta = event.payload.getString("delta")
-                if (msgId != null && partId != null && !delta.isNullOrBlank()) {
-                    val key = "$msgId:$partId"
-                    val prev = _state.value.streamingPartTexts[key] ?: ""
-                    _state.update { it.copy(
-                        streamingPartTexts = it.streamingPartTexts + (key to (prev + delta)),
-                        streamingReasoningPart = if (partType == "reasoning") {
-                            Part(id = partId, messageId = msgId, sessionId = sessionId, type = "reasoning")
-                        } else it.streamingReasoningPart
-                    )}
-                } else {
-                    _state.update { it.copy(streamingPartTexts = emptyMap(), streamingReasoningPart = null) }
-                    loadMessagesWithRetry(sessionId, resetLimit = false)
-                }
-                }
-            }
-            "permission.asked" -> {
-                loadPendingPermissions()
-            }
-        }
+        handleIncomingSseEvent(
+            state = _state,
+            event = event,
+            onRefreshMessages = ::loadMessagesWithRetry,
+            onLoadPendingPermissions = ::loadPendingPermissions,
+            onNonFatalIssue = { message -> reportNonFatalIssue(TAG, message) }
+        )
     }
 
     override fun onCleared() {
@@ -727,11 +428,4 @@ class MainViewModel @Inject constructor(
     private companion object {
         private const val TAG = "MainViewModel"
     }
-}
-
-fun mergedSpeechInput(prefix: String, transcript: String): String {
-    val cleaned = transcript.trim()
-    if (cleaned.isEmpty()) return prefix
-    if (prefix.isEmpty()) return cleaned
-    return "$prefix $cleaned"
 }
