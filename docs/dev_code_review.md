@@ -466,3 +466,45 @@
 这个项目当前的主要问题不是“代码质量很差”，而是“核心模块正在变成多功能聚合点”，如果不尽快做边界拆分，后续开发速度会先快后慢，并且 bug 会越来越偏向状态同步和交互回归这类难排查问题。
 
 换句话说，现在是一个很适合做第一次工程化收口的时间点：功能已经证明方向可行，但结构还没完全固化，重构成本仍然可控。越往后拖，代价越高。
+
+## 八、本轮执行清单（Refactor Phase 2）
+
+以下清单用于把前面的审查结论真正落地。原则是：每完成一个大项就跑测试，并在 `docs/working.md` 记录一次进度。
+
+### A. `MainViewModel` 拆分与收口
+
+- [ ] 抽离连接初始化与首屏加载逻辑
+- [ ] 抽离 session/message 同步逻辑（含 retry / polling / SSE fallback）
+- [ ] 抽离 speech orchestration，缩小 `MainViewModel` 对录音/转写细节的直接掌控
+- [ ] 收口 `MainViewModel` 中的硬编码 timing 常量
+- [ ] 统一非阻塞错误处理，替换静默吞错
+
+### B. `ChatScreen` 文件拆分
+
+- [ ] 抽出顶栏相关组件
+- [ ] 抽出消息列表与自动跟随滚动逻辑
+- [ ] 抽出消息卡片 / part renderer
+- [ ] 抽出输入栏与操作按钮布局逻辑
+- [ ] 抽出权限/错误展示组件
+
+### C. `FilesScreen` 文件拆分
+
+- [ ] 抽出文件浏览区
+- [ ] 抽出文件内容预览区
+- [ ] 抽出图片预览与分享能力
+- [ ] 收口 preview 分支，避免继续堆叠 `when` 逻辑
+
+### D. `SettingsScreen` 与常量/错误治理
+
+- [ ] 按 section 拆分 Settings 页面
+- [ ] 抽出复用表单行/设置块，降低主文件密度
+- [ ] 将 UI / timing / audio 常量收敛到统一配置位置
+- [ ] 清理剩余静默错误处理，统一日志与状态策略
+
+### E. 验证与交付
+
+- [ ] 视需要补测试，确保拆分过程中新增边界有回归保护
+- [ ] `./gradlew testDebugUnitTest`
+- [ ] `./gradlew koverHtmlReport`
+- [ ] 更新 `docs/working.md`
+- [ ] 提交、推送并创建新的 refactor PR
