@@ -83,3 +83,6 @@
 - 修复 AI Builder Token 隐藏字符问题：清洗零宽字符/BOM/空白后再组 Authorization header，解决 `unexpected char 0x200b`
 - 修复录音启动失败 `setAudioSource failed`：点击麦克风前先检查/请求 `RECORD_AUDIO` 运行时权限，拒绝时给出明确提示
 - 真机验证通过：AI Builder 连接成功后，首次点击麦克风会触发系统权限请求，授权后可正常开始录音
+- Repo 公开到 GitHub（grapeot/opencode_android_client），添加 README
+- 添加 GitHub Actions CI（unit test on push/PR）
+- 版本号设为 0.1.20260312，首个 GitHub Release
