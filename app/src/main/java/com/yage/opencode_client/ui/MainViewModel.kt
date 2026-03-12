@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
@@ -215,21 +216,35 @@ class MainViewModel @Inject constructor(
 
     fun toggleRecording() {
         val currentState = _state.value
+        val token = settingsManager.aiBuilderToken.trim()
+        Log.d(
+            TAG,
+            "toggleRecording clicked: recording=${currentState.isRecording}, transcribing=${currentState.isTranscribing}, aiBuilderOK=${currentState.aiBuilderConnectionOK}, tokenSet=${token.isNotEmpty()}"
+        )
+        if (currentState.isTranscribing) {
+            Log.w(TAG, "Ignoring toggle while transcription is in progress")
+            _state.update {
+                it.copy(speechError = "Still transcribing previous audio, please wait.")
+            }
+            return
+        }
         if (currentState.isRecording) {
             val file = audioRecorderManager.stop()
             _state.update { it.copy(isRecording = false, isTranscribing = true) }
             if (file == null) {
+                Log.e(TAG, "Recording stop returned null file")
                 _state.update { it.copy(isTranscribing = false, speechError = "Recording failed: no file") }
                 return
             }
             val prefix = currentState.inputText
             viewModelScope.launch {
                 try {
+                    Log.d(TAG, "Converting recorded audio to PCM: ${file.absolutePath}")
                     val pcmData = audioRecorderManager.convertToPCM(file)
                     val baseURL = settingsManager.aiBuilderBaseURL.trim()
-                    val token = settingsManager.aiBuilderToken.trim()
                     val prompt = settingsManager.aiBuilderCustomPrompt.trim()
                     val terms = settingsManager.aiBuilderTerminology.trim()
+                    Log.d(TAG, "Submitting audio for transcription: bytes=${pcmData.size}")
                     val result = AIBuildersAudioClient.transcribe(
                         baseURL = baseURL,
                         token = token,
@@ -243,6 +258,7 @@ class MainViewModel @Inject constructor(
                     )
                     result.onSuccess { response ->
                         val cleaned = response.text.trim()
+                        Log.d(TAG, "Transcription success: chars=${cleaned.length}")
                         _state.update {
                             it.copy(
                                 inputText = mergedSpeechInput(prefix, cleaned),
@@ -250,6 +266,7 @@ class MainViewModel @Inject constructor(
                             )
                         }
                     }.onFailure { e ->
+                        Log.e(TAG, "Transcription failed", e)
                         _state.update {
                             it.copy(
                                 inputText = prefix,
@@ -259,6 +276,7 @@ class MainViewModel @Inject constructor(
                         }
                     }
                 } catch (e: Exception) {
+                    Log.e(TAG, "Speech processing failed", e)
                     _state.update {
                         it.copy(
                             inputText = prefix,
@@ -269,14 +287,15 @@ class MainViewModel @Inject constructor(
                 }
             }
         } else {
-            val token = settingsManager.aiBuilderToken.trim()
             if (token.isEmpty()) {
+                Log.w(TAG, "Speech start blocked: missing AI Builder token")
                 _state.update {
                     it.copy(speechError = "Speech recognition requires an AI Builder token. Configure it in Settings.")
                 }
                 return
             }
             if (!currentState.aiBuilderConnectionOK) {
+                Log.w(TAG, "Speech start blocked: AI Builder connection test has not passed")
                 _state.update {
                     it.copy(speechError = "AI Builder connection test has not passed. Please test in Settings first.")
                 }
@@ -284,8 +303,10 @@ class MainViewModel @Inject constructor(
             }
             try {
                 audioRecorderManager.start()
+                Log.d(TAG, "Recording started")
                 _state.update { it.copy(isRecording = true) }
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to start recording", e)
                 _state.update { it.copy(speechError = "Failed to start recording: ${e.message}") }
             }
         }
@@ -697,6 +718,10 @@ class MainViewModel @Inject constructor(
         super.onCleared()
         sseJob?.cancel()
         pollJob?.cancel()
+    }
+
+    private companion object {
+        private const val TAG = "MainViewModel"
     }
 }
 

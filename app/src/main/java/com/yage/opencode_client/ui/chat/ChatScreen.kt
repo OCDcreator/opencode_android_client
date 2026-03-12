@@ -105,7 +105,7 @@ fun ChatScreen(
                 isBusy = state.isCurrentSessionBusy,
                 isRecording = state.isRecording,
                 isTranscribing = state.isTranscribing,
-                isSpeechEnabled = !state.isTranscribing && state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
+                isSpeechConfigured = state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
                 onTextChange = { viewModel.setInputText(it) },
                 onSend = { viewModel.sendMessage() },
                 onAbort = { viewModel.abortSession() },
@@ -909,7 +909,7 @@ private fun InputBar(
     isBusy: Boolean,
     isRecording: Boolean,
     isTranscribing: Boolean,
-    isSpeechEnabled: Boolean,
+    isSpeechConfigured: Boolean,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onAbort: () -> Unit,
@@ -951,7 +951,7 @@ private fun InputBar(
             }
             IconButton(
                 onClick = onToggleRecording,
-                enabled = isSpeechEnabled || isRecording
+                enabled = !isTranscribing
             ) {
                 if (isTranscribing) {
                     CircularProgressIndicator(
@@ -962,7 +962,11 @@ private fun InputBar(
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = "Speech",
-                        tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = when {
+                            isRecording -> Color.Red
+                            isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                        }
                     )
                 }
             }
