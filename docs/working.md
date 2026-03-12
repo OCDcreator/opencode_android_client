@@ -61,3 +61,5 @@
 - 删除区域收窄至 56dp，行背景改为完全不透明（surfaceContainerLow / surface）解决半透明遮挡删除按钮问题
 - Logo 缩小：resize_icon.py 按 Android 66dp 安全区生成 foreground（logo 居中 66dp/108dp）；mipmap 图标 logo 约 66% 尺寸
 - 用户消息与 AI 回复均可长按选择复制：TextPart、ReasoningCard 外层加 SelectionContainer
+- Session 列表子 agent（parentId 非空）默认折叠：SessionNode 树结构，expandedSessionIds 跟踪展开，点击 chevron 切换
+- 新增 SessionTreeTest：覆盖层级构建、孤儿节点兜底、展开/折叠可见性扁平化
