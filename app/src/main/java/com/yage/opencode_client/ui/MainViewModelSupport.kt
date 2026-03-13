@@ -2,12 +2,15 @@ package com.yage.opencode_client.ui
 
 import android.util.Log
 import com.yage.opencode_client.data.model.Part
+import com.yage.opencode_client.data.model.QuestionRequest
 import com.yage.opencode_client.data.model.SSEEvent
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.model.SessionStatus
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import java.security.MessageDigest
+
+private val lenientJson = Json { ignoreUnknownKeys = true }
 
 internal object MainViewModelTimings {
     const val sessionPageSize = 100
@@ -93,6 +96,13 @@ internal fun parseMessagePartDeltaEvent(event: SSEEvent): MessagePartDeltaEvent?
         partType = partType,
         delta = event.payload.getString("delta")
     )
+}
+
+internal fun parseQuestionAskedEvent(event: SSEEvent): QuestionRequest? {
+    val properties = event.payload.properties ?: return null
+    return runCatching {
+        lenientJson.decodeFromString<QuestionRequest>(properties.toString())
+    }.getOrNull()
 }
 
 internal fun reasoningPartOrNull(partType: String, partId: String, messageId: String, sessionId: String): Part? {

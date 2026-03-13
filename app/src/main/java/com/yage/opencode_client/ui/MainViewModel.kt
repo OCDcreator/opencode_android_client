@@ -46,6 +46,7 @@ data class AppState(
     val selectedModelIndex: Int = 0,
     val providers: ProvidersResponse? = null,
     val pendingPermissions: List<PermissionRequest> = emptyList(),
+    val pendingQuestions: List<QuestionRequest> = emptyList(),
     val inputText: String = "",
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -238,6 +239,7 @@ class MainViewModel @Inject constructor(
         loadSessions()
         loadAgents()
         loadProviders()
+        loadPendingQuestions()
     }
 
     fun loadSessions() {
@@ -396,7 +398,48 @@ class MainViewModel @Inject constructor(
                     _state.update { it.copy(pendingPermissions = permissions) }
                 }
                 .onFailure { error ->
-                    reportNonFatalIssue(TAG, "Failed to load pending permissions", error)
+                    Log.w(TAG, "Failed to load permissions: ${error.message}")
+                }
+        }
+    }
+
+    fun loadPendingQuestions() {
+        viewModelScope.launch {
+            repository.getPendingQuestions()
+                .onSuccess { questions ->
+                    _state.update { it.copy(pendingQuestions = questions) }
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Failed to load questions: ${error.message}")
+                }
+        }
+    }
+
+    fun replyQuestion(requestId: String, answers: List<List<String>>, onError: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.replyQuestion(requestId, answers)
+                .onSuccess {
+                    _state.update { currentState ->
+                        currentState.copy(pendingQuestions = currentState.pendingQuestions.filter { it.id != requestId })
+                    }
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Failed to reply question: ${error.message}")
+                    onError()
+                }
+        }
+    }
+
+    fun rejectQuestion(requestId: String) {
+        viewModelScope.launch {
+            repository.rejectQuestion(requestId)
+                .onSuccess {
+                    _state.update { currentState ->
+                        currentState.copy(pendingQuestions = currentState.pendingQuestions.filter { it.id != requestId })
+                    }
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Failed to reject question: ${error.message}")
                 }
         }
     }
