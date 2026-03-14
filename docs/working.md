@@ -180,3 +180,60 @@
 - `./gradlew testDebugUnitTest` — 5/5 QuestionTest pass
 
 **版本**：0.1.20260313，versionCode 2，GitHub Release + tag `v0.1.20260313`
+
+---
+
+## 2026-03-14
+
+**Phase 5：UX 对齐 iOS（`feature/ux-parity-phase5`）**
+
+iOS/Android feature parity 调研完成，确认以下体验层差异需要对齐：
+
+**5.1 Chat Toolbar 重排**
+- 当前问题：session 标题是 `titleSmall` 塞在 TopAppBar 左侧，所有按钮（Context ring、Model、Agent、Session list、Settings）挤在右侧
+- 目标：对齐 iOS ChatToolbarView 布局，分两行
+  - 第一行：大标题（`titleMedium` bold）
+  - 第二行：左侧 [List] [Rename] [Add]，右侧 [Model ▾] [Agent ▾] [◔ Context]
+- 改动文件：`ChatTopBar.kt`（主改动）、`ChatScreen.kt`（新增 rename 回调）
+
+**5.2 Session Rename UI**
+- 当前问题：`updateSessionTitle()` 后端已实现，但 UI 无入口
+- 目标：Toolbar 左侧加 Rename 按钮，点击弹 AlertDialog 输入新标题
+- 改动文件：`ChatTopBar.kt`
+
+**5.3 草稿按 Session 持久化**
+- 当前问题：`inputText` 全局，切换 session 丢失草稿
+- 目标：按 sessionID 存储草稿到 EncryptedSharedPreferences（JSON Map）
+- 改动文件：`SettingsManager.kt`（新增 get/setDraftText）、`MainViewModel.kt`（selectSession 时保存/恢复）、`MainViewModelSessionActions.kt`
+
+**5.4 Model/Agent 按 Session 记忆**
+- 当前问题：全局 `selectedModelIndex` + 从 last message 推断，手动切模型后切走再切回会丢失
+- 目标：按 sessionID 存储选择到 EncryptedSharedPreferences（JSON Map），恢复优先级 per-session > 推断 > 全局默认
+- 改动文件：`SettingsManager.kt`（新增 get/setModelForSession）、`MainViewModel.kt`（selectModel/selectAgent 时写入）、`MainViewModelSessionActions.kt`（selectSession 时恢复）
+
+**文档更新**：PRD v1.1、RFC §4.3/§4.4/§5.4 已更新
+
+**实现完成**：
+
+- `ChatTopBar.kt`：替换 `TopAppBar` 为 `Surface + Column` 自定义布局
+  - Row 1：Session 标题（`titleMedium` bold，单行省略）
+  - Row 2：左侧 [List] [Edit/Rename] [Add]，`Spacer(weight(1f))`，右侧 [Model] [Agent] [Context ring] [Settings]
+  - 所有 icon 按钮统一 36.dp / 20.dp 尺寸
+  - Rename 弹出 AlertDialog + OutlinedTextField，确认后调用 `onRenameSession(title)`
+  - `Surface(tonalElevation=2.dp)` + `HorizontalDivider` 与消息区分隔
+- `ChatScreen.kt`：新增 `onRenameSession` 回调，接入 `viewModel.updateSessionTitle()`
+- `SettingsManager.kt`：新增 6 个方法 + 3 个 key 常量
+  - `getDraftText/setDraftText`：JSON Map 存储，空白文本自动移除
+  - `getModelForSession/setModelForSession`：JSON Map 存储 Int 索引
+  - `getAgentForSession/setAgentForSession`：JSON Map 存储 agent name
+- `MainViewModel.kt`：
+  - `setInputText()`：同步保存草稿到 SettingsManager
+  - `selectModel()`：同步保存 per-session model
+  - `selectAgent()`：同步保存 per-session agent
+  - `sendMessage()`：成功后清空草稿（onSuccess callback）
+  - `loadMessages()`：传递 settingsManager 给 launchLoadMessages
+- `MainViewModelSessionActions.kt`：
+  - `selectSessionState()`：切换前保存旧草稿，切换后恢复新草稿到 inputText
+  - `launchLoadMessages()`：per-session 保存的 model/agent 优先于 message 推断
+  - `launchSendMessage()`：新增 onSuccess 回调参数
+- `MainViewModelTest.kt`：新增 per-session draft/model/agent 相关测试
