@@ -10,7 +10,7 @@
 | **标题** | OpenCode Android Client 技术方案 |
 | **状态** | Accepted (Implemented) |
 | **创建日期** | 2026-02 |
-| **最后更新** | 2026-03-12 |
+| **最后更新** | 2026-03-14 |
 | **PRD 引用** | [PRD.md](PRD.md) |
 
 ---
@@ -255,6 +255,77 @@ data class AgentInfo(
 )
 ```
 
+### 4.3 草稿持久化（Phase 5，对齐 iOS）
+
+**背景**：当前 `AppState.inputText` 是全局 String，切换 session 时不保存/不恢复，发送后清空。iOS 端用 `draftInputsBySessionID: [String: String]` 字典按 session 存储草稿，持久化到 UserDefaults。
+
+**数据存储**：
+
+```kotlin
+// SettingsManager 新增
+private val draftKey = "draft_inputs_by_session"
+
+fun getDraftText(sessionId: String): String {
+    val json = prefs.getString(draftKey, "{}") ?: "{}"
+    val map = Json.decodeFromString<Map<String, String>>(json)
+    return map[sessionId] ?: ""
+}
+
+fun setDraftText(sessionId: String, text: String) {
+    val json = prefs.getString(draftKey, "{}") ?: "{}"
+    val map = Json.decodeFromString<Map<String, String>>(json).toMutableMap()
+    if (text.isBlank()) map.remove(sessionId) else map[sessionId] = text
+    prefs.edit { putString(draftKey, Json.encodeToString(map)) }
+}
+```
+
+**状态流转**：
+1. `selectSession(newId)` 时：先调 `setDraftText(oldId, currentInputText)` 保存旧草稿，再调 `getDraftText(newId)` 加载新草稿到 `inputText`
+2. `setInputText(text)` 时：同步调 `setDraftText(currentSessionId, text)` 持久化（每次击键都写，利用 EncryptedSharedPreferences 的内存缓存，实际 I/O 开销可控）
+3. `sendMessage()` 成功后：调 `setDraftText(sessionId, "")` 清空
+
+**性能考虑**：EncryptedSharedPreferences 在内存中维护缓存，`getString`/`putString` 的 hot path 不涉及磁盘 I/O。JSON 编解码 Map 规模通常 < 50 条，开销可忽略。如果未来 session 数过多，可按 LRU 淘汰旧草稿。
+
+### 4.4 Model/Agent 按 Session 记忆（Phase 5，对齐 iOS）
+
+**背景**：当前 `selectedModelIndex` 和 `selectedAgentName` 全局存储在 SettingsManager。切换 session 时通过 last assistant message 推断，但用户手动切了模型还没发消息就切走的场景会丢失选择。iOS 用 `selectedModelIDBySessionID` 字典做显式 per-session 持久化。
+
+**数据存储**：
+
+```kotlin
+// SettingsManager 新增
+private val modelBySessionKey = "selected_model_by_session"
+private val agentBySessionKey = "selected_agent_by_session"
+
+// modelID 格式："{providerID}/{modelID}"，与 iOS 的 ModelPreset.id 对齐
+fun getModelForSession(sessionId: String): String? {
+    val json = prefs.getString(modelBySessionKey, "{}") ?: "{}"
+    return Json.decodeFromString<Map<String, String>>(json)[sessionId]
+}
+
+fun setModelForSession(sessionId: String, modelId: String) {
+    val json = prefs.getString(modelBySessionKey, "{}") ?: "{}"
+    val map = Json.decodeFromString<Map<String, String>>(json).toMutableMap()
+    map[sessionId] = modelId
+    prefs.edit { putString(modelBySessionKey, Json.encodeToString(map)) }
+}
+
+// Agent 同理
+fun getAgentForSession(sessionId: String): String? { /* 同上模式 */ }
+fun setAgentForSession(sessionId: String, agentName: String) { /* 同上模式 */ }
+```
+
+**恢复优先级**（切换到 session X 时）：
+1. 查 `getModelForSession(X)` → 有值则直接恢复
+2. 无值 → 从 X 的最后一条 assistant message 推断（当前已有此逻辑）
+3. 推断不到 → 保持当前全局 selectedModelIndex 不变
+
+**写入时机**：
+- `selectModel(index)` 时：若 `currentSessionId != null`，同时调 `setModelForSession(sessionId, modelId)`
+- `selectAgent(name)` 时：同理
+
+**全局默认值保留**：SettingsManager 中原有的全局 `selectedModelIndex` 和 `selectedAgentName` 继续保留，作为新 session 或无 per-session 记录时的 fallback。
+
 ---
 
 ## 5. UI 设计
@@ -339,7 +410,77 @@ fun StreamingText(text: String, isStreaming: Boolean) {
 }
 ```
 
-### 5.4 Chat 自动跟随策略
+### 5.4 Chat Toolbar 重排（Phase 5，对齐 iOS）
+
+**背景**：当前 Android 的 ChatTopBar 使用 Material 3 `TopAppBar`，session 标题以 `titleSmall` 放在左侧，所有操作按钮（Context ring、Model、Agent、Session list、Settings）堆在右侧 `actions` 区域。iOS 端采用自定义 HStack，左右分区清晰。Phase 5 将 Android 布局对齐 iOS。
+
+**目标布局**：
+
+```
+┌─────────────────────────────────────────────────┐
+│  Session Title (titleMedium, bold)              │  ← 大标题行
+├─────────────────────────────────────────────────┤
+│  [☰] [✏] [+]          [Model ▾] [Agent ▾] [◔]  │  ← 按钮行
+└─────────────────────────────────────────────────┘
+```
+
+**实现方案**：将 `TopAppBar` 替换为自定义 `Column`，分两行：
+
+**第一行：Session 标题**
+- 使用 `MaterialTheme.typography.titleMedium`（替代原 `titleSmall`）
+- `fontWeight = FontWeight.Bold`
+- 单行省略（`maxLines = 1, overflow = TextOverflow.Ellipsis`）
+- 左对齐，水平 padding 16.dp
+
+**第二行：操作按钮 HStack**
+- 左侧 `Row`（spacing 8.dp）：
+  1. Session List（`Icons.Default.List`）：点击打开 ModalBottomSheet
+  2. Rename（`Icons.Default.Edit`）：点击弹出 `AlertDialog`，TextField 输入新标题，确认后调用 `updateSessionTitle()`
+  3. New Session（`Icons.Default.Add`）：点击创建新 session
+- `Spacer(Modifier.weight(1f))`
+- 右侧 `Row`（spacing 4.dp）：
+  1. Model 下拉（保持现有 `DropdownMenu` 实现）
+  2. Agent 下拉（保持现有 `DropdownMenu` 实现）
+  3. Context Usage ring（保持现有实现）
+  4. Settings 齿轮（仅平板，通过 `showSettingsButton` 控制）
+
+**Rename 对话框**：
+```kotlin
+@Composable
+fun RenameSessionDialog(
+    currentTitle: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf(currentTitle) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename Session") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+```
+
+**影响范围**：
+- `ChatTopBar.kt`：主要改动文件，替换 TopAppBar 为 Column + 两行 Row
+- `ChatScreen.kt`：新增 `onRenameSession` 回调参数
+- `MainViewModel.kt`：`updateSessionTitle()` 已存在，无需改动
+- `ChatUiTuning.kt`：可能新增标题字号、按钮间距等常量
+
+### 5.5 Chat 自动跟随策略
 
 - Chat 列表使用 `reverseLayout = true`，底部为索引 0
 - 当列表当前停留在底部时，新消息、tool call、streaming delta 到来后自动滚动到索引 0，适合 monitor session
@@ -480,9 +621,10 @@ app/
 
 | Phase | 范围 | 预计周期 |
 |-------|------|----------|
-| 1 | 项目搭建、网络层、SSE、Session、消息发送、流式渲染 | 2-3 周 |
+| 1 | 项目搭建、网络层、SSE、Session、消息发送、流式渲染 | 已完成 |
 | 2 | Part 渲染、权限审批、主题、语音输入 | 已完成 |
 | 3 | 文件树、Markdown / 图片预览、Diff、平板布局 | 已完成 |
+| 5 | UX 对齐 iOS：Chat toolbar 重排（§5.4）、Session Rename UI、草稿持久化（§4.3）、Model/Agent per-session（§4.4） | 2-3 天 |
 | 4 | SSH Tunnel（可选） | 1 周 |
 
 ---

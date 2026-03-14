@@ -180,3 +180,35 @@
 - `./gradlew testDebugUnitTest` — 5/5 QuestionTest pass
 
 **版本**：0.1.20260313，versionCode 2，GitHub Release + tag `v0.1.20260313`
+
+---
+
+## 2026-03-14
+
+**Phase 5：UX 对齐 iOS（`feature/ux-parity-phase5`）**
+
+iOS/Android feature parity 调研完成，确认以下体验层差异需要对齐：
+
+**5.1 Chat Toolbar 重排**
+- 当前问题：session 标题是 `titleSmall` 塞在 TopAppBar 左侧，所有按钮（Context ring、Model、Agent、Session list、Settings）挤在右侧
+- 目标：对齐 iOS ChatToolbarView 布局，分两行
+  - 第一行：大标题（`titleMedium` bold）
+  - 第二行：左侧 [List] [Rename] [Add]，右侧 [Model ▾] [Agent ▾] [◔ Context]
+- 改动文件：`ChatTopBar.kt`（主改动）、`ChatScreen.kt`（新增 rename 回调）
+
+**5.2 Session Rename UI**
+- 当前问题：`updateSessionTitle()` 后端已实现，但 UI 无入口
+- 目标：Toolbar 左侧加 Rename 按钮，点击弹 AlertDialog 输入新标题
+- 改动文件：`ChatTopBar.kt`
+
+**5.3 草稿按 Session 持久化**
+- 当前问题：`inputText` 全局，切换 session 丢失草稿
+- 目标：按 sessionID 存储草稿到 EncryptedSharedPreferences（JSON Map）
+- 改动文件：`SettingsManager.kt`（新增 get/setDraftText）、`MainViewModel.kt`（selectSession 时保存/恢复）、`MainViewModelSessionActions.kt`
+
+**5.4 Model/Agent 按 Session 记忆**
+- 当前问题：全局 `selectedModelIndex` + 从 last message 推断，手动切模型后切走再切回会丢失
+- 目标：按 sessionID 存储选择到 EncryptedSharedPreferences（JSON Map），恢复优先级 per-session > 推断 > 全局默认
+- 改动文件：`SettingsManager.kt`（新增 get/setModelForSession）、`MainViewModel.kt`（selectModel/selectAgent 时写入）、`MainViewModelSessionActions.kt`（selectSession 时恢复）
+
+**文档更新**：PRD v1.1、RFC §4.3/§4.4/§5.4 已更新
