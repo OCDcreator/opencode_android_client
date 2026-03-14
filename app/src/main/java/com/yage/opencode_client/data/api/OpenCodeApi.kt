@@ -42,6 +42,12 @@ interface OpenCodeApi {
     @POST("session/{id}/abort")
     suspend fun abortSession(@Path("id") sessionId: String): Response<Unit>
 
+    @POST("session/{id}/fork")
+    suspend fun forkSession(
+        @Path("id") sessionId: String,
+        @Body body: ForkSessionRequest
+    ): Session
+
     @POST("session/{id}/permissions/{permissionId}")
     suspend fun respondPermission(
         @Path("id") sessionId: String,
@@ -130,4 +136,9 @@ data class PermissionResponseRequest(
 @kotlinx.serialization.Serializable
 data class QuestionReplyRequest(
     val answers: List<List<String>>
+)
+
+@kotlinx.serialization.Serializable
+data class ForkSessionRequest(
+    @kotlinx.serialization.SerialName("messageID") val messageId: String? = null
 )

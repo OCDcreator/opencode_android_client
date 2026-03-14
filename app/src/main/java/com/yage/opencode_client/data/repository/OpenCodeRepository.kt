@@ -124,6 +124,10 @@ class OpenCodeRepository @Inject constructor() {
         api.abortSession(sessionId)
     }
 
+    suspend fun forkSession(sessionId: String, messageId: String? = null): Result<Session> = runCatching {
+        api.forkSession(sessionId, ForkSessionRequest(messageId))
+    }
+
     suspend fun getPendingPermissions(): Result<List<PermissionRequest>> = runCatching {
         api.getPendingPermissions()
     }
