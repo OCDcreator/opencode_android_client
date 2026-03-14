@@ -117,6 +117,12 @@ interface OpenCodeApi {
     @POST("/session/{id}/abort")
     suspend fun abortSession(@Path("id") sessionId: String)
     
+    @POST("/session/{id}/fork")
+    suspend fun forkSession(
+        @Path("id") sessionId: String,
+        @Body body: ForkSessionRequest
+    ): Session
+    
     @GET("/file")
     suspend fun getFileTree(@Query("path") path: String?): FileNode
     
