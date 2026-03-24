@@ -61,6 +61,7 @@ internal fun FilePreviewPane(
     path: String,
     fileContent: FileContent,
     repository: OpenCodeRepository,
+    sessionDirectory: String? = null,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -96,7 +97,8 @@ internal fun FilePreviewPane(
             previewKind == FilePreviewUtils.PreviewContentKind.MARKDOWN -> PreviewMarkdown(
                 content = content,
                 filePath = path,
-                repository = repository
+                repository = repository,
+                sessionDirectory = sessionDirectory
             )
             previewKind == FilePreviewUtils.PreviewContentKind.BINARY -> PreviewBinaryFallback()
             else -> PreviewPlainText(content = content)
@@ -108,15 +110,20 @@ internal fun FilePreviewPane(
 private fun PreviewMarkdown(
     content: String,
     filePath: String,
-    repository: OpenCodeRepository
+    repository: OpenCodeRepository,
+    sessionDirectory: String?
 ) {
     var resolvedContent by remember(content, filePath) { mutableStateOf<String?>(null) }
+    val resolverMarkdownPath = remember(filePath, sessionDirectory) {
+        resolveRelativePreviewPath(filePath, sessionDirectory)
+    }
 
-    LaunchedEffect(content, filePath, repository) {
+    LaunchedEffect(content, resolverMarkdownPath, sessionDirectory, repository) {
         resolvedContent = null
         resolvedContent = MarkdownImageResolver.resolveImages(
             text = content,
-            markdownFilePath = filePath,
+            markdownFilePath = resolverMarkdownPath,
+            workspaceDirectory = sessionDirectory,
             fetchContent = { path -> repository.getFileContent(path).getOrThrow() }
         )
         val finalText = resolvedContent ?: content

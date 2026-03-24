@@ -76,6 +76,7 @@ fun FilesScreen(
                     path = state.selectedFilePath!!,
                     fileContent = state.selectedFileContent!!,
                     repository = viewModel.repository,
+                    sessionDirectory = sessionDirectory,
                     onClose = {
                         viewModel.closePreview()
                         onCloseFile()

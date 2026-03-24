@@ -20,6 +20,17 @@ class FileNavigationUtilsTest {
     }
 
     @Test
+    fun `resolveRelativePreviewPath strips session directory prefix when absolute paths lost leading slash`() {
+        assertEquals(
+            "contexts/thought_review/context_operating_model_high_level_spec_20260323.md",
+            resolveRelativePreviewPath(
+                pathToShow = "Users/grapeot/co/knowledge_working/contexts/thought_review/context_operating_model_high_level_spec_20260323.md",
+                sessionDirectory = "/Users/grapeot/co/knowledge_working"
+            )
+        )
+    }
+
+    @Test
     fun `resolveRelativePreviewPath keeps full path when session prefix does not match`() {
         assertEquals(
             "workspace/other/src/Main.kt",
