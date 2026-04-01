@@ -51,7 +51,9 @@
     <string name="new_session_cd">New session</string>
     <string name="model">Model</string>
     <string name="switch_model_cd">Switch LLM model</string>
-    <string name="no_models">No models</string>
+    <string name="no_models">No models available</string>
+    <string name="search_models">Search models…</string>
+    <string name="model_cd">Model</string>
     <string name="switch_agent_cd">Switch agent</string>
     <string name="no_agents">No agents</string>
     <string name="rename_session_dialog">Rename Session</string>

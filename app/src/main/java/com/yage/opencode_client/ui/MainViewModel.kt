@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.math.max
 import javax.inject.Inject
 
 data class ConnectionFormSettings(
@@ -46,6 +47,7 @@ data class AppState(
     val agents: List<AgentInfo> = emptyList(),
     val selectedAgentName: String = "build",
     val selectedModelIndex: Int = 0,
+    val availableModels: List<ModelOption> = ModelPresets.list,
     val providers: ProvidersResponse? = null,
     val pendingPermissions: List<PermissionRequest> = emptyList(),
     val pendingQuestions: List<QuestionRequest> = emptyList(),
@@ -219,10 +221,6 @@ data class AppState(
 
     val visibleAgents: List<AgentInfo>
         get() = agents.filter { it.isVisible }
-
-    /** Curated model list (filtered like iOS), not the full API response. */
-    val availableModels: List<ModelOption>
-        get() = ModelPresets.list
 
     private val providerModelsIndex: Map<String, ProviderModel>
         get() = providers?.providers?.flatMap { provider ->
@@ -458,7 +456,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun loadProviders() {
-        launchLoadProviders(viewModelScope, repository, _state) { message, error ->
+        launchLoadProviders(viewModelScope, repository, _state, settingsManager) { message, error ->
             reportNonFatalIssue(TAG, message, error)
         }
     }
@@ -533,10 +531,12 @@ class MainViewModel @Inject constructor(
     }
 
     fun selectModel(index: Int) {
-        val clamped = index.coerceIn(0, ModelPresets.list.size - 1)
-        settingsManager.selectedModelIndex = clamped
+        val models = _state.value.availableModels
+        val clamped = index.coerceIn(0, max(models.size - 1, 0))
+        val key = models.getOrNull(clamped)?.let { "${it.providerId}/${it.modelId}" } ?: ""
+        settingsManager.selectedModelKey = key
         _state.update { it.copy(selectedModelIndex = clamped) }
-        _state.value.currentSessionId?.let { settingsManager.setModelForSession(it, clamped) }
+        _state.value.currentSessionId?.let { settingsManager.setModelForSession(it, key) }
     }
 
     fun setThemeMode(mode: ThemeMode) {

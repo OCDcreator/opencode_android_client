@@ -20,16 +20,16 @@ internal fun applySavedSettings(
         workingDirectory = settingsManager.workingDirectory
     )
 
-    val savedModelIndex = settingsManager.selectedModelIndex
-    val clampedModelIndex = savedModelIndex.coerceIn(0, ModelPresets.list.size - 1)
-    if (clampedModelIndex != savedModelIndex) {
-        settingsManager.selectedModelIndex = clampedModelIndex
-    }
+    val savedModelKey = settingsManager.selectedModelKey
+    val modelIndex = if (savedModelKey.isNotEmpty()) {
+        ModelPresets.list.indexOfFirst { "${it.providerId}/${it.modelId}" == savedModelKey }
+            .takeIf { it >= 0 } ?: 0
+    } else 0
 
     state.update {
         it.copy(
             currentSessionId = settingsManager.currentSessionId,
-            selectedModelIndex = clampedModelIndex,
+            selectedModelIndex = modelIndex,
             selectedAgentName = settingsManager.selectedAgentName ?: "build",
             themeMode = settingsManager.themeMode,
             workingDirectory = settingsManager.workingDirectory

@@ -52,6 +52,8 @@
     <string name="model">模型</string>
     <string name="switch_model_cd">切换模型</string>
     <string name="no_models">无可用模型</string>
+    <string name="search_models">搜索模型…</string>
+    <string name="model_cd">模型</string>
     <string name="switch_agent_cd">切换代理</string>
     <string name="no_agents">无可用代理</string>
     <string name="rename_session_dialog">重命名会话</string>

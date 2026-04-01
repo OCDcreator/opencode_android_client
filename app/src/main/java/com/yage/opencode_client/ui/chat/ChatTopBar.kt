@@ -7,17 +7,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,16 +48,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.AgentInfo
+import com.yage.opencode_client.data.model.ConfigProvider
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.ui.AppState
-import androidx.compose.ui.res.stringResource
-import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.session.SessionList
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import java.util.Locale
 
 internal data class ChatTopBarState(
     val sessions: List<Session>,
@@ -64,6 +82,7 @@ internal data class ChatTopBarState(
     val selectedAgent: String,
     val availableModels: List<AppState.ModelOption>,
     val selectedModelIndex: Int,
+    val providers: List<ConfigProvider> = emptyList(),
     val contextUsage: AppState.ContextUsage?,
     val showSettingsButton: Boolean = true,
     val showNewSessionInTopBar: Boolean = true,
@@ -181,7 +200,8 @@ internal fun ChatTopBar(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
-                                    text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName ?: stringResource(R.string.model),
+                                    text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName
+                                        ?: stringResource(R.string.model),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onPrimary,
@@ -195,38 +215,17 @@ internal fun ChatTopBar(
                                 )
                             }
                         }
-                        DropdownMenu(
-                            expanded = showModelMenu,
-                            onDismissRequest = { showModelMenu = false }
-                        ) {
-                            if (state.availableModels.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(R.string.no_models),
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    },
-                                    onClick = { }
-                                )
-                            }
-                            state.availableModels.forEachIndexed { index, model ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            model.displayName,
-                                            color = if (index == state.selectedModelIndex)
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    onClick = {
-                                        actions.onSelectModel(index)
-                                        showModelMenu = false
-                                    }
-                                )
-                            }
+                        if (showModelMenu) {
+                            ModelPickerPopup(
+                                models = state.availableModels,
+                                providers = state.providers,
+                                selectedIndex = state.selectedModelIndex,
+                                onSelect = { index ->
+                                    actions.onSelectModel(index)
+                                    showModelMenu = false
+                                },
+                                onDismiss = { showModelMenu = false }
+                            )
                         }
                     }
 
@@ -442,5 +441,184 @@ internal fun ChatEmptyState(
                 }
             }
         }
+    }
+}
+
+private data class GroupedModel(
+    val providerName: String,
+    val model: AppState.ModelOption,
+    val index: Int
+)
+
+@Composable
+private fun ModelPickerPopup(
+    models: List<AppState.ModelOption>,
+    providers: List<ConfigProvider>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var filterQuery by remember { mutableStateOf("") }
+    val searchHint = stringResource(R.string.search_models)
+    val noModelsText = stringResource(R.string.no_models)
+    val focusRequester = remember { FocusRequester() }
+
+    val providerNameMap = remember(providers) {
+        providers.associate { it.id to (it.name ?: it.id) }
+    }
+
+    val grouped = remember(models, providers, filterQuery) {
+        val query = filterQuery.lowercase(Locale.getDefault())
+        models.mapIndexed { index, model ->
+            val pName = providerNameMap[model.providerId] ?: model.providerId
+            GroupedModel(pName, model, index)
+        }.filter {
+            query.isEmpty() ||
+                it.model.displayName.lowercase(Locale.getDefault()).contains(query) ||
+                it.model.modelId.lowercase(Locale.getDefault()).contains(query) ||
+                it.providerName.lowercase(Locale.getDefault()).contains(query)
+        }.groupBy { it.providerName }
+    }
+
+    Popup(
+        alignment = Alignment.TopEnd,
+        offset = IntOffset(0, with(LocalDensity.current) { 4.dp.roundToPx() }),
+        properties = PopupProperties(focusable = true),
+        onDismissRequest = onDismiss
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .fillMaxHeight(0.65f),
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 4.dp,
+            shadowElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = filterQuery,
+                        onValueChange = { filterQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        placeholder = {
+                            Text(
+                                searchHint,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                if (grouped.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            noModelsText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                    ) {
+                        grouped.forEach { (providerName, items) ->
+                            item(key = "header_$providerName") {
+                                Text(
+                                    text = providerName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceContainerHigh
+                                        )
+                                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(items = items, key = { "model_${it.index}" }) { item ->
+                                val selected = item.index == selectedIndex
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = if (selected)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    else
+                                        Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onSelect(item.index) }
+                                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = item.model.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (selected)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (selected) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
     }
 }

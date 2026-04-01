@@ -70,9 +70,14 @@ class SettingsManager @Inject constructor(
         get() = encryptedPrefs.getString(KEY_SESSION_ID, null)
         set(value) = encryptedPrefs.edit().putString(KEY_SESSION_ID, value).apply()
 
-    var selectedModelIndex: Int
-        get() = encryptedPrefs.getInt(KEY_MODEL_INDEX, 4)
-        set(value) = encryptedPrefs.edit().putInt(KEY_MODEL_INDEX, value).apply()
+    var selectedModelKey: String
+        get() = encryptedPrefs.getString(KEY_MODEL_KEY, null) ?: run {
+            val oldIndex = encryptedPrefs.getInt(KEY_MODEL_INDEX, 4)
+            val key = LEGACY_MODEL_PRESETS.getOrNull(oldIndex)?.let { "${it.first}/${it.second}" } ?: ""
+            if (key.isNotEmpty()) encryptedPrefs.edit().putString(KEY_MODEL_KEY, key).apply()
+            key
+        }
+        set(value) = encryptedPrefs.edit().putString(KEY_MODEL_KEY, value).apply()
 
     var selectedAgentName: String?
         get() = encryptedPrefs.getString(KEY_AGENT_NAME, null)
@@ -130,23 +135,30 @@ class SettingsManager @Inject constructor(
         encryptedPrefs.edit().putString(KEY_SESSION_DRAFTS, Json.encodeToString(map)).apply()
     }
 
-    fun getModelForSession(sessionId: String): Int? {
+    fun getModelForSession(sessionId: String): String? {
         val json = encryptedPrefs.getString(KEY_SESSION_MODELS, null) ?: return null
         return try {
-            Json.decodeFromString<Map<String, String>>(json)[sessionId]?.toIntOrNull()
+            val raw = Json.decodeFromString<Map<String, String>>(json)[sessionId] ?: return null
+            raw.toIntOrNull()?.let { oldIndex ->
+                LEGACY_MODEL_PRESETS.getOrNull(oldIndex)?.let { "${it.first}/${it.second}" }
+            } ?: raw
         } catch (e: Exception) {
             null
         }
     }
 
-    fun setModelForSession(sessionId: String, modelIndex: Int) {
+    fun setModelForSession(sessionId: String, modelKey: String) {
         val json = encryptedPrefs.getString(KEY_SESSION_MODELS, null)
         val map: MutableMap<String, String> = try {
             json?.let { Json.decodeFromString<Map<String, String>>(it).toMutableMap() } ?: mutableMapOf()
         } catch (e: Exception) {
             mutableMapOf()
         }
-        map[sessionId] = modelIndex.toString()
+        if (modelKey.isEmpty()) {
+            map.remove(sessionId)
+        } else {
+            map[sessionId] = modelKey
+        }
         encryptedPrefs.edit().putString(KEY_SESSION_MODELS, Json.encodeToString(map)).apply()
     }
 
@@ -182,6 +194,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_RECENT_WORKING_DIRECTORIES = "recent_working_directories"
         private const val KEY_SESSION_ID = "session_id"
         private const val KEY_MODEL_INDEX = "model_index"
+        private const val KEY_MODEL_KEY = "model_key"
         private const val KEY_AGENT_NAME = "agent_name"
         private const val KEY_THEME = "theme"
         private const val KEY_AI_BUILDER_BASE_URL = "ai_builder_base_url"
@@ -194,6 +207,13 @@ class SettingsManager @Inject constructor(
         private const val KEY_SESSION_MODELS = "session_models"
         private const val KEY_SESSION_AGENTS = "session_agents"
         private const val MAX_RECENT_WORKING_DIRECTORIES = 8
+        private val LEGACY_MODEL_PRESETS = listOf(
+            "zai-coding-plan" to "glm-5-turbo",
+            "anthropic" to "claude-opus-4-6",
+            "anthropic" to "claude-sonnet-4-6",
+            "openai" to "gpt-5.3-codex",
+            "openai" to "gpt-5.4",
+        )
     }
 }
 

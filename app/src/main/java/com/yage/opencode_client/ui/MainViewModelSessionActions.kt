@@ -1,6 +1,7 @@
 package com.yage.opencode_client.ui
 
 import com.yage.opencode_client.data.model.Message
+import com.yage.opencode_client.data.model.ProvidersResponse
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
@@ -168,14 +169,19 @@ internal fun launchLoadMessages(
         repository.getMessages(sessionId, limit)
             .onSuccess { messages ->
                 if (sessionId == state.value.currentSessionId) {
+                    val currentModels = state.value.availableModels
                     val lastAssistant = messages.lastOrNull { it.info.isAssistant }
                     val inferredModelIndex = lastAssistant?.info?.resolvedModel?.let { model ->
-                        ModelPresets.list.indexOfFirst {
+                        currentModels.indexOfFirst {
                             it.providerId == model.providerId && it.modelId == model.modelId
                         }.takeIf { it >= 0 }
                     }
                     val inferredAgentName = lastAssistant?.info?.agent
-                    val modelIndex = settingsManager?.getModelForSession(sessionId) ?: inferredModelIndex
+                    val modelKey = settingsManager?.getModelForSession(sessionId)
+                    val modelIndex = modelKey?.let { key ->
+                        currentModels.indexOfFirst { "${it.providerId}/${it.modelId}" == key }
+                            .takeIf { it >= 0 }
+                    } ?: inferredModelIndex
                     val agentName = settingsManager?.getAgentForSession(sessionId) ?: inferredAgentName
                     state.update {
                         it.copy(
@@ -257,17 +263,58 @@ internal fun launchLoadProviders(
     scope: CoroutineScope,
     repository: OpenCodeRepository,
     state: MutableStateFlow<AppState>,
+    settingsManager: SettingsManager,
     onNonFatalError: (String, Throwable?) -> Unit
 ) {
     scope.launch {
         repository.getProviders()
             .onSuccess { providers ->
-                state.update { it.copy(providers = providers) }
+                val modelOptions = buildModelOptionsFromProviders(providers)
+                val savedKey = settingsManager.selectedModelKey
+                val newModelIndex = resolveModelIndex(modelOptions, savedKey, providers)
+                state.update {
+                    it.copy(
+                        providers = providers,
+                        availableModels = modelOptions,
+                        selectedModelIndex = newModelIndex
+                    )
+                }
             }
             .onFailure { error ->
                 onNonFatalError("Failed to load providers", error)
             }
     }
+}
+
+internal fun buildModelOptionsFromProviders(providers: ProvidersResponse): List<AppState.ModelOption> {
+    val options = providers.providers.flatMap { provider ->
+        provider.models.values.map { model ->
+            AppState.ModelOption(
+                displayName = model.name ?: model.id,
+                providerId = provider.id,
+                modelId = model.id
+            )
+        }
+    }
+    if (options.isEmpty()) return ModelPresets.list
+    return options.sortedBy { it.displayName.lowercase() }
+}
+
+internal fun resolveModelIndex(
+    models: List<AppState.ModelOption>,
+    savedKey: String,
+    providers: ProvidersResponse
+): Int {
+    if (savedKey.isNotEmpty()) {
+        val idx = models.indexOfFirst { "${it.providerId}/${it.modelId}" == savedKey }
+        if (idx >= 0) return idx
+    }
+    providers.default?.let { default ->
+        return models.indexOfFirst {
+            it.providerId == default.providerId && it.modelId == default.modelId
+        }.takeIf { it >= 0 } ?: 0
+    }
+    return 0
 }
 
 internal fun launchCreateSession(

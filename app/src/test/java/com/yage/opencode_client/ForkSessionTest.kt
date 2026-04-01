@@ -56,7 +56,7 @@ class ForkSessionTest {
         every { settingsManager.username } returns null
         every { settingsManager.password } returns null
         every { settingsManager.currentSessionId } returns null
-        every { settingsManager.selectedModelIndex } returns 0
+        every { settingsManager.selectedModelKey } returns ""
         every { settingsManager.selectedAgentName } returns null
         every { settingsManager.themeMode } returns ThemeMode.SYSTEM
         every { settingsManager.aiBuilderBaseURL } returns "https://space.ai-builders.com/backend"
@@ -70,7 +70,7 @@ class ForkSessionTest {
         every { settingsManager.username = any() } just runs
         every { settingsManager.password = any() } just runs
         every { settingsManager.currentSessionId = any() } just runs
-        every { settingsManager.selectedModelIndex = any() } just runs
+        every { settingsManager.selectedModelKey = any() } just runs
         every { settingsManager.selectedAgentName = any() } just runs
         every { settingsManager.themeMode = any() } just runs
         every { settingsManager.aiBuilderBaseURL = any() } just runs

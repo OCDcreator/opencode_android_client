@@ -71,7 +71,7 @@ class MainViewModelTest {
         every { settingsManager.username } returns null
         every { settingsManager.password } returns null
         every { settingsManager.currentSessionId } returns null
-        every { settingsManager.selectedModelIndex } returns 0
+        every { settingsManager.selectedModelKey } returns ""
         every { settingsManager.selectedAgentName } returns null
         every { settingsManager.themeMode } returns ThemeMode.SYSTEM
         every { settingsManager.aiBuilderBaseURL } returns "https://space.ai-builders.com/backend"
@@ -85,7 +85,7 @@ class MainViewModelTest {
         every { settingsManager.username = any() } just runs
         every { settingsManager.password = any() } just runs
         every { settingsManager.currentSessionId = any() } just runs
-        every { settingsManager.selectedModelIndex = any() } just runs
+        every { settingsManager.selectedModelKey = any() } just runs
         every { settingsManager.selectedAgentName = any() } just runs
         every { settingsManager.themeMode = any() } just runs
         every { settingsManager.aiBuilderBaseURL = any() } just runs
@@ -133,14 +133,14 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `init clamps saved model index and configures repository`() = runTest {
-        every { settingsManager.selectedModelIndex } returns 999
+    fun `init restores model from saved key`() = runTest {
+        val targetModel = ModelPresets.list[3]
+        every { settingsManager.selectedModelKey } returns "${targetModel.providerId}/${targetModel.modelId}"
 
         val viewModel = createViewModel()
 
-        assertEquals(ModelPresets.list.lastIndex, viewModel.state.value.selectedModelIndex)
-        verify { settingsManager.selectedModelIndex = ModelPresets.list.lastIndex }
-        verify { repository.configure("http://server.test", null, null) }
+        assertEquals(3, viewModel.state.value.selectedModelIndex)
+        verify { repository.configure("http://server.test", null, null, "") }
     }
 
     @Test
@@ -716,7 +716,8 @@ class MainViewModelTest {
 
         viewModel.selectModel(2)
 
-        verify { settingsManager.setModelForSession("s1", 2) }
+        val expectedModel = ModelPresets.list[2]
+        verify { settingsManager.setModelForSession("s1", "${expectedModel.providerId}/${expectedModel.modelId}") }
     }
 
     @Test
@@ -745,7 +746,8 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `loadMessages uses per-session saved model index over message inference`() = runTest {
+    fun `loadMessages uses per-session saved model key over message inference`() = runTest {
+        val savedModel = ModelPresets.list[3]
         val inferredPreset = ModelPresets.list[2]
         val messages = listOf(
             MessageWithParts(
@@ -757,7 +759,7 @@ class MainViewModelTest {
             )
         )
         coEvery { repository.getMessages("session-1", 30) } returns Result.success(messages)
-        every { settingsManager.getModelForSession("session-1") } returns 3
+        every { settingsManager.getModelForSession("session-1") } returns "${savedModel.providerId}/${savedModel.modelId}"
 
         val viewModel = createViewModel()
         updateState(viewModel) { it.copy(currentSessionId = "session-1") }

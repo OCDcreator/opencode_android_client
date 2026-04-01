@@ -6,6 +6,21 @@
 
 ## [Unreleased] — 2026-04-02
 
+### feat: Dynamic Model List from Server
+- Model selector now loads available models from `GET /config/providers` instead of hardcoded presets
+- `AppState.availableModels` changed from computed property (always `ModelPresets.list`) to mutable field populated at runtime
+- `launchLoadProviders` builds `List<ModelOption>` from `ProvidersResponse`, falls back to presets when disconnected
+- Model selection persisted by `"providerId/modelId"` key (not index) for stability across provider changes
+- `SettingsManager` migrated from `selectedModelIndex` (Int) to `selectedModelKey` (String) with legacy auto-migration
+- `launchLoadMessages` matches model by key in dynamic list; falls back to last-assistant-model inference
+
+### feat: Model Picker Popup Redesign
+- Replaced flat `DropdownMenu` with rich `Popup` composable matching iOS/TS reference design
+- Search bar at top with live filtering by model name, model ID, or provider name
+- Grouped list by provider with sticky provider headers
+- Selected model highlighted with background tint + checkmark icon
+- External tap / back button dismisses popup
+
 ### feat: Working Directory Support
 - All API endpoints (`OpenCodeApi`) now accept an optional `directory` query parameter
 - `OpenCodeRepository` added `workingDirectory` field, `effectiveDirectory()` helper, and every method passes directory to API

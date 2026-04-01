@@ -66,6 +66,7 @@ fun ChatScreen(
                 selectedAgent = state.selectedAgentName,
                 availableModels = state.availableModels,
                 selectedModelIndex = state.selectedModelIndex,
+                providers = state.providers?.providers ?: emptyList(),
                 contextUsage = cachedContextUsage,
                 showSettingsButton = showSettingsButton,
                 showNewSessionInTopBar = showNewSessionInTopBar,
