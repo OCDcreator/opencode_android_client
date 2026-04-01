@@ -49,6 +49,8 @@ import com.yage.opencode_client.data.model.AgentInfo
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.ui.AppState
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.session.SessionList
 
 internal data class ChatTopBarState(
@@ -105,7 +107,7 @@ internal fun ChatTopBar(
         ) {
             val titleText = currentSession?.title
                 ?: currentSession?.directory?.split("/")?.lastOrNull()
-                ?: "OpenCode"
+                ?: stringResource(R.string.opencode)
             Text(
                 text = titleText,
                 style = MaterialTheme.typography.titleMedium,
@@ -129,7 +131,7 @@ internal fun ChatTopBar(
                         ) {
                             Icon(
                                 Icons.Default.List,
-                                contentDescription = "Sessions",
+                                contentDescription = stringResource(R.string.sessions_cd),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -142,7 +144,7 @@ internal fun ChatTopBar(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Rename session",
+                                contentDescription = stringResource(R.string.rename_session_cd),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -155,7 +157,7 @@ internal fun ChatTopBar(
                         ) {
                             Icon(
                                 Icons.Default.Add,
-                                contentDescription = "New session",
+                                contentDescription = stringResource(R.string.new_session_cd),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -179,7 +181,7 @@ internal fun ChatTopBar(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
-                                    text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName ?: "Model",
+                                    text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName ?: stringResource(R.string.model),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onPrimary,
@@ -187,7 +189,7 @@ internal fun ChatTopBar(
                                 )
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Switch LLM model",
+                                    contentDescription = stringResource(R.string.switch_model_cd),
                                     modifier = Modifier.size(14.dp),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
@@ -201,7 +203,7 @@ internal fun ChatTopBar(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "No models",
+                                            stringResource(R.string.no_models),
                                             color = MaterialTheme.colorScheme.outline
                                         )
                                     },
@@ -247,7 +249,7 @@ internal fun ChatTopBar(
                                 )
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Switch agent",
+                                    contentDescription = stringResource(R.string.switch_agent_cd),
                                     modifier = Modifier.size(14.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -261,7 +263,7 @@ internal fun ChatTopBar(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "No agents",
+                                            stringResource(R.string.no_agents),
                                             color = MaterialTheme.colorScheme.outline
                                         )
                                     },
@@ -299,7 +301,7 @@ internal fun ChatTopBar(
                         ) {
                             Icon(
                                 Icons.Default.Settings,
-                                contentDescription = "Settings",
+                                contentDescription = stringResource(R.string.settings),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -355,12 +357,12 @@ internal fun ChatTopBar(
         }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename Session") },
+            title = { Text(stringResource(R.string.rename_session_dialog)) },
             text = {
                 OutlinedTextField(
                     value = renameText,
                     onValueChange = { renameText = it },
-                    label = { Text("Session title") },
+                    label = { Text(stringResource(R.string.session_title_label)) },
                     singleLine = true
                 )
             },
@@ -373,12 +375,12 @@ internal fun ChatTopBar(
                         showRenameDialog = false
                     }
                 ) {
-                    Text("Rename")
+                    Text(stringResource(R.string.rename))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -427,7 +429,7 @@ internal fun ChatEmptyState(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                if (isConnected) "Select or create a session" else "Connect to server",
+                if (isConnected) stringResource(R.string.select_or_create_session) else stringResource(R.string.connect_to_server),
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -436,7 +438,7 @@ internal fun ChatEmptyState(
                     onClick = onConnect,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {
-                    Text("Connect")
+                    Text(stringResource(R.string.connect))
                 }
             }
         }

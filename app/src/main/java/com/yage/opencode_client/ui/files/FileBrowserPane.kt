@@ -23,6 +23,8 @@ import com.yage.opencode_client.ui.theme.AddedFile
 import com.yage.opencode_client.ui.theme.DeletedFile
 import com.yage.opencode_client.ui.theme.ModifiedFile
 import com.yage.opencode_client.ui.theme.UntrackedFile
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 
 @Composable
 internal fun FileBrowserPane(
@@ -75,7 +77,7 @@ internal fun FileRow(
         if (file.ignored == true) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "ignored",
+                text = stringResource(R.string.ignored),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
             )

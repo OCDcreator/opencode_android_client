@@ -16,7 +16,8 @@ internal fun applySavedSettings(
     repository.configure(
         baseUrl = settingsManager.serverUrl,
         username = settingsManager.username,
-        password = settingsManager.password
+        password = settingsManager.password,
+        workingDirectory = settingsManager.workingDirectory
     )
 
     val savedModelIndex = settingsManager.selectedModelIndex
@@ -30,7 +31,8 @@ internal fun applySavedSettings(
             currentSessionId = settingsManager.currentSessionId,
             selectedModelIndex = clampedModelIndex,
             selectedAgentName = settingsManager.selectedAgentName ?: "build",
-            themeMode = settingsManager.themeMode
+            themeMode = settingsManager.themeMode,
+            workingDirectory = settingsManager.workingDirectory
         )
     }
 

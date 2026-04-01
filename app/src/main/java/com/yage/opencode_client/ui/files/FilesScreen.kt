@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +31,7 @@ fun FilesScreen(
     viewModel: FilesViewModel = hiltViewModel(),
     pathToShow: String? = null,
     sessionDirectory: String? = null,
+    workingDirectory: String? = null,
     onCloseFile: () -> Unit = {},
     onFileClick: (String) -> Unit = {}
 ) {
@@ -38,20 +41,24 @@ fun FilesScreen(
         viewModel.syncPathToShow(pathToShow, sessionDirectory)
     }
 
+    LaunchedEffect(workingDirectory) {
+        viewModel.refresh()
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (state.selectedFilePath == null) {
             TopAppBar(
-                title = { Text(state.currentPath.ifEmpty { "Files" }) },
+                title = { Text(state.currentPath.ifEmpty { stringResource(R.string.files) }) },
                 navigationIcon = {
                     if (state.currentPath.isNotEmpty()) {
                         IconButton(onClick = viewModel::navigateUp) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 }
             )
@@ -62,7 +69,7 @@ fun FilesScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = viewModel::clearError) {
-                        Text("Dismiss")
+                        Text(stringResource(R.string.dismiss))
                     }
                 }
             ) {

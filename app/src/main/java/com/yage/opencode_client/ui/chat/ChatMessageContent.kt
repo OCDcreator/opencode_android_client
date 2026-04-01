@@ -64,6 +64,8 @@ import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 import kotlinx.coroutines.flow.collect
 
 @Composable
@@ -167,7 +169,7 @@ internal fun ChatMessageList(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No messages yet. Send a message to start.",
+                        text = stringResource(R.string.no_messages),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -258,7 +260,7 @@ private fun MessageRow(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options",
+                            contentDescription = stringResource(R.string.more_options_cd),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.size(16.dp)
                         )
@@ -268,7 +270,7 @@ private fun MessageRow(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Fork from here") },
+                            text = { Text(stringResource(R.string.fork_from_here)) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.CallSplit,
@@ -414,13 +416,13 @@ private fun ReasoningCard(
             ) {
                 Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(title ?: "Thinking", style = MaterialTheme.typography.labelLarge)
+                Text(title ?: stringResource(R.string.thinking), style = MaterialTheme.typography.labelLarge)
                 Spacer(modifier = Modifier.weight(1f))
                 if (!isStreaming) {
                     IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp)) {
                         Icon(
                             if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.ChevronRight,
-                            contentDescription = if (expanded) "Collapse" else "Expand",
+                            contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -470,17 +472,17 @@ private fun ToolCard(
                         Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = toolName.ifEmpty { reason ?: "tool" }, style = MaterialTheme.typography.labelLarge)
+                    Text(text = toolName.ifEmpty { reason ?: stringResource(R.string.tool) }, style = MaterialTheme.typography.labelLarge)
                     Spacer(modifier = Modifier.weight(1f))
                     if (firstFile != null) {
                         IconButton(onClick = { onFileClick(firstFile) }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = "Show in Files", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
                         }
                     }
                     IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp)) {
                         Icon(
                             if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.ChevronRight,
-                            contentDescription = if (expanded) "Collapse" else "Expand",
+                            contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -521,7 +523,7 @@ private fun ToolCard(
                                 modifier = Modifier.weight(1f)
                             )
                             IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.OpenInNew, contentDescription = "Show in Files", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -547,7 +549,7 @@ private fun PatchCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Patch", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.patch), style = MaterialTheme.typography.labelLarge)
                 }
                 Spacer(modifier = Modifier.size(8.dp))
                 filePaths.forEach { path ->
@@ -559,7 +561,7 @@ private fun PatchCard(
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = "Show in Files", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
                         }
                     }
                 }

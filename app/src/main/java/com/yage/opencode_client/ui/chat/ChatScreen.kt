@@ -17,7 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yage.opencode_client.R
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
@@ -36,13 +38,14 @@ fun ChatScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val aiBuilderToken = AIBuildersAudioClient.sanitizeBearerToken(viewModel.getAIBuilderSettings().token)
+    val micPermissionDeniedMessage = stringResource(R.string.mic_permission_denied)
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             viewModel.toggleRecording()
         } else {
-            viewModel.setSpeechError("Microphone permission denied. Please allow microphone access in system settings.")
+            viewModel.setSpeechError(micPermissionDeniedMessage)
         }
     }
 
@@ -115,7 +118,7 @@ fun ChatScreen(
                     modifier = Modifier.padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
+                            Text(stringResource(R.string.dismiss))
                         }
                     }
                 ) {
@@ -155,11 +158,11 @@ fun ChatScreen(
         state.speechError?.let { speechError ->
             AlertDialog(
                 onDismissRequest = { viewModel.clearSpeechError() },
-                title = { Text("Speech Recognition") },
+                title = { Text(stringResource(R.string.speech_recognition)) },
                 text = { Text(speechError) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.clearSpeechError() }) {
-                        Text("OK")
+                        Text(stringResource(R.string.ok))
                     }
                 }
             )

@@ -4,20 +4,27 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,17 +32,28 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yage.opencode_client.R
+import com.yage.opencode_client.data.model.FileNode
 import com.yage.opencode_client.ui.AIBuilderSettings
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.util.ThemeMode
@@ -45,24 +63,31 @@ internal fun ServerConnectionSection(
     serverUrl: String,
     username: String,
     password: String,
+    workingDirectory: String,
     showPassword: Boolean,
     isTesting: Boolean,
     state: AppState,
     testResult: TestResult?,
     onServerUrlChange: (String) -> Unit,
     onUsernameChange: (String) -> Unit,
+    onWorkingDirectoryChange: (String) -> Unit,
+    recentWorkingDirectories: List<String>,
+    onSelectRecentWorkingDirectory: (String) -> Unit,
+    onBrowseWorkingDirectory: suspend (String?) -> Result<List<FileNode>>,
     onPasswordChange: (String) -> Unit,
     onTogglePasswordVisibility: () -> Unit,
     onTestConnection: () -> Unit,
     onSave: () -> Unit
 ) {
-    SectionHeader(title = "Server Connection")
+    var showDirectoryPicker by remember { mutableStateOf(false) }
+
+    SectionHeader(title = stringResource(R.string.server_connection))
 
     OutlinedTextField(
         value = serverUrl,
         onValueChange = onServerUrlChange,
-        label = { Text("Server URL") },
-        placeholder = { Text("http://localhost:4096") },
+        label = { Text(stringResource(R.string.server_url)) },
+        placeholder = { Text(stringResource(R.string.server_url_hint)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
@@ -73,7 +98,7 @@ internal fun ServerConnectionSection(
     OutlinedTextField(
         value = username,
         onValueChange = onUsernameChange,
-        label = { Text("Username (optional)") },
+        label = { Text(stringResource(R.string.username_optional)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
@@ -82,9 +107,65 @@ internal fun ServerConnectionSection(
     Spacer(modifier = Modifier.height(12.dp))
 
     OutlinedTextField(
+        value = workingDirectory,
+        onValueChange = onWorkingDirectoryChange,
+        label = { Text(stringResource(R.string.working_directory)) },
+        placeholder = { Text(stringResource(R.string.working_directory_hint)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        trailingIcon = {
+            IconButton(onClick = { showDirectoryPicker = true }) {
+                Icon(
+                    Icons.Default.FolderOpen,
+                    contentDescription = stringResource(R.string.browse_server_directory)
+                )
+            }
+        }
+    )
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    OutlinedButton(
+        onClick = { showDirectoryPicker = true },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Default.FolderOpen, contentDescription = null)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(stringResource(R.string.browse_server_directory))
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    if (recentWorkingDirectories.isNotEmpty()) {
+        Text(
+            text = stringResource(R.string.recent_working_directories),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            recentWorkingDirectories.forEach { recentDirectory ->
+                AssistChip(
+                    onClick = { onSelectRecentWorkingDirectory(recentDirectory) },
+                    label = {
+                        Text(
+                            text = recentDirectory,
+                            maxLines = 1
+                        )
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+
+    OutlinedTextField(
         value = password,
         onValueChange = onPasswordChange,
-        label = { Text("Password (optional)") },
+        label = { Text(stringResource(R.string.password_optional)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -92,7 +173,7 @@ internal fun ServerConnectionSection(
             IconButton(onClick = onTogglePasswordVisibility) {
                 Icon(
                     if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = if (showPassword) "Hide password" else "Show password"
+                    contentDescription = if (showPassword) stringResource(R.string.hide_password_cd) else stringResource(R.string.show_password_cd)
                 )
             }
         },
@@ -116,14 +197,14 @@ internal fun ServerConnectionSection(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Text("Test Connection")
+            Text(stringResource(R.string.test_connection))
         }
 
         OutlinedButton(
             onClick = onSave,
             enabled = serverUrl.isNotBlank()
         ) {
-            Text("Save")
+            Text(stringResource(R.string.save))
         }
     }
 
@@ -140,7 +221,7 @@ internal fun ServerConnectionSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Connected",
+                stringResource(R.string.connected),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -153,6 +234,196 @@ internal fun ServerConnectionSection(
             }
         }
     }
+
+    if (showDirectoryPicker) {
+        ServerDirectoryPickerDialog(
+            initialDirectory = workingDirectory.ifBlank { null },
+            onDismiss = { showDirectoryPicker = false },
+            onSelectDirectory = {
+                onWorkingDirectoryChange(it)
+                showDirectoryPicker = false
+            },
+            loadDirectories = onBrowseWorkingDirectory
+        )
+    }
+}
+
+@Composable
+private fun ServerDirectoryPickerDialog(
+    initialDirectory: String?,
+    onDismiss: () -> Unit,
+    onSelectDirectory: (String) -> Unit,
+    loadDirectories: suspend (String?) -> Result<List<FileNode>>
+) {
+    var currentDirectory by remember(initialDirectory) { mutableStateOf(initialDirectory) }
+    var directories by remember { mutableStateOf<List<FileNode>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(currentDirectory) {
+        isLoading = true
+        errorMessage = null
+        loadDirectories(currentDirectory)
+            .onSuccess { nodes ->
+                directories = nodes.filter { it.isDirectory }.sortedBy { it.name.lowercase() }
+                if (currentDirectory == null) {
+                    inferParentDirectoryFromNodes(nodes)?.let { inferred ->
+                        currentDirectory = inferred
+                    }
+                }
+            }
+            .onFailure { error ->
+                directories = emptyList()
+                errorMessage = error.message ?: error.toString()
+            }
+        isLoading = false
+    }
+
+    val parentDirectory = currentDirectory?.let(::parentServerDirectory)
+    val supportsUnixShortcuts = currentDirectory?.startsWith("/") == true ||
+        directories.any { it.absolute?.startsWith("/") == true }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_working_directory)) },
+        text = {
+            Column {
+                Text(
+                    text = currentDirectory ?: stringResource(R.string.server_default_directory),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                if (supportsUnixShortcuts) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { currentDirectory = "/" },
+                            label = { Text(stringResource(R.string.go_to_root)) }
+                        )
+                        AssistChip(
+                            onClick = { currentDirectory = "/Volumes" },
+                            label = { Text(stringResource(R.string.go_to_volumes)) }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { currentDirectory = parentDirectory },
+                        enabled = parentDirectory != null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.parent_directory))
+                    }
+                    Button(
+                        onClick = { onSelectDirectory(currentDirectory.orEmpty()) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            if (currentDirectory == null) {
+                                stringResource(R.string.use_server_default_directory)
+                            } else {
+                                stringResource(R.string.use_current_directory)
+                            }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                when {
+                    isLoading -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+                    }
+                    errorMessage != null -> {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    directories.isEmpty() -> {
+                        Text(
+                            text = stringResource(R.string.no_subdirectories),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 280.dp)
+                        ) {
+                            items(directories, key = { it.path }) { directory ->
+                                ListItem(
+                                    headlineContent = { Text(directory.name) },
+                                    supportingContent = {
+                                        directory.absolute?.let { Text(it) }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            currentDirectory = directory.absolute ?: directory.path
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+private fun parentServerDirectory(path: String): String? {
+    val separator = if (path.contains('\\')) '\\' else '/'
+    val normalized = path.replace('\\', '/').trimEnd('/')
+    if (normalized.isEmpty() || normalized == "/") return null
+    if (Regex("^[A-Za-z]:$").matches(normalized)) return null
+    if (normalized.startsWith("//")) {
+        val parts = normalized.split('/').filter { it.isNotEmpty() }
+        if (parts.size <= 2) return null
+    }
+    val index = normalized.lastIndexOf('/')
+    if (index < 0) return null
+    val parent = when {
+        index == 0 -> "/"
+        index == 2 && normalized.getOrNull(1) == ':' -> normalized.substring(0, 2)
+        else -> normalized.substring(0, index)
+    }
+    return if (separator == '\\') parent.replace('/', '\\') else parent
+}
+
+private fun inferParentDirectoryFromNodes(nodes: List<FileNode>): String? {
+    val absolutes = nodes.mapNotNull { it.absolute?.replace('\\', '/') }.filter { it.isNotBlank() }
+    if (absolutes.isEmpty()) return null
+    val parents = absolutes.map { absolute ->
+        val trimmed = absolute.trimEnd('/')
+        val index = trimmed.lastIndexOf('/')
+        when {
+            index < 0 -> null
+            index == 0 -> "/"
+            else -> trimmed.substring(0, index)
+        }
+    }.distinct()
+    return parents.singleOrNull()
 }
 
 @Composable
@@ -160,7 +431,7 @@ internal fun AppearanceSection(
     themeMode: ThemeMode,
     onThemeSelected: (ThemeMode) -> Unit
 ) {
-    SectionHeader(title = "Appearance")
+    SectionHeader(title = stringResource(R.string.appearance))
 
     ThemeMode.values().forEach { mode ->
         Row(
@@ -176,9 +447,9 @@ internal fun AppearanceSection(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 when (mode) {
-                    ThemeMode.LIGHT -> "Light"
-                    ThemeMode.DARK -> "Dark"
-                    ThemeMode.SYSTEM -> "System default"
+                    ThemeMode.LIGHT -> stringResource(R.string.light)
+                    ThemeMode.DARK -> stringResource(R.string.dark)
+                    ThemeMode.SYSTEM -> stringResource(R.string.system_default)
                 }
             )
         }
@@ -201,12 +472,12 @@ internal fun SpeechRecognitionSection(
     onTestConnection: () -> Unit,
     onSave: () -> Unit
 ) {
-    SectionHeader(title = "Speech Recognition")
+    SectionHeader(title = stringResource(R.string.speech_recognition_settings))
 
     OutlinedTextField(
         value = aiBuilderBaseURL,
         onValueChange = onBaseUrlChange,
-        label = { Text("AI Builder Base URL") },
+        label = { Text(stringResource(R.string.ai_builder_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
@@ -217,7 +488,7 @@ internal fun SpeechRecognitionSection(
     OutlinedTextField(
         value = aiBuilderToken,
         onValueChange = onTokenChange,
-        label = { Text("AI Builder Token") },
+        label = { Text(stringResource(R.string.ai_builder_token)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         visualTransformation = if (showAIBuilderToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -225,7 +496,7 @@ internal fun SpeechRecognitionSection(
             IconButton(onClick = onToggleTokenVisibility) {
                 Icon(
                     if (showAIBuilderToken) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = if (showAIBuilderToken) "Hide token" else "Show token"
+                    contentDescription = if (showAIBuilderToken) stringResource(R.string.hide_token_cd) else stringResource(R.string.show_token_cd)
                 )
             }
         },
@@ -237,7 +508,7 @@ internal fun SpeechRecognitionSection(
     OutlinedTextField(
         value = aiBuilderCustomPrompt,
         onValueChange = onPromptChange,
-        label = { Text("Custom Prompt") },
+        label = { Text(stringResource(R.string.custom_prompt)) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 3,
         maxLines = 6
@@ -248,8 +519,8 @@ internal fun SpeechRecognitionSection(
     OutlinedTextField(
         value = aiBuilderTerminology,
         onValueChange = onTerminologyChange,
-        label = { Text("Terminology") },
-        placeholder = { Text("comma-separated terms") },
+        label = { Text(stringResource(R.string.terminology)) },
+        placeholder = { Text(stringResource(R.string.terminology_hint)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -271,14 +542,14 @@ internal fun SpeechRecognitionSection(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Text("Test Connection")
+            Text(stringResource(R.string.test_connection))
         }
 
         OutlinedButton(
             onClick = onSave,
             enabled = aiBuilderBaseURL.isNotBlank()
         ) {
-            Text("Save")
+            Text(stringResource(R.string.save))
         }
     }
 
@@ -287,9 +558,9 @@ internal fun SpeechRecognitionSection(
             result = TestResult(
                 success = state.aiBuilderConnectionOK,
                 message = if (state.aiBuilderConnectionOK) {
-                    "Connected successfully"
+                    stringResource(R.string.connected_successfully)
                 } else {
-                    state.aiBuilderConnectionError ?: "Connection failed"
+                    state.aiBuilderConnectionError ?: stringResource(R.string.connection_failed)
                 }
             )
         )
@@ -298,14 +569,14 @@ internal fun SpeechRecognitionSection(
 
 @Composable
 internal fun AboutSection() {
-    SectionHeader(title = "About")
+    SectionHeader(title = stringResource(R.string.about))
 
     Text(
-        "OpenCode Android Client",
+        stringResource(R.string.about_title),
         style = MaterialTheme.typography.bodyLarge
     )
     Text(
-        "Version 1.0",
+        stringResource(R.string.version_format, "1.0"),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.outline
     )
@@ -313,7 +584,7 @@ internal fun AboutSection() {
     Spacer(modifier = Modifier.height(8.dp))
 
     Text(
-        "A native Android client for OpenCode AI coding agent.",
+        stringResource(R.string.about_description),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.outline
     )

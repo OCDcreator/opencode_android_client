@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenCode 客户端</string>
+
+    <!-- Common -->
+    <string name="dismiss">关闭</string>
+    <string name="cancel">取消</string>
+    <string name="back">返回</string>
+    <string name="ok">确定</string>
+    <string name="submit">提交</string>
+    <string name="next">下一步</string>
+    <string name="save">保存</string>
+    <string name="settings">设置</string>
+    <string name="close">关闭</string>
+    <string name="refresh">刷新</string>
+    <string name="send">发送</string>
+    <string name="stop">停止</string>
+    <string name="connected">已连接</string>
+    <string name="rename">重命名</string>
+    <string name="delete">删除</string>
+    <string name="new_session">新建</string>
+    <string name="collapse">收起</string>
+    <string name="expand">展开</string>
+    <string name="files">文件</string>
+    <string name="chat">聊天</string>
+
+    <!-- Navigation -->
+    <string name="nav_chat">聊天</string>
+    <string name="nav_files">文件</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- Chat Screen -->
+    <string name="mic_permission_denied">麦克风权限被拒绝，请在系统设置中允许麦克风访问。</string>
+    <string name="speech_recognition">语音识别</string>
+    <string name="type_message">输入消息…</string>
+    <string name="speech_cd">语音</string>
+    <string name="send_cd">发送</string>
+    <string name="stop_cd">停止</string>
+
+    <!-- Permissions -->
+    <string name="permission_required">需要权限</string>
+    <string name="unknown_permission">未知权限</string>
+    <string name="reject">拒绝</string>
+    <string name="allow_once">仅本次允许</string>
+    <string name="always_allow">始终允许</string>
+
+    <!-- Chat Top Bar -->
+    <string name="opencode">OpenCode</string>
+    <string name="sessions_cd">会话列表</string>
+    <string name="rename_session_cd">重命名会话</string>
+    <string name="new_session_cd">新建会话</string>
+    <string name="model">模型</string>
+    <string name="switch_model_cd">切换模型</string>
+    <string name="no_models">无可用模型</string>
+    <string name="switch_agent_cd">切换代理</string>
+    <string name="no_agents">无可用代理</string>
+    <string name="rename_session_dialog">重命名会话</string>
+    <string name="session_title_label">会话标题</string>
+    <string name="select_or_create_session">选择或创建一个会话</string>
+    <string name="connect_to_server">连接到服务器</string>
+    <string name="connect">连接</string>
+
+    <!-- Chat Messages -->
+    <string name="no_messages">暂无消息，发送一条消息开始对话。</string>
+    <string name="more_options_cd">更多选项</string>
+    <string name="fork_from_here">从此处分叉</string>
+    <string name="thinking">思考中</string>
+    <string name="tool">工具</string>
+    <string name="show_in_files_cd">在文件中查看</string>
+    <string name="patch">补丁</string>
+
+    <!-- Questions -->
+    <string name="question_title">问题</string>
+    <string name="no_questions">（无问题）</string>
+    <string name="select_multiple">选择一个或多个选项</string>
+    <string name="select_single">选择一个选项</string>
+    <string name="type_own_answer">输入自定义答案</string>
+    <string name="type_answer_placeholder">输入你的答案…</string>
+    <string name="question_of">%1$d / %2$d</string>
+
+    <!-- Settings -->
+    <string name="connected_successfully">连接成功</string>
+    <string name="connection_failed">连接失败</string>
+    <string name="server_connection">服务器连接</string>
+    <string name="server_url">服务器地址</string>
+    <string name="server_url_hint">http://localhost:4096</string>
+    <string name="username_optional">用户名（可选）</string>
+    <string name="working_directory">工作目录</string>
+    <string name="working_directory_hint">留空则使用服务器默认目录</string>
+    <string name="recent_working_directories">最近使用的目录</string>
+    <string name="browse_server_directory">浏览服务器目录</string>
+    <string name="select_working_directory">选择工作目录</string>
+    <string name="server_default_directory">服务器默认目录</string>
+    <string name="parent_directory">上一级</string>
+    <string name="go_to_root">前往 /</string>
+    <string name="go_to_volumes">前往 /Volumes</string>
+    <string name="use_current_directory">使用此文件夹</string>
+    <string name="use_server_default_directory">使用默认目录</string>
+    <string name="no_subdirectories">没有可用的子目录。</string>
+    <string name="password_optional">密码（可选）</string>
+    <string name="hide_password_cd">隐藏密码</string>
+    <string name="show_password_cd">显示密码</string>
+    <string name="test_connection">测试连接</string>
+    <string name="settings_saved">设置已保存</string>
+
+    <!-- Appearance -->
+    <string name="appearance">外观</string>
+    <string name="light">浅色</string>
+    <string name="dark">深色</string>
+    <string name="system_default">跟随系统</string>
+
+    <!-- Speech Settings -->
+    <string name="speech_recognition_settings">语音识别</string>
+    <string name="ai_builder_base_url">AI Builder 地址</string>
+    <string name="ai_builder_token">AI Builder 令牌</string>
+    <string name="hide_token_cd">隐藏令牌</string>
+    <string name="show_token_cd">显示令牌</string>
+    <string name="custom_prompt">自定义提示词</string>
+    <string name="terminology">术语表</string>
+    <string name="terminology_hint">逗号分隔的术语</string>
+
+    <!-- About -->
+    <string name="about">关于</string>
+    <string name="about_title">OpenCode Android 客户端</string>
+    <string name="version_format">版本 %1$s</string>
+    <string name="about_description">OpenCode AI 编程助手的原生 Android 客户端。</string>
+
+    <!-- Sessions -->
+    <string name="sessions_title">会话</string>
+    <string name="delete_session_cd">删除会话</string>
+
+    <!-- Files -->
+    <string name="back_cd">返回</string>
+    <string name="refresh_cd">刷新</string>
+    <string name="ignored">已忽略</string>
+    <string name="close_cd">关闭</string>
+    <string name="share_cd">分享</string>
+    <string name="binary_not_supported">不支持预览二进制文件。</string>
+    <string name="share_image">分享图片</string>
+    <string name="directory_empty">目录（为空或路径不存在）：%1$s</string>
+    <string name="directory_label">目录：\n%1$s</string>
+
+    <!-- Error messages (ViewModel) -->
+    <string name="still_transcribing">正在转写上一段音频，请稍候。</string>
+    <string name="recording_failed">录音失败：未找到文件</string>
+    <string name="speech_requires_token">语音识别需要 AI Builder 令牌，请在设置中配置。</string>
+    <string name="ai_builder_test_required">AI Builder 连接测试尚未通过，请先在设置中测试。</string>
+    <string name="failed_start_recording">启动录音失败：%1$s</string>
+    <string name="unknown_error">未知错误</string>
+    <string name="failed_abort_session">中止会话失败</string>
+    <string name="failed_respond_permission">响应权限请求失败</string>
+    <string name="ai_builder_token_empty">AI Builder 令牌为空</string>
+    <string name="failed_load_sessions">加载会话失败：%1$s</string>
+    <string name="failed_load_more_sessions">加载更多会话失败：%1$s</string>
+    <string name="failed_load_messages">加载消息失败：%1$s</string>
+    <string name="failed_create_session">创建会话失败：%1$s</string>
+    <string name="failed_fork_session">分叉会话失败：%1$s</string>
+    <string name="failed_update_session">更新会话失败：%1$s</string>
+    <string name="failed_delete_session">删除会话失败：%1$s</string>
+    <string name="failed_send_message">发送消息失败</string>
+    <string name="transcription_failed">转写失败</string>
+    <string name="sse_error">SSE 错误：%1$s</string>
+</resources>

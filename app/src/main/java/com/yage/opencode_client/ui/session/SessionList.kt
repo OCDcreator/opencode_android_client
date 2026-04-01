@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.model.SessionStatus
 import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 import kotlin.math.roundToInt
 
 private enum class SwipeAnchor { Start, End }
@@ -79,7 +81,7 @@ private fun SwipeRevealRow(
         ) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "Delete session",
+                contentDescription = stringResource(R.string.delete_session_cd),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
@@ -106,7 +108,7 @@ private fun SwipeRevealRow(
                 ) {
                     Icon(
                         if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (isCollapsed) "Expand" else "Collapse",
+                        contentDescription = if (isCollapsed) stringResource(R.string.expand) else stringResource(R.string.collapse),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -167,16 +169,16 @@ fun SessionList(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Sessions",
+                    stringResource(R.string.sessions_title),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = onCreateSession) {
-                    Text("New")
+                    Text(stringResource(R.string.new_session))
                 }
                 if (onOpenSettings != null) {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 }
             }

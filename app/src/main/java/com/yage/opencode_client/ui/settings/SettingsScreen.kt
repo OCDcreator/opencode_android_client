@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,10 +32,15 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val saved = remember(viewModel) { viewModel.getSavedConnectionSettings() }
     val savedAIBuilder = remember(viewModel) { viewModel.getAIBuilderSettings() }
+    val connectedSuccessfully = stringResource(R.string.connected_successfully)
+    val connectionFailed = stringResource(R.string.connection_failed)
+    val settingsSaved = stringResource(R.string.settings_saved)
 
     var serverUrl by remember { mutableStateOf(saved.serverUrl) }
     var username by remember { mutableStateOf(saved.username) }
     var password by remember { mutableStateOf(saved.password) }
+    var workingDirectory by remember { mutableStateOf(saved.workingDirectory) }
+    var recentWorkingDirectories by remember { mutableStateOf(saved.recentWorkingDirectories) }
     var showPassword by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<TestResult?>(null) }
@@ -49,9 +56,9 @@ fun SettingsScreen(
             testResult = TestResult(
                 success = state.isConnected,
                 message = if (state.isConnected) {
-                    "Connected successfully" + (state.serverVersion?.let { " (v$it)" } ?: "")
+                    connectedSuccessfully + (state.serverVersion?.let { " (v$it)" } ?: "")
                 } else {
-                    state.error ?: "Connection failed"
+                    state.error ?: connectionFailed
                 }
             )
         }
@@ -60,10 +67,10 @@ fun SettingsScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         if (onBack != null) {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -79,6 +86,7 @@ fun SettingsScreen(
                 serverUrl = serverUrl,
                 username = username,
                 password = password,
+                workingDirectory = workingDirectory,
                 showPassword = showPassword,
                 isTesting = isTesting,
                 state = state,
@@ -91,6 +99,18 @@ fun SettingsScreen(
                     username = it
                     testResult = null
                 },
+                onWorkingDirectoryChange = {
+                    workingDirectory = it
+                    testResult = null
+                },
+                recentWorkingDirectories = recentWorkingDirectories,
+                onSelectRecentWorkingDirectory = {
+                    workingDirectory = it
+                    testResult = null
+                },
+                onBrowseWorkingDirectory = { directory ->
+                    viewModel.repository.getFileTree(path = null, directory = directory)
+                },
                 onPasswordChange = {
                     password = it
                     testResult = null
@@ -102,17 +122,21 @@ fun SettingsScreen(
                     viewModel.configureServer(
                         url = serverUrl,
                         username = username.ifBlank { null },
-                        password = password.ifBlank { null }
+                        password = password.ifBlank { null },
+                        workingDirectory = workingDirectory.ifBlank { null }
                     )
+                    recentWorkingDirectories = viewModel.getSavedConnectionSettings().recentWorkingDirectories
                     viewModel.testConnection()
                 },
                 onSave = {
                     viewModel.configureServer(
                         url = serverUrl,
                         username = username.ifBlank { null },
-                        password = password.ifBlank { null }
+                        password = password.ifBlank { null },
+                        workingDirectory = workingDirectory.ifBlank { null }
                     )
-                    testResult = TestResult(success = true, message = "Settings saved")
+                    recentWorkingDirectories = viewModel.getSavedConnectionSettings().recentWorkingDirectories
+                    testResult = TestResult(success = true, message = settingsSaved)
                 }
             )
 

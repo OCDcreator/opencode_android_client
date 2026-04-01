@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.unit.dp
@@ -48,27 +50,27 @@ import javax.inject.Inject
 
 sealed class Screen(
     val route: String,
-    val title: String,
+    @StringRes val titleRes: Int,
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     object Chat : Screen(
         "chat",
-        "Chat",
+        R.string.nav_chat,
         Icons.Default.Chat,
         Icons.Outlined.ChatBubbleOutline
     )
 
     object Files : Screen(
         "files",
-        "Files",
+        R.string.nav_files,
         Icons.Default.Folder,
         Icons.Outlined.Folder
     )
 
     object Settings : Screen(
         "settings",
-        "Settings",
+        R.string.nav_settings,
         Icons.Default.Settings,
         Icons.Outlined.Settings
     )
@@ -139,10 +141,10 @@ private fun PhoneLayout(viewModel: MainViewModel) {
                         icon = {
                             Icon(
                                 if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = screen.title
+                                contentDescription = stringResource(screen.titleRes)
                             )
                         },
-                        label = { Text(screen.title) }
+                        label = { Text(stringResource(screen.titleRes)) }
                     )
                 }
             }
@@ -173,6 +175,7 @@ private fun PhoneLayout(viewModel: MainViewModel) {
                     viewModel = filesViewModel,
                     pathToShow = state.filePathToShowInFiles,
                     sessionDirectory = state.currentSession?.directory,
+                    workingDirectory = state.workingDirectory,
                     onCloseFile = {
                         val origin = state.filePreviewOriginRoute
                         viewModel.clearFileToShow()
@@ -248,6 +251,7 @@ private fun TabletLayout(viewModel: MainViewModel) {
                     viewModel = filesViewModel,
                     pathToShow = state.filePathToShowInFiles,
                     sessionDirectory = state.currentSession?.directory,
+                    workingDirectory = state.workingDirectory,
                     onCloseFile = { viewModel.clearFileToShow() },
                     onFileClick = { }
                 )

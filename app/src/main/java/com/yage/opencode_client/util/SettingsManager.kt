@@ -38,6 +38,34 @@ class SettingsManager @Inject constructor(
         get() = encryptedPrefs.getString(KEY_PASSWORD, null)
         set(value) = encryptedPrefs.edit().putString(KEY_PASSWORD, value).apply()
 
+    var workingDirectory: String
+        get() = encryptedPrefs.getString(KEY_WORKING_DIRECTORY, "") ?: ""
+        set(value) = encryptedPrefs.edit().putString(KEY_WORKING_DIRECTORY, value).apply()
+
+    fun getRecentWorkingDirectories(): List<String> {
+        val json = encryptedPrefs.getString(KEY_RECENT_WORKING_DIRECTORIES, null) ?: return emptyList()
+        return try {
+            Json.decodeFromString<List<String>>(json)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun rememberWorkingDirectory(directory: String?) {
+        val normalized = directory?.trim().orEmpty()
+        if (normalized.isEmpty()) return
+        val recent = getRecentWorkingDirectories()
+            .filterNot { it.equals(normalized, ignoreCase = true) }
+            .toMutableList()
+        recent.add(0, normalized)
+        encryptedPrefs.edit()
+            .putString(
+                KEY_RECENT_WORKING_DIRECTORIES,
+                Json.encodeToString(recent.take(MAX_RECENT_WORKING_DIRECTORIES))
+            )
+            .apply()
+    }
+
     var currentSessionId: String?
         get() = encryptedPrefs.getString(KEY_SESSION_ID, null)
         set(value) = encryptedPrefs.edit().putString(KEY_SESSION_ID, value).apply()
@@ -150,6 +178,8 @@ class SettingsManager @Inject constructor(
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_USERNAME = "username"
         private const val KEY_PASSWORD = "password"
+        private const val KEY_WORKING_DIRECTORY = "working_directory"
+        private const val KEY_RECENT_WORKING_DIRECTORIES = "recent_working_directories"
         private const val KEY_SESSION_ID = "session_id"
         private const val KEY_MODEL_INDEX = "model_index"
         private const val KEY_AGENT_NAME = "agent_name"
@@ -163,6 +193,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_SESSION_DRAFTS = "session_drafts"
         private const val KEY_SESSION_MODELS = "session_models"
         private const val KEY_SESSION_AGENTS = "session_agents"
+        private const val MAX_RECENT_WORKING_DIRECTORIES = 8
     }
 }
 

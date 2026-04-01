@@ -17,7 +17,9 @@ import javax.inject.Inject
 data class ConnectionFormSettings(
     val serverUrl: String,
     val username: String,
-    val password: String
+    val password: String,
+    val workingDirectory: String,
+    val recentWorkingDirectories: List<String>
 )
 
 data class AIBuilderSettings(
@@ -50,6 +52,7 @@ data class AppState(
     val inputText: String = "",
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val workingDirectory: String = "",
     val filePathToShowInFiles: String? = null,
     val filePreviewOriginRoute: String? = null,
     val streamingPartTexts: Map<String, String> = emptyMap(),
@@ -132,6 +135,7 @@ data class AppState(
     data class SettingsState(
         val error: String? = null,
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
+        val workingDirectory: String = "",
         val selectedModelIndex: Int = 0,
         val selectedAgentName: String = "build",
         val availableModels: List<ModelOption> = ModelPresets.list,
@@ -191,6 +195,7 @@ data class AppState(
         get() = SettingsState(
             error = error,
             themeMode = themeMode,
+            workingDirectory = workingDirectory,
             selectedModelIndex = selectedModelIndex,
             selectedAgentName = selectedAgentName,
             availableModels = availableModels,
@@ -266,17 +271,31 @@ class MainViewModel @Inject constructor(
         applySavedSettings(repository, settingsManager, _state)
     }
 
-    fun configureServer(url: String, username: String? = null, password: String? = null) {
+    fun configureServer(
+        url: String,
+        username: String? = null,
+        password: String? = null,
+        workingDirectory: String? = null
+    ) {
         settingsManager.serverUrl = url
         settingsManager.username = username
         settingsManager.password = password
-        repository.configure(url, username, password)
+        settingsManager.workingDirectory = workingDirectory.orEmpty()
+        settingsManager.rememberWorkingDirectory(workingDirectory)
+        repository.configure(url, username, password, workingDirectory)
+        _state.update { it.copy(workingDirectory = settingsManager.workingDirectory) }
+        lastHealthCheckTime = 0L
+        if (_state.value.isConnected) {
+            loadInitialData()
+        }
     }
 
     fun getSavedConnectionSettings(): ConnectionFormSettings = ConnectionFormSettings(
         serverUrl = settingsManager.serverUrl,
         username = settingsManager.username ?: "",
-        password = settingsManager.password ?: ""
+        password = settingsManager.password ?: "",
+        workingDirectory = settingsManager.workingDirectory,
+        recentWorkingDirectories = settingsManager.getRecentWorkingDirectories()
     )
 
     fun getAIBuilderSettings(): AIBuilderSettings = AIBuilderSettings(

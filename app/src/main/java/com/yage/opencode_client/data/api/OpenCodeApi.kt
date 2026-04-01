@@ -10,41 +10,63 @@ interface OpenCodeApi {
     suspend fun getHealth(): HealthResponse
 
     @GET("session")
-    suspend fun getSessions(@Query("limit") limit: Int? = null): List<Session>
+    suspend fun getSessions(
+        @Query("directory") directory: String? = null,
+        @Query("limit") limit: Int? = null
+    ): List<Session>
 
     @POST("session")
-    suspend fun createSession(@Body body: CreateSessionRequest = CreateSessionRequest()): Session
+    suspend fun createSession(
+        @Query("directory") directory: String? = null,
+        @Body body: CreateSessionRequest = CreateSessionRequest()
+    ): Session
 
     @GET("session/{id}")
-    suspend fun getSession(@Path("id") sessionId: String): Session
+    suspend fun getSession(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null
+    ): Session
 
     @PATCH("session/{id}")
-    suspend fun updateSession(@Path("id") sessionId: String, @Body body: UpdateSessionRequest): Session
+    suspend fun updateSession(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null,
+        @Body body: UpdateSessionRequest
+    ): Session
 
     @DELETE("session/{id}")
-    suspend fun deleteSession(@Path("id") sessionId: String): Response<Unit>
+    suspend fun deleteSession(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null
+    ): Response<Unit>
 
     @GET("session/status")
-    suspend fun getSessionStatus(): Map<String, SessionStatus>
+    suspend fun getSessionStatus(@Query("directory") directory: String? = null): Map<String, SessionStatus>
 
     @GET("session/{id}/message")
     suspend fun getMessages(
         @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null,
         @Query("limit") limit: Int? = null
     ): List<MessageWithParts>
 
     @POST("session/{id}/prompt_async")
     suspend fun promptAsync(
         @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null,
         @Body body: PromptRequest
     ): Response<Unit>
 
     @POST("session/{id}/abort")
-    suspend fun abortSession(@Path("id") sessionId: String): Response<Unit>
+    suspend fun abortSession(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null
+    ): Response<Unit>
 
     @POST("session/{id}/fork")
     suspend fun forkSession(
         @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null,
         @Body body: ForkSessionRequest
     ): Session
 
@@ -52,14 +74,15 @@ interface OpenCodeApi {
     suspend fun respondPermission(
         @Path("id") sessionId: String,
         @Path("permissionId") permissionId: String,
+        @Query("directory") directory: String? = null,
         @Body body: PermissionResponseRequest
     ): Response<Unit>
 
     @GET("permission")
-    suspend fun getPendingPermissions(): List<PermissionRequest>
+    suspend fun getPendingPermissions(@Query("directory") directory: String? = null): List<PermissionRequest>
 
     @GET("question")
-    suspend fun getPendingQuestions(): List<QuestionRequest>
+    suspend fun getPendingQuestions(@Query("directory") directory: String? = null): List<QuestionRequest>
 
     @POST("question/{requestId}/reply")
     suspend fun replyQuestion(
@@ -71,28 +94,41 @@ interface OpenCodeApi {
     suspend fun rejectQuestion(@Path("requestId") requestId: String): Response<Unit>
 
     @GET("config/providers")
-    suspend fun getProviders(): ProvidersResponse
+    suspend fun getProviders(@Query("directory") directory: String? = null): ProvidersResponse
 
     @GET("agent")
-    suspend fun getAgents(): List<AgentInfo>
+    suspend fun getAgents(@Query("directory") directory: String? = null): List<AgentInfo>
 
     @GET("session/{id}/diff")
-    suspend fun getSessionDiff(@Path("id") sessionId: String): List<FileDiff>
+    suspend fun getSessionDiff(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null
+    ): List<FileDiff>
 
     @GET("session/{id}/todo")
-    suspend fun getSessionTodos(@Path("id") sessionId: String): List<TodoItem>
+    suspend fun getSessionTodos(
+        @Path("id") sessionId: String,
+        @Query("directory") directory: String? = null
+    ): List<TodoItem>
 
     @GET("file")
-    suspend fun getFileTree(@Query("path") path: String? = ""): List<FileNode>
+    suspend fun getFileTree(
+        @Query("directory") directory: String? = null,
+        @Query("path") path: String? = ""
+    ): List<FileNode>
 
     @GET("file/content")
-    suspend fun getFileContent(@Query("path") path: String): FileContent
+    suspend fun getFileContent(
+        @Query("directory") directory: String? = null,
+        @Query("path") path: String
+    ): FileContent
 
     @GET("file/status")
-    suspend fun getFileStatus(): List<FileStatusEntry>
+    suspend fun getFileStatus(@Query("directory") directory: String? = null): List<FileStatusEntry>
 
     @GET("find/file")
     suspend fun findFile(
+        @Query("directory") directory: String? = null,
         @Query("query") query: String,
         @Query("limit") limit: Int = 50
     ): List<String>

@@ -18,6 +18,7 @@ class OpenCodeRepository @Inject constructor() {
     private var baseUrl: String = DEFAULT_SERVER
     private var username: String? = null
     private var password: String? = null
+    private var workingDirectory: String? = null
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -74,76 +75,95 @@ class OpenCodeRepository @Inject constructor() {
     }
 
     @Synchronized
-    fun configure(baseUrl: String, username: String? = null, password: String? = null) {
+    fun configure(
+        baseUrl: String,
+        username: String? = null,
+        password: String? = null,
+        workingDirectory: String? = null
+    ) {
         this.baseUrl = baseUrl
         this.username = username
         this.password = password
+        this.workingDirectory = workingDirectory?.trim()?.takeIf { it.isNotEmpty() }
         rebuildClients()
+    }
+
+    private fun effectiveDirectory(directory: String? = null): String? {
+        return directory?.trim()?.takeIf { it.isNotEmpty() }
+            ?: workingDirectory?.trim()?.takeIf { it.isNotEmpty() }
     }
 
     suspend fun checkHealth(): Result<HealthResponse> = runCatching { api.getHealth() }
 
-    suspend fun getSessions(limit: Int? = null): Result<List<Session>> = runCatching { api.getSessions(limit) }
-
-    suspend fun createSession(title: String? = null): Result<Session> = runCatching {
-        api.createSession(CreateSessionRequest(title = title))
+    suspend fun getSessions(limit: Int? = null, directory: String? = null): Result<List<Session>> = runCatching {
+        api.getSessions(effectiveDirectory(directory), limit)
     }
 
-    suspend fun updateSession(sessionId: String, title: String): Result<Session> = runCatching {
-        api.updateSession(sessionId, UpdateSessionRequest(title))
+    suspend fun createSession(title: String? = null, directory: String? = null): Result<Session> = runCatching {
+        api.createSession(effectiveDirectory(directory), CreateSessionRequest(title = title))
     }
 
-    suspend fun deleteSession(sessionId: String): Result<Unit> = runCatching {
-        api.deleteSession(sessionId)
+    suspend fun updateSession(sessionId: String, title: String, directory: String? = null): Result<Session> = runCatching {
+        api.updateSession(sessionId, effectiveDirectory(directory), UpdateSessionRequest(title))
+    }
+
+    suspend fun deleteSession(sessionId: String, directory: String? = null): Result<Unit> = runCatching {
+        api.deleteSession(sessionId, effectiveDirectory(directory))
     }
 
     suspend fun getSessionStatus(): Result<Map<String, SessionStatus>> = runCatching {
-        api.getSessionStatus()
+        api.getSessionStatus(effectiveDirectory())
     }
 
-    suspend fun getMessages(sessionId: String, limit: Int? = null): Result<List<MessageWithParts>> =
-        runCatching { api.getMessages(sessionId, limit) }
+    suspend fun getMessages(
+        sessionId: String,
+        limit: Int? = null,
+        directory: String? = null
+    ): Result<List<MessageWithParts>> =
+        runCatching { api.getMessages(sessionId, effectiveDirectory(directory), limit) }
 
     suspend fun sendMessage(
         sessionId: String,
         text: String,
         agent: String = "build",
-        model: Message.ModelInfo? = null
+        model: Message.ModelInfo? = null,
+        directory: String? = null
     ): Result<Unit> = runCatching {
         val request = PromptRequest(
             parts = listOf(PromptRequest.PartInput(text = text)),
             agent = agent,
             model = model?.let { PromptRequest.ModelInput(it.providerId, it.modelId) }
         )
-        val response = api.promptAsync(sessionId, request)
+        val response = api.promptAsync(sessionId, effectiveDirectory(directory), request)
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string() ?: response.message()
             throw Exception("Send failed ${response.code()}: $errorBody")
         }
     }
 
-    suspend fun abortSession(sessionId: String): Result<Unit> = runCatching {
-        api.abortSession(sessionId)
+    suspend fun abortSession(sessionId: String, directory: String? = null): Result<Unit> = runCatching {
+        api.abortSession(sessionId, effectiveDirectory(directory))
     }
 
-    suspend fun forkSession(sessionId: String, messageId: String? = null): Result<Session> = runCatching {
-        api.forkSession(sessionId, ForkSessionRequest(messageId))
+    suspend fun forkSession(sessionId: String, messageId: String? = null, directory: String? = null): Result<Session> = runCatching {
+        api.forkSession(sessionId, effectiveDirectory(directory), ForkSessionRequest(messageId))
     }
 
     suspend fun getPendingPermissions(): Result<List<PermissionRequest>> = runCatching {
-        api.getPendingPermissions()
+        api.getPendingPermissions(effectiveDirectory())
     }
 
     suspend fun respondPermission(
         sessionId: String,
         permissionId: String,
-        response: PermissionResponse
+        response: PermissionResponse,
+        directory: String? = null
     ): Result<Unit> = runCatching {
-        api.respondPermission(sessionId, permissionId, PermissionResponseRequest(response.value))
+        api.respondPermission(sessionId, permissionId, effectiveDirectory(directory), PermissionResponseRequest(response.value))
     }
 
     suspend fun getPendingQuestions(): Result<List<QuestionRequest>> = runCatching {
-        api.getPendingQuestions()
+        api.getPendingQuestions(effectiveDirectory())
     }
 
     suspend fun replyQuestion(requestId: String, answers: List<List<String>>): Result<Unit> = runCatching {
@@ -162,32 +182,32 @@ class OpenCodeRepository @Inject constructor() {
         }
     }
 
-    suspend fun getProviders(): Result<ProvidersResponse> = runCatching { api.getProviders() }
+    suspend fun getProviders(): Result<ProvidersResponse> = runCatching { api.getProviders(effectiveDirectory()) }
 
-    suspend fun getAgents(): Result<List<AgentInfo>> = runCatching { api.getAgents() }
+    suspend fun getAgents(): Result<List<AgentInfo>> = runCatching { api.getAgents(effectiveDirectory()) }
 
-    suspend fun getSessionDiff(sessionId: String): Result<List<FileDiff>> = runCatching {
-        api.getSessionDiff(sessionId)
+    suspend fun getSessionDiff(sessionId: String, directory: String? = null): Result<List<FileDiff>> = runCatching {
+        api.getSessionDiff(sessionId, effectiveDirectory(directory))
     }
 
-    suspend fun getSessionTodos(sessionId: String): Result<List<TodoItem>> = runCatching {
-        api.getSessionTodos(sessionId)
+    suspend fun getSessionTodos(sessionId: String, directory: String? = null): Result<List<TodoItem>> = runCatching {
+        api.getSessionTodos(sessionId, effectiveDirectory(directory))
     }
 
-    suspend fun getFileTree(path: String? = null): Result<List<FileNode>> = runCatching {
-        api.getFileTree(path ?: "")
+    suspend fun getFileTree(path: String? = null, directory: String? = null): Result<List<FileNode>> = runCatching {
+        api.getFileTree(effectiveDirectory(directory), path ?: "")
     }
 
-    suspend fun getFileContent(path: String): Result<FileContent> = runCatching {
-        api.getFileContent(path)
+    suspend fun getFileContent(path: String, directory: String? = null): Result<FileContent> = runCatching {
+        api.getFileContent(effectiveDirectory(directory), path)
     }
 
     suspend fun getFileStatus(): Result<List<FileStatusEntry>> = runCatching {
-        api.getFileStatus()
+        api.getFileStatus(effectiveDirectory())
     }
 
-    suspend fun findFile(query: String, limit: Int = 50): Result<List<String>> = runCatching {
-        api.findFile(query, limit)
+    suspend fun findFile(query: String, limit: Int = 50, directory: String? = null): Result<List<String>> = runCatching {
+        api.findFile(effectiveDirectory(directory), query, limit)
     }
 
     fun connectSSE(): Flow<Result<SSEEvent>> = sseClient.connect(baseUrl, username, password)

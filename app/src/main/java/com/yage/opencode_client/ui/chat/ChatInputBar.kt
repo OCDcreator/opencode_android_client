@@ -36,7 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.PermissionRequest
 import com.yage.opencode_client.data.model.PermissionResponse
 
@@ -70,7 +72,7 @@ internal fun ChatInputBar(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f).onGloballyPositioned { textFieldHeightPx = it.size.height },
-                placeholder = { Text("Type a message...") },
+                placeholder = { Text(stringResource(R.string.type_message)) },
                 maxLines = 4,
                 enabled = true
             )
@@ -144,7 +146,7 @@ private fun ChatInputActionButton(
 ) {
     if (isBusy) {
         IconButton(onClick = onAbort, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Default.Stop, contentDescription = "Stop", tint = MaterialTheme.colorScheme.error)
+            Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_cd), tint = MaterialTheme.colorScheme.error)
         }
     }
     IconButton(onClick = onToggleRecording, enabled = !isTranscribing) {
@@ -153,7 +155,7 @@ private fun ChatInputActionButton(
         } else {
             Icon(
                 Icons.Default.Mic,
-                contentDescription = "Speech",
+                contentDescription = stringResource(R.string.speech_cd),
                 tint = when {
                     isRecording -> Color.Red
                     isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -163,7 +165,7 @@ private fun ChatInputActionButton(
         }
     }
     IconButton(onClick = onSend, enabled = canSend) {
-        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send_cd))
     }
 }
 
@@ -178,13 +180,13 @@ internal fun ChatPermissionCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Permission Required",
+                stringResource(R.string.permission_required),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             Spacer(modifier = Modifier.size(8.dp))
             Text(
-                permission.permission ?: "Unknown permission",
+                permission.permission ?: stringResource(R.string.unknown_permission),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -201,15 +203,15 @@ internal fun ChatPermissionCard(
             Spacer(modifier = Modifier.size(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { onRespond(PermissionResponse.REJECT) }) {
-                    Text("Reject")
+                    Text(stringResource(R.string.reject))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = { onRespond(PermissionResponse.ONCE) }) {
-                    Text("Allow Once")
+                    Text(stringResource(R.string.allow_once))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(onClick = { onRespond(PermissionResponse.ALWAYS) }) {
-                    Text("Always Allow")
+                    Text(stringResource(R.string.always_allow))
                 }
             }
         }

@@ -54,6 +54,8 @@ import com.yage.opencode_client.ui.util.MarkdownImageResolver
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,13 +80,13 @@ internal fun FilePreviewPane(
             title = { Text(path.substringAfterLast('/'), style = MaterialTheme.typography.titleSmall) },
             navigationIcon = {
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                 }
             },
             actions = {
                 if (imagePayload != null) {
                     IconButton(onClick = { shareImage(context, path, imagePayload.bytes) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_cd))
                     }
                 }
             }
@@ -155,7 +157,7 @@ private fun PreviewBinaryFallback() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Binary file preview is not supported.",
+            text = stringResource(R.string.binary_not_supported),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline
         )
@@ -294,6 +296,6 @@ private fun shareImage(context: Context, path: String, bytes: ByteArray) {
     }
 
     context.startActivity(
-        Intent.createChooser(intent, "Share image").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        Intent.createChooser(intent, context.getString(R.string.share_image)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

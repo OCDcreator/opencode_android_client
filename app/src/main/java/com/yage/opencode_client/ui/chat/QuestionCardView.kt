@@ -18,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.yage.opencode_client.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -50,8 +52,8 @@ fun QuestionCardView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("(No questions)", style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = onReject) { Text("Dismiss") }
+                Text(stringResource(R.string.no_questions), style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = onReject) { Text(stringResource(R.string.dismiss)) }
             }
         }
         return
@@ -211,13 +213,13 @@ fun QuestionCardView(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Question",
+                    text = stringResource(R.string.question_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = accent
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "${currentTab + 1} of ${question.questions.size}",
+                    text = stringResource(R.string.question_of, currentTab + 1, question.questions.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -253,7 +255,7 @@ fun QuestionCardView(
 
             // Hint text
             Text(
-                text = if (currentQuestion.allowMultiple) "Select one or more options" else "Select one option",
+                text = if (currentQuestion.allowMultiple) stringResource(R.string.select_multiple) else stringResource(R.string.select_single),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -322,7 +324,7 @@ fun QuestionCardView(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Type your own answer",
+                                text = stringResource(R.string.type_own_answer),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isCustomActiveNow) accent else MaterialTheme.colorScheme.onSurface
                             )
@@ -333,7 +335,7 @@ fun QuestionCardView(
                             OutlinedTextField(
                                 value = customText,
                                 onValueChange = { customTexts[currentTab] = it },
-                                label = { Text("Type your answer...") },
+                                label = { Text(stringResource(R.string.type_answer_placeholder)) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = { commitCustom() }),
@@ -353,7 +355,7 @@ fun QuestionCardView(
                     onClick = onReject,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Dismiss")
+                    Text(stringResource(R.string.dismiss))
                 }
 
                 if (currentTab > 0) {
@@ -361,7 +363,7 @@ fun QuestionCardView(
                         onClick = { back() },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Back")
+                        Text(stringResource(R.string.back))
                     }
                 }
 
@@ -377,7 +379,7 @@ fun QuestionCardView(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text(if (currentTab >= question.questions.size - 1) "Submit" else "Next")
+                        Text(if (currentTab >= question.questions.size - 1) stringResource(R.string.submit) else stringResource(R.string.next))
                     }
                 }
             }
