@@ -24,12 +24,26 @@ android {
     namespace = "com.yage.opencode_client"
     compileSdk = 35
 
+    val keystoreFile = rootProject.file("release.keystore")
+    val keystoreExists = keystoreFile.exists()
+
+    signingConfigs {
+        if (keystoreExists) {
+            create("release") {
+                storeFile = keystoreFile
+                storePassword = "opencode123"
+                keyAlias = "release"
+                keyPassword = "opencode123"
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.yage.opencode_client"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "0.1.20260322"
+        versionCode = 5
+        versionName = "0.2.20260402"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Integration test credentials from .env (dynamic, not in code)
@@ -44,6 +58,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = if (keystoreExists) signingConfigs.getByName("release") else null
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

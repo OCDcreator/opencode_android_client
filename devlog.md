@@ -6,6 +6,16 @@
 
 ## [Unreleased] — 2026-04-02
 
+### fix: Keyboard gap above input bar
+- `ChatInputBar.imePadding()` and Scaffold's bottom NavigationBar padding stacked, creating a colored gap equal to the tab bar height between keyboard and input field
+- Added `.consumeWindowInsets(padding)` on NavHost modifier in `PhoneLayout` so `imePadding()` correctly deduplicates the already-consumed NavigationBar insets
+- Removed `tonalElevation = 2.dp` from `ChatInputBar` Surface to eliminate background tint mismatch
+
+### fix: ParameterizedType ClassCastException
+- `retrofit2-kotlinx-serialization-converter:1.0.0` cannot resolve generic return types like `Map<String, SessionStatus>` in suspend functions — `java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType`
+- Introduced `SessionStatusResponse` wrapper data class with custom serializer that deserializes flat JSON map (`{"session-1": {...}}`)
+- `OpenCodeApi.getSessionStatus()` now returns `SessionStatusResponse`; repository extracts `.entries` to preserve public API
+
 ### feat: Dynamic Model List from Server
 - Model selector now loads available models from `GET /config/providers` instead of hardcoded presets
 - `AppState.availableModels` changed from computed property (always `ModelPresets.list`) to mutable field populated at runtime

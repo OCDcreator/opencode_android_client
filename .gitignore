@@ -16,6 +16,9 @@
 *.kt.swp
 
 # Build
+*.apk
+*.aab
+release.keystore
 /app/build/
 */build/
 

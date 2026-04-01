@@ -112,7 +112,7 @@ class OpenCodeRepository @Inject constructor() {
     }
 
     suspend fun getSessionStatus(): Result<Map<String, SessionStatus>> = runCatching {
-        api.getSessionStatus(effectiveDirectory())
+        api.getSessionStatus(effectiveDirectory()).entries
     }
 
     suspend fun getMessages(

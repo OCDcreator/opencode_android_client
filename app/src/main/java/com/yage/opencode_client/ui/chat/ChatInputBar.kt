@@ -62,7 +62,7 @@ internal fun ChatInputBar(
 
     Surface(
         modifier = Modifier.fillMaxWidth().imePadding(),
-        tonalElevation = 2.dp
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),

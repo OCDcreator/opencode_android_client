@@ -153,7 +153,7 @@ private fun PhoneLayout(viewModel: MainViewModel) {
         NavHost(
             navController = navController,
             startDestination = Screen.Chat.route,
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding)
         ) {
             composable(Screen.Chat.route) {
                 ChatScreen(
