@@ -3,12 +3,12 @@ package com.yage.opencode_client.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.Spacer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,7 +57,9 @@ import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.FileNode
 import com.yage.opencode_client.ui.AIBuilderSettings
 import com.yage.opencode_client.ui.AppState
+import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.util.ThemeMode
+import kotlin.math.roundToInt
 
 @Composable
 internal fun ServerConnectionSection(
@@ -94,7 +96,7 @@ internal fun ServerConnectionSection(
         leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = username,
@@ -105,7 +107,7 @@ internal fun ServerConnectionSection(
         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = workingDirectory,
@@ -124,18 +126,18 @@ internal fun ServerConnectionSection(
         }
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedButton(
         onClick = { showDirectoryPicker = true },
         modifier = Modifier.fillMaxWidth()
     ) {
         Icon(Icons.Default.FolderOpen, contentDescription = null)
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp.uiScaled()))
         Text(stringResource(R.string.browse_server_directory))
     }
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     if (recentWorkingDirectories.isNotEmpty()) {
         Text(
@@ -143,10 +145,10 @@ internal fun ServerConnectionSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp.uiScaled()))
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
         ) {
             recentWorkingDirectories.forEach { recentDirectory ->
                 AssistChip(
@@ -160,7 +162,7 @@ internal fun ServerConnectionSection(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
     }
 
     OutlinedTextField(
@@ -181,11 +183,11 @@ internal fun ServerConnectionSection(
         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(16.dp.uiScaled()))
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
     ) {
         Button(
             onClick = onTestConnection,
@@ -193,10 +195,10 @@ internal fun ServerConnectionSection(
         ) {
             if (isTesting) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(16.dp.uiScaled()),
                     strokeWidth = 2.dp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             }
             Text(stringResource(R.string.test_connection))
         }
@@ -212,15 +214,15 @@ internal fun ServerConnectionSection(
     testResult?.let { ResultCard(result = it) }
 
     if (state.isConnected) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.CheckCircle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp.uiScaled())
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             Text(
                 stringResource(R.string.connected),
                 style = MaterialTheme.typography.bodyMedium,
@@ -293,11 +295,11 @@ private fun ServerDirectoryPickerDialog(
                     text = currentDirectory ?: stringResource(R.string.server_default_directory),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp.uiScaled()))
                 if (supportsUnixShortcuts) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
                     ) {
                         AssistChip(
                             onClick = { currentDirectory = "/" },
@@ -308,11 +310,11 @@ private fun ServerDirectoryPickerDialog(
                             label = { Text(stringResource(R.string.go_to_volumes)) }
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
                 ) {
                     OutlinedButton(
                         onClick = { currentDirectory = parentDirectory },
@@ -320,7 +322,7 @@ private fun ServerDirectoryPickerDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                         Text(stringResource(R.string.parent_directory))
                     }
                     Button(
@@ -336,14 +338,14 @@ private fun ServerDirectoryPickerDialog(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp.uiScaled()))
                 when {
                     isLoading -> {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()), strokeWidth = 2.dp)
                         }
                     }
                     errorMessage != null -> {
@@ -364,7 +366,7 @@ private fun ServerDirectoryPickerDialog(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 280.dp)
+                                .heightIn(max = 280.dp.uiScaled())
                         ) {
                             items(directories, key = { it.path }) { directory ->
                                 ListItem(
@@ -431,8 +433,12 @@ private fun inferParentDirectoryFromNodes(nodes: List<FileNode>): String? {
 internal fun AppearanceSection(
     themeMode: ThemeMode,
     fontSizeScale: Float,
+    uiScale: Float,
     onThemeSelected: (ThemeMode) -> Unit,
-    onFontSizeScaleChanged: (Float) -> Unit
+    onFontSizeScaleChanged: (Float) -> Unit,
+    onFontSizeScaleChangeFinished: () -> Unit,
+    onUiScaleChanged: (Float) -> Unit,
+    onUiScaleChangeFinished: () -> Unit
 ) {
     SectionHeader(title = stringResource(R.string.appearance))
 
@@ -440,14 +446,14 @@ internal fun AppearanceSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 8.dp.uiScaled()),
             verticalAlignment = Alignment.CenterVertically
         ) {
             RadioButton(
                 selected = themeMode == mode,
                 onClick = { onThemeSelected(mode) }
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             Text(
                 when (mode) {
                     ThemeMode.LIGHT -> stringResource(R.string.light)
@@ -458,7 +464,7 @@ internal fun AppearanceSection(
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(16.dp.uiScaled()))
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -470,11 +476,7 @@ internal fun AppearanceSection(
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = when {
-                fontSizeScale < 0.95f -> stringResource(R.string.font_size_small)
-                fontSizeScale > 1.05f -> stringResource(R.string.font_size_large)
-                else -> stringResource(R.string.font_size_default)
-            },
+            text = stringResource(R.string.scale_percentage, (fontSizeScale * 100).roundToInt()),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -483,8 +485,34 @@ internal fun AppearanceSection(
     Slider(
         value = fontSizeScale,
         onValueChange = onFontSizeScaleChanged,
+        onValueChangeFinished = onFontSizeScaleChangeFinished,
         valueRange = 0.8f..1.4f,
-        steps = 2,
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.interface_scale),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = stringResource(R.string.scale_percentage, (uiScale * 100).roundToInt()),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Slider(
+        value = uiScale,
+        onValueChange = onUiScaleChanged,
+        onValueChangeFinished = onUiScaleChangeFinished,
+        valueRange = 0.85f..1.25f,
         modifier = Modifier.fillMaxWidth()
     )
 }
@@ -516,7 +544,7 @@ internal fun SpeechRecognitionSection(
         leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = aiBuilderToken,
@@ -536,7 +564,7 @@ internal fun SpeechRecognitionSection(
         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = aiBuilderCustomPrompt,
@@ -547,7 +575,7 @@ internal fun SpeechRecognitionSection(
         maxLines = 6
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = aiBuilderTerminology,
@@ -558,11 +586,11 @@ internal fun SpeechRecognitionSection(
         singleLine = true
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(16.dp.uiScaled()))
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
     ) {
         Button(
             onClick = onTestConnection,
@@ -570,10 +598,10 @@ internal fun SpeechRecognitionSection(
         ) {
             if (state.isTestingAIBuilderConnection) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(16.dp.uiScaled()),
                     strokeWidth = 2.dp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             }
             Text(stringResource(R.string.test_connection))
         }
@@ -614,7 +642,7 @@ internal fun AboutSection() {
         color = MaterialTheme.colorScheme.outline
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(8.dp.uiScaled()))
 
     Text(
         stringResource(R.string.about_description),
@@ -629,12 +657,12 @@ private fun SectionHeader(title: String) {
         title,
         style = MaterialTheme.typography.titleMedium
     )
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(16.dp.uiScaled()))
 }
 
 @Composable
 private fun ResultCard(result: TestResult) {
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
     Card(
         colors = CardDefaults.cardColors(
             containerColor = if (result.success) {
@@ -647,7 +675,7 @@ private fun ResultCard(result: TestResult) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(12.dp.uiScaled()),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -659,7 +687,7 @@ private fun ResultCard(result: TestResult) {
                     MaterialTheme.colorScheme.onErrorContainer
                 }
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             Text(
                 result.message,
                 color = if (result.success) {
@@ -674,9 +702,9 @@ private fun ResultCard(result: TestResult) {
 
 @Composable
 internal fun SettingsSectionDivider() {
-    Spacer(modifier = Modifier.height(32.dp))
+    Spacer(modifier = Modifier.height(32.dp.uiScaled()))
     HorizontalDivider()
-    Spacer(modifier = Modifier.height(32.dp))
+    Spacer(modifier = Modifier.height(32.dp.uiScaled()))
 }
 
 internal data class TestResult(

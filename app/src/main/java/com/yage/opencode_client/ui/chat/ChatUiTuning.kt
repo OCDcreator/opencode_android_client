@@ -10,6 +10,9 @@ internal object ChatUiTuning {
     val contextRingInnerSize: Dp = 22.dp
 }
 
-internal fun shouldUseVerticalChatActions(textFieldHeight: Dp): Boolean {
-    return textFieldHeight >= ChatUiTuning.inputActionVerticalThreshold
+internal fun shouldUseVerticalChatActions(
+    textFieldHeight: Dp,
+    threshold: Dp = ChatUiTuning.inputActionVerticalThreshold
+): Boolean {
+    return textFieldHeight >= threshold
 }

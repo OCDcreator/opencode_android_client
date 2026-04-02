@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.PermissionRequest
 import com.yage.opencode_client.data.model.PermissionResponse
+import com.yage.opencode_client.ui.theme.uiScaled
 
 @Composable
 internal fun ChatInputBar(
@@ -57,7 +58,7 @@ internal fun ChatInputBar(
     val density = LocalDensity.current
     var textFieldHeightPx by remember { mutableIntStateOf(0) }
     val useVerticalActions = with(density) {
-        shouldUseVerticalChatActions(textFieldHeightPx.toDp())
+        shouldUseVerticalChatActions(textFieldHeightPx.toDp(), ChatUiTuning.inputActionVerticalThreshold.uiScaled())
     }
 
     Surface(
@@ -65,7 +66,7 @@ internal fun ChatInputBar(
         tonalElevation = 0.dp
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp.uiScaled()),
             verticalAlignment = if (useVerticalActions) Alignment.Bottom else Alignment.CenterVertically
         ) {
             OutlinedTextField(
@@ -76,7 +77,7 @@ internal fun ChatInputBar(
                 maxLines = 4,
                 enabled = true
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             ChatInputActions(
                 isBusy = isBusy,
                 isRecording = isRecording,
@@ -105,7 +106,7 @@ private fun ChatInputActions(
     onSend: () -> Unit
 ) {
     if (useVerticalActions) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp.uiScaled()), horizontalAlignment = Alignment.CenterHorizontally) {
             ChatInputActionButton(
                 isBusy = isBusy,
                 isRecording = isRecording,
@@ -118,7 +119,7 @@ private fun ChatInputActions(
             )
         }
     } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp.uiScaled()), verticalAlignment = Alignment.CenterVertically) {
             ChatInputActionButton(
                 isBusy = isBusy,
                 isRecording = isRecording,
@@ -145,13 +146,13 @@ private fun ChatInputActionButton(
     onSend: () -> Unit
 ) {
     if (isBusy) {
-        IconButton(onClick = onAbort, modifier = Modifier.size(40.dp)) {
+        IconButton(onClick = onAbort, modifier = Modifier.size(40.dp.uiScaled())) {
             Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_cd), tint = MaterialTheme.colorScheme.error)
         }
     }
     IconButton(onClick = onToggleRecording, enabled = !isTranscribing) {
         if (isTranscribing) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()), strokeWidth = 2.dp)
         } else {
             Icon(
                 Icons.Default.Mic,
@@ -175,16 +176,16 @@ internal fun ChatPermissionCard(
     onRespond: (PermissionResponse) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp.uiScaled()),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp.uiScaled())) {
             Text(
                 stringResource(R.string.permission_required),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
-            Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(8.dp.uiScaled()))
             Text(
                 permission.permission ?: stringResource(R.string.unknown_permission),
                 style = MaterialTheme.typography.bodyMedium,
@@ -200,16 +201,16 @@ internal fun ChatPermissionCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(16.dp.uiScaled()))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { onRespond(PermissionResponse.REJECT) }) {
                     Text(stringResource(R.string.reject))
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                 TextButton(onClick = { onRespond(PermissionResponse.ONCE) }) {
                     Text(stringResource(R.string.allow_once))
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                 Button(onClick = { onRespond(PermissionResponse.ALWAYS) }) {
                     Text(stringResource(R.string.always_allow))
                 }

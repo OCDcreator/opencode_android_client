@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 
@@ -41,6 +42,7 @@ fun OpenCodeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     fontSizeScale: Float = 1.0f,
+    uiScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -55,15 +57,17 @@ fun OpenCodeTheme(
 
     val typography = scaledTypography(Typography, fontSizeScale)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = colorScheme.background
+    CompositionLocalProvider(LocalUiScale provides UiScale(uiScale)) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography
         ) {
-            content()
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = colorScheme.background
+            ) {
+                content()
+            }
         }
     }
 }

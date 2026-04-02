@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.math.max
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 data class ConnectionFormSettings(
@@ -54,6 +55,8 @@ data class AppState(
     val inputText: String = "",
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val fontSizeScale: Float = 1.0f,
+    val uiScale: Float = 1.0f,
     val workingDirectory: String = "",
     val filePathToShowInFiles: String? = null,
     val filePreviewOriginRoute: String? = null,
@@ -138,6 +141,7 @@ data class AppState(
         val error: String? = null,
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
         val fontSizeScale: Float = 1.0f,
+        val uiScale: Float = 1.0f,
         val workingDirectory: String = "",
         val selectedModelIndex: Int = 0,
         val selectedAgentName: String = "build",
@@ -199,6 +203,7 @@ data class AppState(
             error = error,
             themeMode = themeMode,
             fontSizeScale = fontSizeScale,
+            uiScale = uiScale,
             workingDirectory = workingDirectory,
             selectedModelIndex = selectedModelIndex,
             selectedAgentName = selectedAgentName,
@@ -546,9 +551,28 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(themeMode = mode) }
     }
 
-    fun setFontSizeScale(scale: Float) {
-        settingsManager.fontSizeScale = scale
-        _state.update { it.copy(fontSizeScale = scale) }
+    fun setFontSizeScale(scale: Float, persist: Boolean = true) {
+        val normalized = (scale.coerceIn(0.8f, 1.4f) * 100).roundToInt() / 100f
+        if (persist) {
+            settingsManager.fontSizeScale = normalized
+        }
+        _state.update { it.copy(fontSizeScale = normalized) }
+    }
+
+    fun persistFontSizeScale() {
+        settingsManager.fontSizeScale = _state.value.fontSizeScale
+    }
+
+    fun setUiScale(scale: Float, persist: Boolean = true) {
+        val normalized = (scale.coerceIn(0.85f, 1.25f) * 100).roundToInt() / 100f
+        if (persist) {
+            settingsManager.uiScale = normalized
+        }
+        _state.update { it.copy(uiScale = normalized) }
+    }
+
+    fun persistUiScale() {
+        settingsManager.uiScale = _state.value.uiScale
     }
 
     fun respondPermission(sessionId: String, permissionId: String, response: PermissionResponse) {

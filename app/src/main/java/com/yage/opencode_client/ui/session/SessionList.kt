@@ -34,6 +34,7 @@ import com.yage.opencode_client.data.model.SessionStatus
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
+import com.yage.opencode_client.ui.theme.uiScaled
 import kotlin.math.roundToInt
 
 private enum class SwipeAnchor { Start, End }
@@ -83,7 +84,7 @@ private fun SwipeRevealRow(
                 Icons.Default.Delete,
                 contentDescription = stringResource(R.string.delete_session_cd),
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = 12.dp.uiScaled())
             )
         }
         Row(
@@ -98,22 +99,27 @@ private fun SwipeRevealRow(
                 )
                 .background(rowBackgroundColor)
                 .clickable(onClick = onSelect)
-                .padding(start = (12 + depth * 24).dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+                .padding(
+                    start = ((12 + depth * 24).dp).uiScaled(),
+                    end = 12.dp.uiScaled(),
+                    top = 10.dp.uiScaled(),
+                    bottom = 10.dp.uiScaled()
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (hasChildren && onToggleCollapse != null) {
                 IconButton(
                     onClick = onToggleCollapse,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp.uiScaled())
                 ) {
                     Icon(
                         if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.KeyboardArrowDown,
                         contentDescription = if (isCollapsed) stringResource(R.string.expand) else stringResource(R.string.collapse),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp.uiScaled())
                     )
                 }
             } else if (hasChildren) {
-                Spacer(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.size(24.dp.uiScaled()))
             }
             Text(
                 text = displayName,
@@ -165,7 +171,7 @@ fun SessionList(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -197,9 +203,10 @@ fun SessionList(
                 val hasChildren = node.children.isNotEmpty()
                 val isExpanded = expandedSessionIds.contains(session.id)
                 val density = LocalDensity.current
-                val deleteWidthPx = with(density) { 56.dp.toPx() }
+                val deleteWidthPx = with(density) { 56.dp.uiScaled().toPx() }
+                val swipeVelocityThresholdPx = with(density) { 100.dp.uiScaled().toPx() }
                 val decay = rememberSplineBasedDecay<Float>()
-                val dragState = remember(deleteWidthPx) {
+                val dragState = remember(deleteWidthPx, swipeVelocityThresholdPx) {
                     AnchoredDraggableState(
                         initialValue = SwipeAnchor.Start,
                         anchors = DraggableAnchors {
@@ -207,7 +214,7 @@ fun SessionList(
                             SwipeAnchor.End at deleteWidthPx
                         },
                         positionalThreshold = { total: Float -> total * 0.5f },
-                        velocityThreshold = { with(density) { 100.dp.toPx() } },
+                        velocityThreshold = { swipeVelocityThresholdPx },
                         snapAnimationSpec = tween(),
                         decayAnimationSpec = decay
                     )
@@ -229,7 +236,7 @@ fun SessionList(
                     )
                     if (index < visibleRows.size - 1) {
                         HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 12.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp.uiScaled()),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     }
@@ -240,10 +247,10 @@ fun SessionList(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(12.dp.uiScaled()),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp.uiScaled()), strokeWidth = 2.dp)
                     }
                 }
             }

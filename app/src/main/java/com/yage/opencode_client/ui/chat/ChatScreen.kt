@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.ui.MainViewModel
+import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +117,7 @@ fun ChatScreen(
 
             state.error?.let { error ->
                 Snackbar(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(16.dp.uiScaled()),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
                             Text(stringResource(R.string.dismiss))

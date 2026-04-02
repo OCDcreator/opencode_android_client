@@ -23,6 +23,7 @@ import com.yage.opencode_client.ui.theme.AddedFile
 import com.yage.opencode_client.ui.theme.DeletedFile
 import com.yage.opencode_client.ui.theme.ModifiedFile
 import com.yage.opencode_client.ui.theme.UntrackedFile
+import com.yage.opencode_client.ui.theme.uiScaled
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
 
@@ -60,7 +61,7 @@ internal fun FileRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp.uiScaled(), vertical = 12.dp.uiScaled()),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -68,14 +69,14 @@ internal fun FileRow(
             contentDescription = null,
             tint = statusColor ?: MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp.uiScaled()))
         Text(
             text = file.name,
             style = MaterialTheme.typography.bodyLarge,
             color = statusColor ?: MaterialTheme.colorScheme.onSurface
         )
         if (file.ignored == true) {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
             Text(
                 text = stringResource(R.string.ignored),
                 style = MaterialTheme.typography.labelSmall,

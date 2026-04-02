@@ -60,6 +60,7 @@ import com.yage.opencode_client.data.model.TodoItem
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.ToolWritePatchBackgroundDark
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
+import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
@@ -127,13 +128,13 @@ internal fun ChatMessageList(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         reverseLayout = true,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp.uiScaled())
     ) {
         if (streamingReasoningPart != null) {
             val streamingKey = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
             val streamingText = streamingPartTexts[streamingKey] ?: ""
             item(key = "streaming-reasoning") {
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
                     ReasoningCard(
                         text = streamingText,
                         title = streamingReasoningPart.toolReason,
@@ -155,17 +156,17 @@ internal fun ChatMessageList(
         if (isLoading && messages.size >= messageLimit) {
             item(key = "load-more-indicator") {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp.uiScaled()),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()))
                 }
             }
         }
         if (!isLoading && messages.isEmpty()) {
             item {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    modifier = Modifier.fillMaxWidth().padding(32.dp.uiScaled()),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -190,7 +191,7 @@ private fun MessageRow(
 ) {
     val isUser = message.info.isUser
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
         var i = 0
         while (i < message.parts.size) {
             val part = message.parts[i]
@@ -209,7 +210,7 @@ private fun MessageRow(
                 run.chunked(2).forEach { chunk ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
                     ) {
                         chunk.forEach { p ->
                             PartView(
@@ -241,7 +242,7 @@ private fun MessageRow(
         }
         if (!isUser) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 2.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp.uiScaled(), top = 2.dp.uiScaled()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 message.info.resolvedModel?.let { model ->
@@ -256,13 +257,13 @@ private fun MessageRow(
                     var showMenu by remember { mutableStateOf(false) }
                     IconButton(
                         onClick = { showMenu = true },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp.uiScaled())
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = stringResource(R.string.more_options_cd),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp.uiScaled())
                         )
                     }
                     DropdownMenu(
@@ -321,17 +322,17 @@ private fun TextPart(
     repository: OpenCodeRepository? = null,
     workspaceDirectory: String? = null
 ) {
-    val innerModifier = modifier.padding(12.dp)
+    val innerModifier = modifier.padding(12.dp.uiScaled())
     if (isUser) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(8.dp.uiScaled()),
             modifier = modifier
         ) {
             SelectionContainer {
                 Text(
                     text = text,
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(12.dp.uiScaled()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -404,26 +405,26 @@ private fun ReasoningCard(
     }
 
     Card(
-        modifier = modifier.padding(vertical = 4.dp),
+        modifier = modifier.padding(vertical = 4.dp.uiScaled()),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
         Column {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(12.dp.uiScaled()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(20.dp.uiScaled()))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                 Text(title ?: stringResource(R.string.thinking), style = MaterialTheme.typography.labelLarge)
                 Spacer(modifier = Modifier.weight(1f))
                 if (!isStreaming) {
-                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp.uiScaled())) {
                         Icon(
                             if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.ChevronRight,
                             contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp.uiScaled())
                         )
                     }
                 }
@@ -434,7 +435,7 @@ private fun ReasoningCard(
                         Markdown(
                             content = text,
                             typography = markdownTypographyCompact(),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled()),
                             imageTransformer = DataUriImageTransformer
                         )
                     }
@@ -462,43 +463,43 @@ private fun ToolCard(
     val cardColor = if (isWriteOrPatch && isDark) ToolWritePatchBackgroundDark else MaterialTheme.colorScheme.surfaceContainerHighest
     val contentColor = if (isWriteOrPatch && !isDark) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
-    Card(modifier = modifier.padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+    Card(modifier = modifier.padding(vertical = 4.dp.uiScaled()), colors = CardDefaults.cardColors(containerColor = cardColor)) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(12.dp.uiScaled())) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     if (isRunning) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp.uiScaled()), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                     Text(text = toolName.ifEmpty { reason ?: stringResource(R.string.tool) }, style = MaterialTheme.typography.labelLarge)
                     Spacer(modifier = Modifier.weight(1f))
                     if (firstFile != null) {
-                        IconButton(onClick = { onFileClick(firstFile) }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
+                        IconButton(onClick = { onFileClick(firstFile) }, modifier = Modifier.size(28.dp.uiScaled())) {
+                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                         }
                     }
-                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp.uiScaled())) {
                         Icon(
                             if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.ChevronRight,
                             contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp.uiScaled())
                         )
                     }
                 }
 
                 if (expanded && todos.isNotEmpty()) {
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.size(8.dp.uiScaled()))
                     todos.forEach { todo ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = if (todo.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(16.dp.uiScaled()),
                                 tint = if (todo.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                             Text(
                                 text = todo.content,
                                 style = MaterialTheme.typography.bodySmall.copy(
@@ -513,7 +514,7 @@ private fun ToolCard(
                     }
                 }
                 if (expanded && filePaths.isNotEmpty()) {
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.size(8.dp.uiScaled()))
                     filePaths.forEach { path ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                             Text(
@@ -522,8 +523,8 @@ private fun ToolCard(
                                 fontFamily = FontFamily.Monospace,
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
+                            IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
+                                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                             }
                         }
                     }
@@ -543,15 +544,15 @@ private fun PatchCard(
     val cardColor = if (isDark) ToolWritePatchBackgroundDark else MaterialTheme.colorScheme.surfaceContainerHighest
     val contentColor = if (!isDark) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
-    Card(modifier = modifier.padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+    Card(modifier = modifier.padding(vertical = 4.dp.uiScaled()), colors = CardDefaults.cardColors(containerColor = cardColor)) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(12.dp.uiScaled())) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
+                    Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                     Text(stringResource(R.string.patch), style = MaterialTheme.typography.labelLarge)
                 }
-                Spacer(modifier = Modifier.size(8.dp))
+                Spacer(modifier = Modifier.size(8.dp.uiScaled()))
                 filePaths.forEach { path ->
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                         Text(
@@ -560,8 +561,8 @@ private fun PatchCard(
                             fontFamily = FontFamily.Monospace,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp))
+                        IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
+                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                         }
                     }
                 }

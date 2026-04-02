@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.yage.opencode_client.data.model.QuestionOption
 import com.yage.opencode_client.data.model.QuestionRequest
+import com.yage.opencode_client.ui.theme.uiScaled
 
 @Composable
 fun QuestionCardView(
@@ -39,8 +40,8 @@ fun QuestionCardView(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp),
+                .padding(horizontal = 16.dp.uiScaled(), vertical = 8.dp.uiScaled()),
+            shape = RoundedCornerShape(12.dp.uiScaled()),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
             )
@@ -48,7 +49,7 @@ fun QuestionCardView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp.uiScaled()),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -83,7 +84,7 @@ fun QuestionCardView(
     var isSending by remember(question.id) { mutableStateOf(false) }
 
     val accent = MaterialTheme.colorScheme.primary
-    val cornerRadius = 12.dp
+    val cornerRadius = 12.dp.uiScaled()
 
     val currentQuestion = question.questions[currentTab]
     val currentAnswers = answers[currentTab]
@@ -188,7 +189,7 @@ fun QuestionCardView(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp.uiScaled(), vertical = 8.dp.uiScaled()),
         shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(
             containerColor = accent.copy(alpha = 0.07f)
@@ -197,8 +198,8 @@ fun QuestionCardView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp.uiScaled()),
+            verticalArrangement = Arrangement.spacedBy(12.dp.uiScaled())
         ) {
             // Header
             Row(
@@ -209,9 +210,9 @@ fun QuestionCardView(
                     imageVector = Icons.Filled.Help,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp.uiScaled())
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                 Text(
                     text = stringResource(R.string.question_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -229,7 +230,7 @@ fun QuestionCardView(
             if (question.questions.size > 1) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp.uiScaled())
                 ) {
                     repeat(question.questions.size) { index ->
                         val dotColor: Color = when {
@@ -239,7 +240,7 @@ fun QuestionCardView(
                         }
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
+                                .size(8.dp.uiScaled())
                                 .clip(CircleShape)
                                 .background(dotColor)
                         )
@@ -263,17 +264,17 @@ fun QuestionCardView(
             // Options
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp.uiScaled())
             ) {
                 currentQuestion.options.forEach { option ->
                     val selected = isSelected(option)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(8.dp.uiScaled()))
                             .background(if (selected) accent.copy(alpha = 0.08f) else Color.Transparent)
                             .clickable { selectOption(option) }
-                            .padding(vertical = 10.dp, horizontal = 12.dp),
+                            .padding(vertical = 10.dp.uiScaled(), horizontal = 12.dp.uiScaled()),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -284,9 +285,9 @@ fun QuestionCardView(
                             },
                             contentDescription = null,
                             tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp.uiScaled())
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(10.dp.uiScaled()))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = option.label,
@@ -310,19 +311,19 @@ fun QuestionCardView(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(8.dp.uiScaled()))
                                 .background(if (isCustomActiveNow) accent.copy(alpha = 0.08f) else Color.Transparent)
                                 .clickable { activateCustom() }
-                                .padding(vertical = 10.dp, horizontal = 12.dp),
+                                .padding(vertical = 10.dp.uiScaled(), horizontal = 12.dp.uiScaled()),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = if (isCustomActiveNow) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
                                 contentDescription = null,
                                 tint = if (isCustomActiveNow) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp.uiScaled())
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(10.dp.uiScaled()))
                             Text(
                                 text = stringResource(R.string.type_own_answer),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -331,7 +332,7 @@ fun QuestionCardView(
                         }
 
                         if (isCustomActiveNow) {
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(6.dp.uiScaled()))
                             OutlinedTextField(
                                 value = customText,
                                 onValueChange = { customTexts[currentTab] = it },
@@ -349,7 +350,7 @@ fun QuestionCardView(
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp.uiScaled())
             ) {
                 OutlinedButton(
                     onClick = onReject,
@@ -374,7 +375,7 @@ fun QuestionCardView(
                 ) {
                     if (isSending) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(16.dp.uiScaled()),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary
                         )

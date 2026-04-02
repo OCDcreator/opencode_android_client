@@ -35,6 +35,11 @@ fun scaledTypography(base: Typography, scale: Float): Typography {
     )
 }
 
+private fun TextStyle.compact(reference: TextStyle, target: TextStyle): TextStyle = copy(
+    fontSize = fontSize * (target.fontSize.value / reference.fontSize.value),
+    lineHeight = lineHeight * (target.lineHeight.value / reference.lineHeight.value)
+)
+
 /** Markdown typography with headers one size smaller than default. */
 @Composable
 fun markdownTypographyCompact() = markdownTypography(
@@ -57,15 +62,15 @@ fun markdownTypographyCompact() = markdownTypography(
 
 /** Slightly smaller typography for Files and Chat columns in tablet layout. */
 fun compactTypography(base: Typography): Typography = base.copy(
-    bodyLarge = base.bodyLarge.copy(fontSize = 12.sp, lineHeight = 18.sp),
-    bodyMedium = base.bodyMedium.copy(fontSize = 11.sp, lineHeight = 16.sp),
-    bodySmall = base.bodySmall.copy(fontSize = 10.sp, lineHeight = 14.sp),
-    labelLarge = base.labelLarge.copy(fontSize = 11.sp, lineHeight = 14.sp),
-    labelMedium = base.labelMedium.copy(fontSize = 10.sp, lineHeight = 12.sp),
-    labelSmall = base.labelSmall.copy(fontSize = 9.sp, lineHeight = 12.sp),
-    titleLarge = base.titleLarge.copy(fontSize = 16.sp, lineHeight = 22.sp),
-    titleMedium = base.titleMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
-    titleSmall = base.titleSmall.copy(fontSize = 12.sp, lineHeight = 18.sp)
+    bodyLarge = base.bodyLarge.compact(Typography.bodyLarge, Typography.bodyLarge.copy(fontSize = 12.sp, lineHeight = 18.sp)),
+    bodyMedium = base.bodyMedium.compact(Typography.bodyMedium, Typography.bodyMedium.copy(fontSize = 11.sp, lineHeight = 16.sp)),
+    bodySmall = base.bodySmall.compact(Typography.bodySmall, Typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 14.sp)),
+    labelLarge = base.labelLarge.compact(Typography.labelLarge, Typography.labelLarge.copy(fontSize = 11.sp, lineHeight = 14.sp)),
+    labelMedium = base.labelMedium.compact(Typography.labelMedium, Typography.labelMedium.copy(fontSize = 10.sp, lineHeight = 12.sp)),
+    labelSmall = base.labelSmall.compact(Typography.labelSmall, Typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 12.sp)),
+    titleLarge = base.titleLarge.compact(Typography.titleLarge, Typography.titleLarge.copy(fontSize = 16.sp, lineHeight = 22.sp)),
+    titleMedium = base.titleMedium.compact(Typography.titleMedium, Typography.titleMedium.copy(fontSize = 14.sp, lineHeight = 20.sp)),
+    titleSmall = base.titleSmall.compact(Typography.titleSmall, Typography.titleSmall.copy(fontSize = 12.sp, lineHeight = 18.sp))
 )
 
 val Typography = Typography(

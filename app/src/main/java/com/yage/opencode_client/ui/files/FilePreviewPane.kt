@@ -48,6 +48,7 @@ import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.FileContent
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
+import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
@@ -137,7 +138,7 @@ private fun PreviewMarkdown(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(16.dp.uiScaled())
     ) {
         item {
             Markdown(
@@ -168,7 +169,7 @@ private fun PreviewBinaryFallback() {
 private fun PreviewPlainText(content: String) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(16.dp.uiScaled())
     ) {
         item {
             Text(

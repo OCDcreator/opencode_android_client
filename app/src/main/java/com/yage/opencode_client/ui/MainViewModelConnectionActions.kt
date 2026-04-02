@@ -33,6 +33,7 @@ internal fun applySavedSettings(
             selectedAgentName = settingsManager.selectedAgentName ?: "build",
             themeMode = settingsManager.themeMode,
             fontSizeScale = settingsManager.fontSizeScale,
+            uiScale = settingsManager.uiScale,
             workingDirectory = settingsManager.workingDirectory
         )
     }

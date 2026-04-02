@@ -69,6 +69,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import com.yage.opencode_client.ui.theme.uiScaled
 import java.util.Locale
 
 internal data class ChatTopBarState(
@@ -117,12 +118,12 @@ internal fun ChatTopBar(
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        tonalElevation = 2.dp.uiScaled()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp.uiScaled(), vertical = 8.dp.uiScaled())
         ) {
             val titleText = currentSession?.title
                 ?: currentSession?.directory?.split("/")?.lastOrNull()
@@ -136,7 +137,7 @@ internal fun ChatTopBar(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp.uiScaled()))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -146,38 +147,38 @@ internal fun ChatTopBar(
                     if (state.showSessionListInTopBar) {
                         IconButton(
                             onClick = { showSessionSheet = true },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp.uiScaled())
                         ) {
                             Icon(
                                 Icons.Default.List,
                                 contentDescription = stringResource(R.string.sessions_cd),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp.uiScaled())
                             )
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(4.dp.uiScaled()))
                     }
 
                     IconButton(
                         onClick = { showRenameDialog = true },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(36.dp.uiScaled())
                     ) {
                         Icon(
                             Icons.Default.Edit,
                                 contentDescription = stringResource(R.string.rename_session_cd),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp.uiScaled())
                         )
                     }
 
                     if (state.showNewSessionInTopBar) {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(4.dp.uiScaled()))
                         IconButton(
                             onClick = actions.onCreateSession,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp.uiScaled())
                         ) {
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = stringResource(R.string.new_session_cd),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp.uiScaled())
                             )
                         }
                     }
@@ -187,17 +188,17 @@ internal fun ChatTopBar(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp.uiScaled())
                 ) {
                     Box(modifier = Modifier.weight(1f, fill = false)) {
                         Surface(
                             onClick = { showModelMenu = true },
-                            shape = RoundedCornerShape(50),
+                            shape = RoundedCornerShape(50.dp.uiScaled()),
                             color = MaterialTheme.colorScheme.primary
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 6.dp.uiScaled())
                             ) {
                                 Text(
                                     text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName
@@ -210,7 +211,7 @@ internal fun ChatTopBar(
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
                                     contentDescription = stringResource(R.string.switch_model_cd),
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(14.dp.uiScaled()),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
@@ -232,12 +233,12 @@ internal fun ChatTopBar(
                     Box(modifier = Modifier.weight(1f, fill = false)) {
                         Surface(
                             onClick = { showAgentMenu = true },
-                            shape = RoundedCornerShape(50),
+                            shape = RoundedCornerShape(50.dp.uiScaled()),
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 6.dp.uiScaled())
                             ) {
                                 Text(
                                     text = state.selectedAgent,
@@ -249,7 +250,7 @@ internal fun ChatTopBar(
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
                                     contentDescription = stringResource(R.string.switch_agent_cd),
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(14.dp.uiScaled()),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -296,12 +297,12 @@ internal fun ChatTopBar(
                     if (state.showSettingsButton) {
                         IconButton(
                             onClick = actions.onNavigateToSettings,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp.uiScaled())
                         ) {
                             Icon(
                                 Icons.Default.Settings,
                                 contentDescription = stringResource(R.string.settings),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp.uiScaled())
                             )
                         }
                     }
@@ -317,7 +318,7 @@ internal fun ChatTopBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(ChatUiTuning.sessionSheetHeight)
+                    .height(ChatUiTuning.sessionSheetHeight.uiScaled())
             ) {
                 SessionList(
                     sessions = state.sessions,
@@ -395,18 +396,18 @@ internal fun ContextUsageRing(usage: AppState.ContextUsage) {
     }
 
     Box(
-        modifier = Modifier.size(ChatUiTuning.contextRingOuterSize),
+        modifier = Modifier.size(ChatUiTuning.contextRingOuterSize.uiScaled()),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
             progress = { 1f },
-            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize),
+            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize.uiScaled()),
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
             strokeWidth = 3.dp
         )
         CircularProgressIndicator(
             progress = { usage.percentage },
-            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize),
+            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize.uiScaled()),
             color = ringColor,
             strokeWidth = 3.dp
         )
@@ -423,19 +424,19 @@ internal fun ChatEmptyState(
             Icon(
                 Icons.Default.Chat,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(64.dp.uiScaled()),
                 tint = MaterialTheme.colorScheme.outline
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp.uiScaled()))
             Text(
                 if (isConnected) stringResource(R.string.select_or_create_session) else stringResource(R.string.connect_to_server),
                 style = MaterialTheme.typography.bodyLarge
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp.uiScaled()))
             if (!isConnected) {
                 Button(
                     onClick = onConnect,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp.uiScaled(), vertical = 12.dp.uiScaled())
                 ) {
                     Text(stringResource(R.string.connect))
                 }
@@ -482,7 +483,7 @@ private fun ModelPickerPopup(
 
     Popup(
         alignment = Alignment.TopEnd,
-        offset = IntOffset(0, with(LocalDensity.current) { 4.dp.roundToPx() }),
+        offset = IntOffset(0, with(LocalDensity.current) { 4.dp.uiScaled().roundToPx() }),
         properties = PopupProperties(focusable = true),
         onDismissRequest = onDismiss
     ) {
@@ -491,16 +492,16 @@ private fun ModelPickerPopup(
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
                 .fillMaxHeight(0.65f),
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 4.dp,
-            shadowElevation = 8.dp,
+            shape = RoundedCornerShape(16.dp.uiScaled()),
+            tonalElevation = 4.dp.uiScaled(),
+            shadowElevation = 8.dp.uiScaled(),
             color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp.uiScaled(), vertical = 12.dp.uiScaled())
                 ) {
                     OutlinedTextField(
                         value = filterQuery,
@@ -518,12 +519,12 @@ private fun ModelPickerPopup(
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(20.dp.uiScaled()),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp.uiScaled()),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
@@ -540,7 +541,7 @@ private fun ModelPickerPopup(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 32.dp),
+                            .padding(vertical = 32.dp.uiScaled()),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -567,7 +568,7 @@ private fun ModelPickerPopup(
                                         .background(
                                             MaterialTheme.colorScheme.surfaceContainerHigh
                                         )
-                                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                                        .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
                                 )
                             }
                             items(items = items, key = { "model_${it.index}" }) { item ->
@@ -578,14 +579,14 @@ private fun ModelPickerPopup(
                                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                                     else
                                         Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(8.dp.uiScaled())
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable { onSelect(item.index) }
-                                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                                            .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
                                     ) {
                                         Text(
                                             text = item.model.displayName,
@@ -600,11 +601,11 @@ private fun ModelPickerPopup(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         if (selected) {
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                                             Icon(
                                                 Icons.Default.Check,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
+                                                modifier = Modifier.size(18.dp.uiScaled()),
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }

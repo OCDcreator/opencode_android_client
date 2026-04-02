@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
+import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +67,7 @@ fun FilesScreen(
 
         state.error?.let { message ->
             Snackbar(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(16.dp.uiScaled()),
                 action = {
                     TextButton(onClick = viewModel::clearError) {
                         Text(stringResource(R.string.dismiss))

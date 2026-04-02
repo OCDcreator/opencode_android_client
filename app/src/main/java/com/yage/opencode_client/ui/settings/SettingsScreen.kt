@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.MainViewModel
+import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +81,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp.uiScaled())
         ) {
             ServerConnectionSection(
                 serverUrl = serverUrl,
@@ -145,8 +146,12 @@ fun SettingsScreen(
             AppearanceSection(
                 themeMode = state.themeMode,
                 fontSizeScale = state.fontSizeScale,
+                uiScale = state.uiScale,
                 onThemeSelected = viewModel::setThemeMode,
-                onFontSizeScaleChanged = viewModel::setFontSizeScale
+                onFontSizeScaleChanged = { viewModel.setFontSizeScale(it, persist = false) },
+                onFontSizeScaleChangeFinished = viewModel::persistFontSizeScale,
+                onUiScaleChanged = { viewModel.setUiScale(it, persist = false) },
+                onUiScaleChangeFinished = viewModel::persistUiScale
             )
 
             SettingsSectionDivider()
