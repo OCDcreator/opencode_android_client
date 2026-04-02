@@ -9,6 +9,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.mikepenz.markdown.m3.markdownTypography
 
+/** Scale all font sizes in a Typography by the given multiplier. */
+fun scaledTypography(base: Typography, scale: Float): Typography {
+    if (scale == 1.0f) return base
+    fun TextStyle.scaled() = copy(
+        fontSize = fontSize * scale,
+        lineHeight = lineHeight * scale
+    )
+    return base.copy(
+        displayLarge = base.displayLarge.scaled(),
+        displayMedium = base.displayMedium.scaled(),
+        displaySmall = base.displaySmall.scaled(),
+        headlineLarge = base.headlineLarge.scaled(),
+        headlineMedium = base.headlineMedium.scaled(),
+        headlineSmall = base.headlineSmall.scaled(),
+        titleLarge = base.titleLarge.scaled(),
+        titleMedium = base.titleMedium.scaled(),
+        titleSmall = base.titleSmall.scaled(),
+        bodyLarge = base.bodyLarge.scaled(),
+        bodyMedium = base.bodyMedium.scaled(),
+        bodySmall = base.bodySmall.scaled(),
+        labelLarge = base.labelLarge.scaled(),
+        labelMedium = base.labelMedium.scaled(),
+        labelSmall = base.labelSmall.scaled()
+    )
+}
+
 /** Markdown typography with headers one size smaller than default. */
 @Composable
 fun markdownTypographyCompact() = markdownTypography(

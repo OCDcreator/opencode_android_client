@@ -87,6 +87,10 @@ class SettingsManager @Inject constructor(
         get() = ThemeMode.valueOf(encryptedPrefs.getString(KEY_THEME, ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name)
         set(value) = encryptedPrefs.edit().putString(KEY_THEME, value.name).apply()
 
+    var fontSizeScale: Float
+        get() = encryptedPrefs.getFloat(KEY_FONT_SIZE_SCALE, 1.0f)
+        set(value) = encryptedPrefs.edit().putFloat(KEY_FONT_SIZE_SCALE, value.coerceIn(0.8f, 1.4f)).apply()
+
     var aiBuilderBaseURL: String
         get() = encryptedPrefs.getString(KEY_AI_BUILDER_BASE_URL, DEFAULT_AI_BUILDER_BASE_URL) ?: DEFAULT_AI_BUILDER_BASE_URL
         set(value) = encryptedPrefs.edit().putString(KEY_AI_BUILDER_BASE_URL, value).apply()
@@ -197,6 +201,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_MODEL_KEY = "model_key"
         private const val KEY_AGENT_NAME = "agent_name"
         private const val KEY_THEME = "theme"
+        private const val KEY_FONT_SIZE_SCALE = "font_size_scale"
         private const val KEY_AI_BUILDER_BASE_URL = "ai_builder_base_url"
         private const val KEY_AI_BUILDER_TOKEN = "ai_builder_token"
         private const val KEY_AI_BUILDER_CUSTOM_PROMPT = "ai_builder_custom_prompt"

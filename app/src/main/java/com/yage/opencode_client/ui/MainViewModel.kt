@@ -137,6 +137,7 @@ data class AppState(
     data class SettingsState(
         val error: String? = null,
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
+        val fontSizeScale: Float = 1.0f,
         val workingDirectory: String = "",
         val selectedModelIndex: Int = 0,
         val selectedAgentName: String = "build",
@@ -197,6 +198,7 @@ data class AppState(
         get() = SettingsState(
             error = error,
             themeMode = themeMode,
+            fontSizeScale = fontSizeScale,
             workingDirectory = workingDirectory,
             selectedModelIndex = selectedModelIndex,
             selectedAgentName = selectedAgentName,
@@ -542,6 +544,11 @@ class MainViewModel @Inject constructor(
     fun setThemeMode(mode: ThemeMode) {
         settingsManager.themeMode = mode
         _state.update { it.copy(themeMode = mode) }
+    }
+
+    fun setFontSizeScale(scale: Float) {
+        settingsManager.fontSizeScale = scale
+        _state.update { it.copy(fontSizeScale = scale) }
     }
 
     fun respondPermission(sessionId: String, permissionId: String, response: PermissionResponse) {

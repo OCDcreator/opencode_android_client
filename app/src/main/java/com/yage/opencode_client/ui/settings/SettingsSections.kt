@@ -3,7 +3,7 @@ package com.yage.opencode_client.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.Spacer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -429,7 +430,9 @@ private fun inferParentDirectoryFromNodes(nodes: List<FileNode>): String? {
 @Composable
 internal fun AppearanceSection(
     themeMode: ThemeMode,
-    onThemeSelected: (ThemeMode) -> Unit
+    fontSizeScale: Float,
+    onThemeSelected: (ThemeMode) -> Unit,
+    onFontSizeScaleChanged: (Float) -> Unit
 ) {
     SectionHeader(title = stringResource(R.string.appearance))
 
@@ -454,6 +457,36 @@ internal fun AppearanceSection(
             )
         }
     }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.font_size),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = when {
+                fontSizeScale < 0.95f -> stringResource(R.string.font_size_small)
+                fontSizeScale > 1.05f -> stringResource(R.string.font_size_large)
+                else -> stringResource(R.string.font_size_default)
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Slider(
+        value = fontSizeScale,
+        onValueChange = onFontSizeScaleChanged,
+        valueRange = 0.8f..1.4f,
+        steps = 2,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable

@@ -144,7 +144,9 @@ fun SettingsScreen(
 
             AppearanceSection(
                 themeMode = state.themeMode,
-                onThemeSelected = viewModel::setThemeMode
+                fontSizeScale = state.fontSizeScale,
+                onThemeSelected = viewModel::setThemeMode,
+                onFontSizeScaleChanged = viewModel::setFontSizeScale
             )
 
             SettingsSectionDivider()

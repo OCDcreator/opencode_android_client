@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
             val windowSizeClass = calculateWindowSizeClass(this)
             val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
 
-            OpenCodeTheme(darkTheme = darkTheme) {
+            OpenCodeTheme(darkTheme = darkTheme, fontSizeScale = state.fontSizeScale) {
                 if (isTablet) {
                     TabletLayout(viewModel = viewModel)
                 } else {

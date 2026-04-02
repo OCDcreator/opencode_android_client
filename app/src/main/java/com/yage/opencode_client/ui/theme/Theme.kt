@@ -39,8 +39,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun OpenCodeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    fontSizeScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -53,9 +53,11 @@ fun OpenCodeTheme(
         else -> LightColorScheme
     }
 
+    val typography = scaledTypography(Typography, fontSizeScale)
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography
+        typography = typography
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
