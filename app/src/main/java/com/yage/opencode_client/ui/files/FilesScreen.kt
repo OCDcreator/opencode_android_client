@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
+import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,21 +49,23 @@ fun FilesScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (state.selectedFilePath == null) {
-            TopAppBar(
-                title = { Text(state.currentPath.ifEmpty { stringResource(R.string.files) }) },
-                navigationIcon = {
-                    if (state.currentPath.isNotEmpty()) {
-                        IconButton(onClick = viewModel::navigateUp) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+            ProvideScaledDpDensity {
+                TopAppBar(
+                    title = { Text(state.currentPath.ifEmpty { stringResource(R.string.files) }) },
+                    navigationIcon = {
+                        if (state.currentPath.isNotEmpty()) {
+                            IconButton(onClick = viewModel::navigateUp) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = viewModel::refresh) {
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                         }
                     }
-                },
-                actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
-                    }
-                }
-            )
+                )
+            }
         }
 
         state.error?.let { message ->

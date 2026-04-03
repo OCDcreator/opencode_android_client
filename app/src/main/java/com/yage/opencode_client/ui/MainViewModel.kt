@@ -552,7 +552,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun setFontSizeScale(scale: Float, persist: Boolean = true) {
-        val normalized = (scale.coerceIn(0.8f, 1.4f) * 100).roundToInt() / 100f
+        val normalized = (scale.coerceIn(0.7f, 1.6f) * 100).roundToInt() / 100f
         if (persist) {
             settingsManager.fontSizeScale = normalized
         }
@@ -564,7 +564,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun setUiScale(scale: Float, persist: Boolean = true) {
-        val normalized = (scale.coerceIn(0.85f, 1.25f) * 100).roundToInt() / 100f
+        val normalized = (scale.coerceIn(0.65f, 1.35f) * 100).roundToInt() / 100f
         if (persist) {
             settingsManager.uiScale = normalized
         }

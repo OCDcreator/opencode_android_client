@@ -89,11 +89,11 @@ class SettingsManager @Inject constructor(
 
     var fontSizeScale: Float
         get() = encryptedPrefs.getFloat(KEY_FONT_SIZE_SCALE, 1.0f)
-        set(value) = encryptedPrefs.edit().putFloat(KEY_FONT_SIZE_SCALE, value.coerceIn(0.8f, 1.4f)).apply()
+        set(value) = encryptedPrefs.edit().putFloat(KEY_FONT_SIZE_SCALE, value.coerceIn(0.7f, 1.6f)).apply()
 
     var uiScale: Float
         get() = encryptedPrefs.getFloat(KEY_UI_SCALE, 1.0f)
-        set(value) = encryptedPrefs.edit().putFloat(KEY_UI_SCALE, value.coerceIn(0.85f, 1.25f)).apply()
+        set(value) = encryptedPrefs.edit().putFloat(KEY_UI_SCALE, value.coerceIn(0.65f, 1.35f)).apply()
 
     var aiBuilderBaseURL: String
         get() = encryptedPrefs.getString(KEY_AI_BUILDER_BASE_URL, DEFAULT_AI_BUILDER_BASE_URL) ?: DEFAULT_AI_BUILDER_BASE_URL

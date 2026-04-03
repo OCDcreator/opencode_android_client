@@ -48,6 +48,7 @@ import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.FileContent
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
+import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
@@ -77,21 +78,23 @@ internal fun FilePreviewPane(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(path.substringAfterLast('/'), style = MaterialTheme.typography.titleSmall) },
-            navigationIcon = {
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
-                }
-            },
-            actions = {
-                if (imagePayload != null) {
-                    IconButton(onClick = { shareImage(context, path, imagePayload.bytes) }) {
-                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_cd))
+        ProvideScaledDpDensity {
+            TopAppBar(
+                title = { Text(path.substringAfterLast('/'), style = MaterialTheme.typography.titleSmall) },
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                    }
+                },
+                actions = {
+                    if (imagePayload != null) {
+                        IconButton(onClick = { shareImage(context, path, imagePayload.bytes) }) {
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_cd))
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
 
         HorizontalDivider()
 

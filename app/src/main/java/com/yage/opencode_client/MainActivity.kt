@@ -44,6 +44,7 @@ import com.yage.opencode_client.ui.session.SessionList
 import com.yage.opencode_client.ui.settings.SettingsScreen
 import com.yage.opencode_client.ui.theme.OpenCodeTheme
 import com.yage.opencode_client.ui.theme.compactTypography
+import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -136,20 +137,22 @@ private fun PhoneLayout(viewModel: MainViewModel) {
     Scaffold(
         contentWindowInsets = WindowInsets.statusBars,
         bottomBar = {
-            NavigationBar {
-                screens.forEach { screen ->
-                    val selected = currentRoute == screen.route
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { navigateToTopLevel(screen.route) },
-                        icon = {
-                            Icon(
-                                if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                contentDescription = stringResource(screen.titleRes)
-                            )
-                        },
-                        label = { Text(stringResource(screen.titleRes)) }
-                    )
+            ProvideScaledDpDensity {
+                NavigationBar {
+                    screens.forEach { screen ->
+                        val selected = currentRoute == screen.route
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { navigateToTopLevel(screen.route) },
+                            icon = {
+                                Icon(
+                                    if (selected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = stringResource(screen.titleRes)
+                                )
+                            },
+                            label = { Text(stringResource(screen.titleRes)) }
+                        )
+                    }
                 }
             }
         }

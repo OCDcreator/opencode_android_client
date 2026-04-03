@@ -486,7 +486,7 @@ internal fun AppearanceSection(
         value = fontSizeScale,
         onValueChange = onFontSizeScaleChanged,
         onValueChangeFinished = onFontSizeScaleChangeFinished,
-        valueRange = 0.8f..1.4f,
+        valueRange = 0.7f..1.6f,
         modifier = Modifier.fillMaxWidth()
     )
 
@@ -512,7 +512,7 @@ internal fun AppearanceSection(
         value = uiScale,
         onValueChange = onUiScaleChanged,
         onValueChangeFinished = onUiScaleChangeFinished,
-        valueRange = 0.85f..1.25f,
+        valueRange = 0.65f..1.35f,
         modifier = Modifier.fillMaxWidth()
     )
 }

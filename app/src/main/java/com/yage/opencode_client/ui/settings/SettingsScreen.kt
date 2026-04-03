@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.MainViewModel
+import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,14 +68,16 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (onBack != null) {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+            ProvideScaledDpDensity {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.settings)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         Column(
