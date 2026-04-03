@@ -358,6 +358,122 @@ class AppStateTest {
     }
 
     @Test
+    fun `contextUsage exposes detailed metrics for latest assistant message`() {
+        val session = Session(
+            id = "session-1",
+            directory = "/workspace/demo",
+            title = "Demo Session",
+            time = Session.TimeInfo(created = 1_710_000_000_000)
+        )
+        val firstAssistant = MessageWithParts(
+            info = Message(
+                id = "msg-1",
+                role = "assistant",
+                model = Message.ModelInfo("openai", "gpt-4o"),
+                tokens = Message.TokenInfo(total = 1200),
+                cost = 1.25
+            )
+        )
+        val userMessage = MessageWithParts(
+            info = Message(id = "msg-2", role = "user")
+        )
+        val latestAssistant = MessageWithParts(
+            info = Message(
+                id = "msg-3",
+                role = "assistant",
+                model = Message.ModelInfo("openai", "gpt-4o"),
+                tokens = Message.TokenInfo(
+                    total = 4096,
+                    input = 2500,
+                    output = 1200,
+                    reasoning = 300,
+                    cache = Message.TokenInfo.CacheInfo(read = 64, write = 32)
+                ),
+                cost = 3.75,
+                time = Message.TimeInfo(created = 1_710_000_123_000)
+            )
+        )
+        val providers = ProvidersResponse(
+            providers = listOf(
+                ConfigProvider(
+                    id = "openai",
+                    name = "OpenAI",
+                    models = mapOf(
+                        "gpt-4o" to ProviderModel(
+                            id = "gpt-4o",
+                            name = "GPT-4o",
+                            limit = ProviderModelLimit(context = 128000)
+                        )
+                    )
+                )
+            )
+        )
+
+        val state = AppState(
+            sessions = listOf(session),
+            currentSessionId = session.id,
+            messages = listOf(firstAssistant, userMessage, latestAssistant),
+            providers = providers
+        )
+        val usage = state.contextUsage
+
+        assertNotNull(usage)
+        assertEquals("OpenAI", usage!!.providerLabel)
+        assertEquals("GPT-4o", usage.modelLabel)
+        assertEquals(2500, usage.inputTokens)
+        assertEquals(1200, usage.outputTokens)
+        assertEquals(300, usage.reasoningTokens)
+        assertEquals(64, usage.cacheReadTokens)
+        assertEquals(32, usage.cacheWriteTokens)
+        assertEquals(5.0, usage.totalCost, 0.001)
+        assertEquals(3, usage.totalMessages)
+        assertEquals(1, usage.userMessages)
+        assertEquals(2, usage.assistantMessages)
+        assertEquals("Demo Session", usage.sessionTitle)
+        assertEquals(1_710_000_000_000, usage.sessionCreatedAt)
+        assertEquals(1_710_000_123_000, usage.lastActivityAt)
+        assertEquals(123904, usage.remainingTokens)
+    }
+
+    @Test
+    fun `contextUsage falls back to token breakdown when total is absent`() {
+        val message = MessageWithParts(
+            info = Message(
+                id = "msg-1",
+                role = "assistant",
+                model = Message.ModelInfo("openai", "gpt-4"),
+                tokens = Message.TokenInfo(
+                    total = null,
+                    input = 500,
+                    output = 250,
+                    reasoning = 100,
+                    cache = Message.TokenInfo.CacheInfo(read = 25, write = 25)
+                )
+            )
+        )
+        val providers = ProvidersResponse(
+            providers = listOf(
+                ConfigProvider(
+                    id = "openai",
+                    models = mapOf(
+                        "gpt-4" to ProviderModel(
+                            id = "gpt-4",
+                            limit = ProviderModelLimit(context = 2000)
+                        )
+                    )
+                )
+            )
+        )
+
+        val state = AppState(messages = listOf(message), providers = providers)
+        val usage = state.contextUsage
+
+        assertNotNull(usage)
+        assertEquals(900, usage!!.totalTokens)
+        assertEquals(45, usage.usagePercent)
+    }
+
+    @Test
     fun `contextUsage near thresholds`() {
         val lowUsage = makeContextUsageState(totalTokens = 60000, contextLimit = 128000)
         assertTrue(lowUsage.contextUsage!!.percentage < 0.7f)

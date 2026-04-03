@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -50,9 +51,9 @@ fun ChatScreen(
         }
     }
 
-    // Cache last non-null contextUsage so the ring stays visible during streaming
-    var cachedContextUsage by remember { mutableStateOf(state.contextUsage) }
+    var cachedContextUsage by remember(state.currentSessionId) { mutableStateOf(state.contextUsage) }
     state.contextUsage?.let { cachedContextUsage = it }
+    var showContextUsageSheet by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ChatTopBar(
@@ -81,6 +82,7 @@ fun ChatScreen(
                 onToggleSessionExpanded = viewModel::toggleSessionExpanded,
                 onSelectAgent = viewModel::selectAgent,
                 onSelectModel = viewModel::selectModel,
+                onOpenContextUsage = { showContextUsageSheet = true },
                 onNavigateToSettings = onNavigateToSettings,
                 onRenameSession = { title ->
                     state.currentSessionId?.let { sessionId ->
@@ -167,6 +169,13 @@ fun ChatScreen(
                         Text(stringResource(R.string.ok))
                     }
                 }
+            )
+        }
+
+        if (showContextUsageSheet && cachedContextUsage != null) {
+            ContextUsageBottomSheet(
+                usage = cachedContextUsage!!,
+                onDismiss = { showContextUsageSheet = false }
             )
         }
 

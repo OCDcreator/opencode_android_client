@@ -50,8 +50,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,6 +101,7 @@ internal data class ChatTopBarActions(
     val onToggleSessionExpanded: (String) -> Unit = {},
     val onSelectAgent: (String) -> Unit,
     val onSelectModel: (Int) -> Unit,
+    val onOpenContextUsage: () -> Unit = {},
     val onNavigateToSettings: () -> Unit = {},
     val onRenameSession: (String) -> Unit = {}
 )
@@ -114,6 +118,7 @@ internal fun ChatTopBar(
     var showAgentMenu by remember { mutableStateOf(false) }
     var showModelMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
+    val contextUsageContentDescription = stringResource(R.string.context_usage_view_cd)
 
     Surface(
         modifier = modifier,
@@ -291,7 +296,19 @@ internal fun ChatTopBar(
                     }
 
                     state.contextUsage?.let { usage ->
-                        ContextUsageRing(usage = usage)
+                        IconButton(
+                            onClick = actions.onOpenContextUsage,
+                            modifier = Modifier
+                                .size(36.dp.uiScaled())
+                                .semantics {
+                                    contentDescription = contextUsageContentDescription
+                                }
+                        ) {
+                            ContextUsageRing(
+                                usage = usage,
+                                modifier = Modifier,
+                            )
+                        }
                     }
 
                     if (state.showSettingsButton) {
@@ -388,7 +405,13 @@ internal fun ChatTopBar(
 }
 
 @Composable
-internal fun ContextUsageRing(usage: AppState.ContextUsage) {
+internal fun ContextUsageRing(
+    usage: AppState.ContextUsage,
+    modifier: Modifier = Modifier,
+    outerSize: Dp = ChatUiTuning.contextRingOuterSize,
+    innerSize: Dp = ChatUiTuning.contextRingInnerSize,
+    strokeWidth: Dp = 3.dp
+) {
     val ringColor = when {
         usage.percentage >= 0.9f -> MaterialTheme.colorScheme.error
         usage.percentage >= 0.7f -> Color(0xFFFFA726)
@@ -396,20 +419,20 @@ internal fun ContextUsageRing(usage: AppState.ContextUsage) {
     }
 
     Box(
-        modifier = Modifier.size(ChatUiTuning.contextRingOuterSize.uiScaled()),
+        modifier = modifier.size(outerSize.uiScaled()),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
             progress = { 1f },
-            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize.uiScaled()),
+            modifier = Modifier.size(innerSize.uiScaled()),
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-            strokeWidth = 3.dp
+            strokeWidth = strokeWidth.uiScaled()
         )
         CircularProgressIndicator(
             progress = { usage.percentage },
-            modifier = Modifier.size(ChatUiTuning.contextRingInnerSize.uiScaled()),
+            modifier = Modifier.size(innerSize.uiScaled()),
             color = ringColor,
-            strokeWidth = 3.dp
+            strokeWidth = strokeWidth.uiScaled()
         )
     }
 }

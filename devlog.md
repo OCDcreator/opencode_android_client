@@ -4,6 +4,19 @@
 
 ---
 
+## [Unreleased] — 2026-04-03
+
+### feat: Context usage detail sheet from top-bar ring
+- Mirrored the OpenCode web app's context-usage entry flow: tapping the top-bar context ring now opens a dedicated details surface instead of showing usage as a passive indicator only
+- Added `ContextUsageBottomSheet` in `ui/chat/` with responsive single-column / two-column stat layout that adapts to font scaling, UI scaling, and safe-area insets to avoid clipped or obscured content
+- Expanded `AppState.ContextUsage` from simple ring percentage data into a richer computed metrics model sourced from the latest assistant message plus provider metadata
+- Context details now include provider/model labels, context limit, remaining tokens, token breakdown (input/output/reasoning/cache), aggregate assistant cost, message counts, and session/activity timestamps
+- `ChatScreen` now caches the last non-null context usage per session so the ring and details stay stable during streaming updates without leaking values across sessions
+
+### test: Context usage metrics coverage
+- Extended `AppStateTest` to verify detailed context metrics and fallback token-total derivation when the API omits `tokens.total`
+- Verified with `./gradlew testDebugUnitTest --tests "com.yage.opencode_client.AppStateTest"`
+
 ## [Unreleased] — 2026-04-02
 
 ### fix: Keyboard gap above input bar

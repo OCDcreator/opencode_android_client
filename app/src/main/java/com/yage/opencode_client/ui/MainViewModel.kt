@@ -82,7 +82,33 @@ data class AppState(
             }
     }
 
-    data class ContextUsage(val percentage: Float, val totalTokens: Int, val contextLimit: Int)
+    data class ContextUsage(
+        val percentage: Float,
+        val totalTokens: Int,
+        val contextLimit: Int,
+        val providerId: String,
+        val providerLabel: String,
+        val modelId: String,
+        val modelLabel: String,
+        val inputTokens: Int,
+        val outputTokens: Int,
+        val reasoningTokens: Int,
+        val cacheReadTokens: Int,
+        val cacheWriteTokens: Int,
+        val totalCost: Double,
+        val totalMessages: Int,
+        val userMessages: Int,
+        val assistantMessages: Int,
+        val sessionTitle: String,
+        val sessionCreatedAt: Long? = null,
+        val lastActivityAt: Long? = null
+    ) {
+        val usagePercent: Int
+            get() = (percentage * 100f).roundToInt()
+
+        val remainingTokens: Int
+            get() = (contextLimit - totalTokens).coerceAtLeast(0)
+    }
 
     data class ConnectionState(
         val isConnected: Boolean = false,
@@ -229,29 +255,66 @@ data class AppState(
     val visibleAgents: List<AgentInfo>
         get() = agents.filter { it.isVisible }
 
-    private val providerModelsIndex: Map<String, ProviderModel>
+    private data class ProviderModelLookup(
+        val provider: ConfigProvider,
+        val modelId: String,
+        val model: ProviderModel
+    )
+
+    private val providerModelsIndex: Map<String, ProviderModelLookup>
         get() = providers?.providers?.flatMap { provider ->
-            provider.models.map { (_, model) ->
-                "${provider.id}/${model.id}" to model
+            provider.models.map { (modelId, model) ->
+                "${provider.id}/${modelId}" to ProviderModelLookup(
+                    provider = provider,
+                    modelId = modelId,
+                    model = model
+                )
             }
         }?.toMap() ?: emptyMap()
 
     val contextUsage: ContextUsage?
         get() {
-            val lastAssistant = messages.lastOrNull { it.info.isAssistant && it.info.tokens != null }
+            val lastAssistant = messages.lastOrNull {
+                it.info.isAssistant && it.info.tokens?.totalTokenCount() != null
+            }
                 ?: return null
             val tokens = lastAssistant.info.tokens ?: return null
-            val total = tokens.total ?: return null
+            val total = tokens.totalTokenCount() ?: return null
             val model = lastAssistant.info.resolvedModel ?: return null
             val key = "${model.providerId}/${model.modelId}"
-            val limit = providerModelsIndex[key]?.limit?.context ?: return null
+            val providerModel = providerModelsIndex[key] ?: return null
+            val limit = providerModel.model.limit?.context ?: return null
             if (limit <= 0) return null
             return ContextUsage(
                 percentage = (total.toFloat() / limit.toFloat()).coerceIn(0f, 1f),
                 totalTokens = total,
-                contextLimit = limit
+                contextLimit = limit,
+                providerId = model.providerId,
+                providerLabel = providerModel.provider.name ?: model.providerId,
+                modelId = model.modelId,
+                modelLabel = providerModel.model.name ?: providerModel.modelId,
+                inputTokens = tokens.input ?: 0,
+                outputTokens = tokens.output ?: 0,
+                reasoningTokens = tokens.reasoning ?: 0,
+                cacheReadTokens = tokens.cache?.read ?: 0,
+                cacheWriteTokens = tokens.cache?.write ?: 0,
+                totalCost = messages.sumOf { message ->
+                    if (message.info.isAssistant) message.info.cost ?: 0.0 else 0.0
+                },
+                totalMessages = messages.size,
+                userMessages = messages.count { it.info.isUser },
+                assistantMessages = messages.count { it.info.isAssistant },
+                sessionTitle = currentSession?.displayName ?: currentSessionId ?: "",
+                sessionCreatedAt = currentSession?.time?.created,
+                lastActivityAt = lastAssistant.info.time?.created
             )
         }
+}
+
+private fun Message.TokenInfo.totalTokenCount(): Int? {
+    total?.let { return it }
+    val sum = (input ?: 0) + (output ?: 0) + (reasoning ?: 0) + (cache?.read ?: 0) + (cache?.write ?: 0)
+    return sum.takeIf { it > 0 }
 }
 
 @HiltViewModel

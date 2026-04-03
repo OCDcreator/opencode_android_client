@@ -39,7 +39,7 @@ app/src/main/java/com/yage/opencode_client/
 │   └── repository/   # OpenCodeRepository (single @Singleton, wraps API + SSE)
 ├── di/               # Hilt AppModule
 ├── ui/
-│   ├── chat/         # ChatScreen, ChatInputBar, ChatTopBar, ChatMessageContent, QuestionCardView
+│   ├── chat/         # ChatScreen, ChatInputBar, ChatTopBar, ChatMessageContent, ContextUsageBottomSheet, QuestionCardView
 │   ├── files/        # FilesScreen, FilesViewModel, FileBrowserPane, FilePreviewPane
 │   ├── session/      # SessionList, SessionTree
 │   ├── settings/     # SettingsScreen, SettingsSections
@@ -100,6 +100,7 @@ Jetpack Compose + Material 3 + WindowSizeClass · OkHttp 4 + Retrofit 2 + kotlin
 - Single `AppState` data class in `MainViewModel.kt`. All UI state in one `StateFlow<AppState>`.
 - Update state via `_state.update { it.copy(...) }` — never mutate fields directly.
 - Decompose into sub-states (`ConnectionState`, `SessionState`, `ChatState`, `SpeechState`) via computed properties.
+- Derived UI-only aggregates like `AppState.ContextUsage` should be computed from canonical message/provider state, not stored independently.
 - Compose screens collect via `viewModel.state.collectAsStateWithLifecycle()`.
 
 ### ViewModel Pattern
@@ -128,6 +129,7 @@ Jetpack Compose + Material 3 + WindowSizeClass · OkHttp 4 + Retrofit 2 + kotlin
 - Use `@OptIn(ExperimentalMaterial3Api::class)` and `@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)` where needed.
 - Screen composables accept `viewModel: MainViewModel` parameter.
 - Navigation: `NavHost`/`NavGraph` with sealed class `Screen` routes. Phone: `NavigationBar` with 3 tabs. Tablet (`WindowWidthSizeClass.Expanded`): 3-column `Row`.
+- Detail affordances opened from compact top-bar controls should prefer responsive `ModalBottomSheet` UIs on Android; they must remain usable under font-size and UI-scale changes.
 - `Modifier` parameter always first in custom composable signatures after required params.
 
 ### Error Handling
