@@ -56,6 +56,27 @@
     <string name="model_cd">模型</string>
     <string name="switch_agent_cd">切换代理</string>
     <string name="no_agents">无可用代理</string>
+    <string name="context_usage_title">上下文用量</string>
+    <string name="context_usage_view_cd">查看上下文用量</string>
+    <string name="context_unavailable">不可用</string>
+    <string name="context_stats_session">会话</string>
+    <string name="context_stats_provider">提供方</string>
+    <string name="context_stats_model">模型</string>
+    <string name="context_stats_limit">上下文上限</string>
+    <string name="context_stats_total_tokens">总 Token</string>
+    <string name="context_stats_usage">使用率</string>
+    <string name="context_stats_remaining_tokens">剩余 Token</string>
+    <string name="context_stats_input_tokens">输入 Token</string>
+    <string name="context_stats_output_tokens">输出 Token</string>
+    <string name="context_stats_reasoning_tokens">推理 Token</string>
+    <string name="context_stats_cache_read_tokens">缓存读取 Token</string>
+    <string name="context_stats_cache_write_tokens">缓存写入 Token</string>
+    <string name="context_stats_total_cost">总成本</string>
+    <string name="context_stats_messages">消息数</string>
+    <string name="context_stats_user_messages">用户消息数</string>
+    <string name="context_stats_assistant_messages">助手消息数</string>
+    <string name="context_stats_session_created">会话创建时间</string>
+    <string name="context_stats_last_activity">最后活动时间</string>
     <string name="rename_session_dialog">重命名会话</string>
     <string name="session_title_label">会话标题</string>
     <string name="select_or_create_session">选择或创建一个会话</string>
@@ -110,6 +131,9 @@
     <string name="light">浅色</string>
     <string name="dark">深色</string>
     <string name="system_default">跟随系统</string>
+    <string name="font_size">文字大小</string>
+    <string name="interface_scale">界面缩放</string>
+    <string name="scale_percentage">%1$d%%</string>
 
     <!-- Speech Settings -->
     <string name="speech_recognition_settings">语音识别</string>
