@@ -168,6 +168,12 @@ internal fun launchLoadMessages(
         val limit = if (resetLimit) 30 else state.value.messageLimit
         repository.getMessages(sessionId, limit)
             .onSuccess { messages ->
+                StreamDebugLogger.logMessagesLoaded(
+                    sessionId = sessionId,
+                    messageCount = messages.size,
+                    limit = limit,
+                    isCurrentSession = sessionId == state.value.currentSessionId
+                )
                 if (sessionId == state.value.currentSessionId) {
                     val currentModels = state.value.availableModels
                     val lastAssistant = messages.lastOrNull { it.info.isAssistant }
@@ -426,6 +432,7 @@ internal fun launchSendMessage(
     scope.launch {
         repository.sendMessage(sessionId, text, agent, model)
             .onSuccess {
+                StreamDebugLogger.logSendAccepted(sessionId)
                 state.update {
                     it.copy(
                         inputText = "",
@@ -434,13 +441,16 @@ internal fun launchSendMessage(
                     )
                 }
                 onSuccess?.invoke()
+                StreamDebugLogger.logMessageRefreshScheduled(sessionId, "send.accepted", true)
                 onRefreshMessages(sessionId, true)
                 launch {
                     delay(MainViewModelTimings.messageRefreshDelayMs)
+                    StreamDebugLogger.logMessageRefreshScheduled(sessionId, "send.delayed_refresh", false)
                     onRefreshMessages(sessionId, false)
                 }
             }
             .onFailure { error ->
+                StreamDebugLogger.logSendFailed(sessionId, error)
                 state.update { it.copy(error = errorMessageOrFallback(error, "Failed to send message")) }
             }
     }

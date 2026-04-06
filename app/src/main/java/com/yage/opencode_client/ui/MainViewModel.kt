@@ -554,6 +554,12 @@ class MainViewModel @Inject constructor(
 
         val agent = _state.value.selectedAgentName
         val model = buildSelectedModel(_state.value)
+        StreamDebugLogger.logSendRequested(
+            sessionId = sessionId,
+            textLength = text.length,
+            agent = agent,
+            model = model
+        )
 
         launchSendMessage(
             scope = viewModelScope,

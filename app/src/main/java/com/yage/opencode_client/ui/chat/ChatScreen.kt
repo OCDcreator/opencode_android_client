@@ -20,9 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.yage.opencode_client.R
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yage.opencode_client.R
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.theme.uiScaled
@@ -100,6 +100,7 @@ fun ChatScreen(
                 )
             } else {
                 ChatMessageList(
+                    currentSessionId = state.currentSessionId,
                     messages = state.messages,
                     streamingPartTexts = state.streamingPartTexts,
                     streamingReasoningPart = state.streamingReasoningPart,

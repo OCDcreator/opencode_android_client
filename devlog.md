@@ -4,6 +4,18 @@
 
 ---
 
+## [Unreleased] — 2026-04-06
+
+### fix: Narrow chat streaming debug logs to flicker-focused signals
+- Removed the repository-wide OkHttp `HttpLoggingInterceptor.Level.BASIC` request logging so a single send no longer floods logcat with unrelated network entries
+- Added `StreamDebugLogger` to emit compact debug-only markers for send lifecycle, SSE delta progress, stream completion, message refresh scheduling, and message reload completion
+- Added a throttled UI-side stream snapshot in `ChatMessageList` so logcat can reveal whether streaming text is steadily growing or unexpectedly shrinking during Compose updates
+- Kept the new logging path focused on diagnosing assistant-message flicker/jitter rather than tracing every low-level event
+
+### test: Streaming log cleanup verification
+- Verified with `./gradlew :app:compileDebugKotlin`
+- Verified with `./gradlew :app:testDebugUnitTest --tests "com.yage.opencode_client.MainViewModelTest" --tests "com.yage.opencode_client.OpenCodeRepositoryTest"`
+
 ## [Unreleased] — 2026-04-03
 
 ### feat: Context usage detail sheet from top-bar ring

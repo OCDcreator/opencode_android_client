@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui.chat
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,13 +65,14 @@ import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
+import com.yage.opencode_client.ui.StreamDebugLogger
 import kotlinx.coroutines.flow.collect
 
 @Composable
 internal fun ChatMessageList(
+    currentSessionId: String?,
     messages: List<MessageWithParts>,
     streamingPartTexts: Map<String, String>,
     streamingReasoningPart: Part?,
@@ -105,6 +107,24 @@ internal fun ChatMessageList(
         if (shouldAutoScroll && (messages.isNotEmpty() || streamingReasoningPart != null)) {
             listState.animateScrollToItem(0)
         }
+    }
+
+    LaunchedEffect(
+        currentSessionId,
+        messages.size,
+        streamingPartTexts,
+        streamingReasoningPart,
+        shouldAutoScroll
+    ) {
+        val sessionId = currentSessionId ?: return@LaunchedEffect
+        StreamDebugLogger.logUiSnapshot(
+            sessionId = sessionId,
+            messageCount = messages.size,
+            streamingParts = streamingPartTexts.size,
+            streamingChars = streamingPartTexts.values.sumOf { it.length },
+            hasStreamingReasoning = streamingReasoningPart != null,
+            shouldAutoScroll = shouldAutoScroll
+        )
     }
 
     // remember keys prevent stale-closure: isLoading/messages/messageLimit are plain values, not State.

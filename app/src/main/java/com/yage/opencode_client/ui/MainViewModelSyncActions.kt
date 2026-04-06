@@ -80,12 +80,14 @@ internal fun handleIncomingSseEvent(
                     )
                 }
                 if (statusEvent.sessionId == state.value.currentSessionId && !statusEvent.status.isBusy) {
+                    StreamDebugLogger.logStreamCompleted(statusEvent.sessionId, "session.idle")
                     state.update {
                         it.copy(
                             streamingPartTexts = emptyMap(),
                             streamingReasoningPart = null
                         )
                     }
+                    StreamDebugLogger.logMessageRefreshScheduled(statusEvent.sessionId, "session.idle", false)
                     onRefreshMessages(statusEvent.sessionId, false)
                 }
             } else {
@@ -94,7 +96,11 @@ internal fun handleIncomingSseEvent(
         }
         "message.created" -> {
             val sessionId = event.payload.getString("sessionID")
+            if (sessionId != null) {
+                StreamDebugLogger.logMessageCreated(sessionId, sessionId == state.value.currentSessionId)
+            }
             if (sessionId != null && sessionId == state.value.currentSessionId) {
+                StreamDebugLogger.logMessageRefreshScheduled(sessionId, "message.created", true)
                 onRefreshMessages(sessionId, true)
             }
         }
@@ -106,6 +112,13 @@ internal fun handleIncomingSseEvent(
                     deltaEvent.partId != null &&
                     !deltaEvent.delta.isNullOrBlank()
                 ) {
+                    StreamDebugLogger.logStreamDelta(
+                        sessionId = deltaEvent.sessionId,
+                        messageId = deltaEvent.messageId,
+                        partId = deltaEvent.partId,
+                        partType = deltaEvent.partType,
+                        deltaLength = deltaEvent.delta.length
+                    )
                     val key = "${deltaEvent.messageId}:${deltaEvent.partId}"
                     val previousValue = state.value.streamingPartTexts[key] ?: ""
                     state.update {
@@ -120,9 +133,11 @@ internal fun handleIncomingSseEvent(
                         )
                     }
                 } else {
+                    StreamDebugLogger.logStreamCompleted(deltaEvent.sessionId, "message.part.completed")
                     state.update {
                         it.copy(streamingPartTexts = emptyMap(), streamingReasoningPart = null)
                     }
+                    StreamDebugLogger.logMessageRefreshScheduled(deltaEvent.sessionId, "message.part.completed", false)
                     onRefreshMessages(deltaEvent.sessionId, false)
                 }
             }

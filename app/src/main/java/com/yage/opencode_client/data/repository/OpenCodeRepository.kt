@@ -8,7 +8,6 @@ import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.logging.HttpLoggingInterceptor
 import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,9 +34,6 @@ class OpenCodeRepository @Inject constructor() {
 
     private fun buildOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            })
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .apply {
