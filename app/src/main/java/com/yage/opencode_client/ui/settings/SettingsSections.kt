@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -390,30 +392,44 @@ private fun ServerDirectoryPickerDialog(
             }
         },
         confirmButton = {
-            OutlinedButton(
-                onClick = { currentDirectory = parentDirectory },
-                enabled = parentDirectory != null
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled()),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
-                Spacer(modifier = Modifier.width(4.dp.uiScaled()))
-                Text(stringResource(R.string.parent_directory))
-            }
-            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
-            Button(
-                onClick = { onSelectDirectory(currentDirectory.orEmpty()) }
-            ) {
-                Text(
-                    if (currentDirectory == null) {
-                        stringResource(R.string.use_server_default_directory)
-                    } else {
-                        stringResource(R.string.use_current_directory)
-                    }
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                OutlinedButton(
+                    onClick = { currentDirectory = parentDirectory },
+                    enabled = parentDirectory != null,
+                    shape = RoundedCornerShape(4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp.uiScaled())
+                    )
+                    Spacer(modifier = Modifier.width(4.dp.uiScaled()))
+                    Text(stringResource(R.string.parent_directory))
+                }
+                Button(
+                    onClick = { onSelectDirectory(currentDirectory.orEmpty()) },
+                    shape = RoundedCornerShape(4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                ) {
+                    Text(
+                        if (currentDirectory == null) {
+                            stringResource(R.string.use_server_default_directory)
+                        } else {
+                            stringResource(R.string.use_current_directory)
+                        }
+                    )
+                }
+                TextButton(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         }
     )
