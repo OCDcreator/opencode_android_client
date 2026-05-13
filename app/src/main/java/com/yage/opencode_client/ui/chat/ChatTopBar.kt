@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -615,6 +617,7 @@ private fun ModelAndAgentPickerPopup(
     var expandedProviders by remember(grouped.keys) {
         mutableStateOf(grouped.keys.toSet())
     }
+    var showAgentPanel by remember { mutableStateOf(false) }
 
     Popup(
         alignment = Alignment.TopEnd,
@@ -675,7 +678,7 @@ private fun ModelAndAgentPickerPopup(
                 Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     LazyColumn(
                         modifier = Modifier
-                            .weight(5f)
+                            .weight(if (showAgentPanel) 5f else 1f)
                             .fillMaxHeight()
                     ) {
                         if (grouped.isNotEmpty()) {
@@ -758,16 +761,32 @@ private fun ModelAndAgentPickerPopup(
                     }
                 }
 
-                    VerticalDivider(
-                        modifier = Modifier.fillMaxHeight(),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                    )
-
-                    LazyColumn(
+                    Box(
                         modifier = Modifier
-                            .weight(4f)
                             .fillMaxHeight()
+                            .width(28.dp.uiScaled())
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .clickable { showAgentPanel = !showAgentPanel },
+                        contentAlignment = Alignment.Center
                     ) {
+                        Icon(
+                            imageVector = if (showAgentPanel) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = stringResource(R.string.agent),
+                            modifier = Modifier.size(18.dp.uiScaled()),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (showAgentPanel) {
+                        VerticalDivider(
+                            modifier = Modifier.fillMaxHeight(),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(4f)
+                                .fillMaxHeight()
+                        ) {
                         item(key = "agent_header") {
                             Text(
                                 text = stringResource(R.string.agent),
@@ -840,6 +859,7 @@ private fun ModelAndAgentPickerPopup(
                             }
                         }
                     }
+                }
                 }
             }
         }
