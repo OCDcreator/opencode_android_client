@@ -74,6 +74,7 @@ internal fun ChatInputBar(
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f).onGloballyPositioned { textFieldHeightPx = it.size.height },
                 placeholder = { Text(stringResource(R.string.type_message)) },
+                minLines = 1,
                 maxLines = 4,
                 enabled = true
             )

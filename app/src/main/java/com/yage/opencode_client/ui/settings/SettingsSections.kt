@@ -140,29 +140,56 @@ internal fun ServerConnectionSection(
     Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     if (recentWorkingDirectories.isNotEmpty()) {
-        Text(
-            text = stringResource(R.string.recent_working_directories),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp.uiScaled()))
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
+        var showRecentDialog by remember { mutableStateOf(false) }
+
+        OutlinedButton(
+            onClick = { showRecentDialog = true },
+            modifier = Modifier.fillMaxWidth()
         ) {
-            recentWorkingDirectories.forEach { recentDirectory ->
-                AssistChip(
-                    onClick = { onSelectRecentWorkingDirectory(recentDirectory) },
-                    label = {
-                        Text(
-                            text = recentDirectory,
-                            maxLines = 1
-                        )
-                    }
-                )
-            }
+            Icon(Icons.Default.FolderOpen, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Text(stringResource(R.string.recent_working_directories))
         }
         Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+
+        if (showRecentDialog) {
+            AlertDialog(
+                onDismissRequest = { showRecentDialog = false },
+                title = { Text(stringResource(R.string.recent_working_directories)) },
+                text = {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(recentWorkingDirectories) { recentDirectory ->
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = recentDirectory,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.FolderOpen,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    onSelectRecentWorkingDirectory(recentDirectory)
+                                    showRecentDialog = false
+                                }
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showRecentDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+            )
+        }
     }
 
     OutlinedTextField(
@@ -302,41 +329,15 @@ private fun ServerDirectoryPickerDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
                     ) {
                         AssistChip(
-                            onClick = { currentDirectory = "/" },
+                            onClick = { currentDirectory = "/Users" },
                             label = { Text(stringResource(R.string.go_to_root)) }
                         )
                         AssistChip(
-                            onClick = { currentDirectory = "/Volumes" },
+                            onClick = { currentDirectory = "/Volumes/SDD2T" },
                             label = { Text(stringResource(R.string.go_to_volumes)) }
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp.uiScaled()))
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
-                ) {
-                    OutlinedButton(
-                        onClick = { currentDirectory = parentDirectory },
-                        enabled = parentDirectory != null,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp.uiScaled()))
-                        Text(stringResource(R.string.parent_directory))
-                    }
-                    Button(
-                        onClick = { onSelectDirectory(currentDirectory.orEmpty()) },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            if (currentDirectory == null) {
-                                stringResource(R.string.use_server_default_directory)
-                            } else {
-                                stringResource(R.string.use_current_directory)
-                            }
-                        )
-                    }
                 }
                 Spacer(modifier = Modifier.height(12.dp.uiScaled()))
                 when {
@@ -386,7 +387,28 @@ private fun ServerDirectoryPickerDialog(
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = {
+            OutlinedButton(
+                onClick = { currentDirectory = parentDirectory },
+                enabled = parentDirectory != null
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
+                Spacer(modifier = Modifier.width(4.dp.uiScaled()))
+                Text(stringResource(R.string.parent_directory))
+            }
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Button(
+                onClick = { onSelectDirectory(currentDirectory.orEmpty()) }
+            ) {
+                Text(
+                    if (currentDirectory == null) {
+                        stringResource(R.string.use_server_default_directory)
+                    } else {
+                        stringResource(R.string.use_current_directory)
+                    }
+                )
+            }
+        },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))

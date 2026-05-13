@@ -20,10 +20,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -116,7 +116,6 @@ internal fun ChatTopBar(
     val currentSession = state.sessions.find { it.id == state.currentSessionId }
     var showSessionSheet by remember { mutableStateOf(false) }
     var showAgentMenu by remember { mutableStateOf(false) }
-    var showModelMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     val contextUsageContentDescription = stringResource(R.string.context_usage_view_cd)
 
@@ -195,103 +194,32 @@ internal fun ChatTopBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp.uiScaled())
                 ) {
-                    Box(modifier = Modifier.weight(1f, fill = false)) {
-                        Surface(
-                            onClick = { showModelMenu = true },
-                            shape = RoundedCornerShape(50.dp.uiScaled()),
-                            color = MaterialTheme.colorScheme.primary
+                    Box {
+                        IconButton(
+                            onClick = { showAgentMenu = !showAgentMenu },
+                            modifier = Modifier.size(36.dp.uiScaled())
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 6.dp.uiScaled())
-                            ) {
-                                Text(
-                                    text = state.availableModels.getOrNull(state.selectedModelIndex)?.shortName
-                                        ?: stringResource(R.string.model),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    maxLines = 1
-                                )
-                                Icon(
-                                    Icons.Default.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.switch_model_cd),
-                                    modifier = Modifier.size(14.dp.uiScaled()),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                        }
-                        if (showModelMenu) {
-                            ModelPickerPopup(
-                                models = state.availableModels,
-                                providers = state.providers,
-                                selectedIndex = state.selectedModelIndex,
-                                onSelect = { index ->
-                                    actions.onSelectModel(index)
-                                    showModelMenu = false
-                                },
-                                onDismiss = { showModelMenu = false }
+                            Icon(
+                                Icons.Default.Tune,
+                                contentDescription = stringResource(R.string.switch_model_cd),
+                                modifier = Modifier.size(20.dp.uiScaled())
                             )
                         }
-                    }
-
-                    Box(modifier = Modifier.weight(1f, fill = false)) {
-                        Surface(
-                            onClick = { showAgentMenu = true },
-                            shape = RoundedCornerShape(50.dp.uiScaled()),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 6.dp.uiScaled())
-                            ) {
-                                Text(
-                                    text = state.selectedAgent,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
-                                Icon(
-                                    Icons.Default.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.switch_agent_cd),
-                                    modifier = Modifier.size(14.dp.uiScaled()),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        DropdownMenu(
-                            expanded = showAgentMenu,
-                            onDismissRequest = { showAgentMenu = false }
-                        ) {
-                            if (state.agents.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(R.string.no_agents),
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    },
-                                    onClick = { }
-                                )
-                            }
-                            state.agents.forEach { agent ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            agent.name,
-                                            color = if (agent.name == state.selectedAgent)
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    onClick = {
-                                        actions.onSelectAgent(agent.name)
-                                        showAgentMenu = false
-                                    }
-                                )
-                            }
+                        if (showAgentMenu) {
+                            ModelAndAgentPickerPopup(
+                                models = state.availableModels,
+                                providers = state.providers,
+                                selectedModelIndex = state.selectedModelIndex,
+                                agents = state.agents,
+                                selectedAgent = state.selectedAgent,
+                                onSelectModel = { index ->
+                                    actions.onSelectModel(index)
+                                },
+                                onSelectAgent = { name ->
+                                    actions.onSelectAgent(name)
+                                },
+                                onDismiss = { showAgentMenu = false }
+                            )
                         }
                     }
 
@@ -644,5 +572,239 @@ private fun ModelPickerPopup(
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+}
+
+@Composable
+private fun ModelAndAgentPickerPopup(
+    models: List<AppState.ModelOption>,
+    providers: List<ConfigProvider>,
+    selectedModelIndex: Int,
+    agents: List<AgentInfo>,
+    selectedAgent: String,
+    onSelectModel: (Int) -> Unit,
+    onSelectAgent: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var filterQuery by remember { mutableStateOf("") }
+    val searchHint = stringResource(R.string.search_models)
+    val noModelsText = stringResource(R.string.no_models)
+    val noAgentsText = stringResource(R.string.no_agents)
+    val focusRequester = remember { FocusRequester() }
+
+    val providerNameMap = remember(providers) {
+        providers.associate { it.id to (it.name ?: it.id) }
+    }
+
+    val grouped = remember(models, providers, filterQuery) {
+        val query = filterQuery.lowercase(Locale.getDefault())
+        models.mapIndexed { index, model ->
+            val pName = providerNameMap[model.providerId] ?: model.providerId
+            GroupedModel(pName, model, index)
+        }.filter {
+            query.isEmpty() ||
+                it.model.displayName.lowercase(Locale.getDefault()).contains(query) ||
+                it.model.modelId.lowercase(Locale.getDefault()).contains(query) ||
+                it.providerName.lowercase(Locale.getDefault()).contains(query)
+        }.groupBy { it.providerName }
+    }
+
+    Popup(
+        alignment = Alignment.TopEnd,
+        offset = IntOffset(0, with(LocalDensity.current) { 4.dp.uiScaled().roundToPx() }),
+        properties = PopupProperties(focusable = true),
+        onDismissRequest = onDismiss
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .fillMaxHeight(0.75f),
+            shape = RoundedCornerShape(16.dp.uiScaled()),
+            tonalElevation = 4.dp.uiScaled(),
+            shadowElevation = 8.dp.uiScaled(),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp.uiScaled(), vertical = 12.dp.uiScaled())
+                ) {
+                    OutlinedTextField(
+                        value = filterQuery,
+                        onValueChange = { filterQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        placeholder = {
+                            Text(
+                                searchHint,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp.uiScaled()),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp.uiScaled()),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                ) {
+                    if (grouped.isNotEmpty()) {
+                        grouped.forEach { (providerName, items) ->
+                            item(key = "header_$providerName") {
+                                Text(
+                                    text = providerName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                        .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                                )
+                            }
+                            items(items = items, key = { "model_${it.index}" }) { item ->
+                                val selected = item.index == selectedModelIndex
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = if (selected)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    else
+                                        Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp.uiScaled())
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onSelectModel(item.index) }
+                                            .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
+                                    ) {
+                                        Text(
+                                            text = item.model.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (selected)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (selected) {
+                                            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp.uiScaled()),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item(key = "agent_header") {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(vertical = 4.dp.uiScaled())
+                        )
+                        Text(
+                            text = stringResource(R.string.agent),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                        )
+                    }
+
+                    if (agents.isEmpty()) {
+                        item(key = "no_agents") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp.uiScaled()),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    noAgentsText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    } else {
+                        items(items = agents, key = { "agent_${it.name}" }) { agent ->
+                            val selected = agent.name == selectedAgent
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = if (selected)
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                else
+                                    Color.Transparent,
+                                shape = RoundedCornerShape(8.dp.uiScaled())
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onSelectAgent(agent.name) }
+                                        .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
+                                ) {
+                                    Text(
+                                        text = agent.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (selected)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (selected) {
+                                        Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp.uiScaled()),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
