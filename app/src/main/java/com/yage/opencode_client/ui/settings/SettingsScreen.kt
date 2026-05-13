@@ -168,11 +168,13 @@ fun SettingsScreen(
                 aiBuilderCustomPrompt = aiBuilderCustomPrompt,
                 aiBuilderTerminology = aiBuilderTerminology,
                 showAIBuilderToken = showAIBuilderToken,
+                hideMicIcon = state.hideMicIcon,
                 onBaseUrlChange = { aiBuilderBaseURL = it },
                 onTokenChange = { aiBuilderToken = it },
                 onPromptChange = { aiBuilderCustomPrompt = it },
                 onTerminologyChange = { aiBuilderTerminology = it },
                 onToggleTokenVisibility = { showAIBuilderToken = !showAIBuilderToken },
+                onHideMicIconChange = viewModel::setHideMicIcon,
                 onTestConnection = {
                     viewModel.saveAIBuilderSettings(
                         buildAIBuilderSettings(

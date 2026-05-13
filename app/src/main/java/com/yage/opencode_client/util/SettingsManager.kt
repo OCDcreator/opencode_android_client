@@ -101,6 +101,10 @@ class SettingsManager @Inject constructor(
         get() = loadLanguageMode(context)
         set(value) = saveLanguageMode(context, value)
 
+    var hideMicIcon: Boolean
+        get() = encryptedPrefs.getBoolean(KEY_HIDE_MIC_ICON, false)
+        set(value) = encryptedPrefs.edit().putBoolean(KEY_HIDE_MIC_ICON, value).apply()
+
     var aiBuilderBaseURL: String
         get() = encryptedPrefs.getString(KEY_AI_BUILDER_BASE_URL, DEFAULT_AI_BUILDER_BASE_URL) ?: DEFAULT_AI_BUILDER_BASE_URL
         set(value) = encryptedPrefs.edit().putString(KEY_AI_BUILDER_BASE_URL, value).apply()
@@ -214,6 +218,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_FONT_SIZE_SCALE = "font_size_scale"
         private const val KEY_UI_SCALE = "ui_scale"
         private const val KEY_LANGUAGE = "language"
+        private const val KEY_HIDE_MIC_ICON = "hide_mic_icon"
         private const val KEY_AI_BUILDER_BASE_URL = "ai_builder_base_url"
         private const val KEY_AI_BUILDER_TOKEN = "ai_builder_token"
         private const val KEY_AI_BUILDER_CUSTOM_PROMPT = "ai_builder_custom_prompt"

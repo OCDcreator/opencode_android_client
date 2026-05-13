@@ -35,6 +35,7 @@ internal fun applySavedSettings(
             languageMode = settingsManager.languageMode,
             fontSizeScale = settingsManager.fontSizeScale,
             uiScale = settingsManager.uiScale,
+            hideMicIcon = settingsManager.hideMicIcon,
             workingDirectory = settingsManager.workingDirectory
         )
     }

@@ -140,6 +140,7 @@
 
     <!-- Speech Settings -->
     <string name="speech_recognition_settings">语音识别</string>
+    <string name="hide_mic_icon">隐藏麦克风图标</string>
     <string name="ai_builder_base_url">AI Builder 地址</string>
     <string name="ai_builder_token">AI Builder 令牌</string>
     <string name="hide_token_cd">隐藏令牌</string>

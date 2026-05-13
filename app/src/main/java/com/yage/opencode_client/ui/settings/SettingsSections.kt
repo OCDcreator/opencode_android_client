@@ -39,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -578,15 +579,34 @@ internal fun SpeechRecognitionSection(
     aiBuilderCustomPrompt: String,
     aiBuilderTerminology: String,
     showAIBuilderToken: Boolean,
+    hideMicIcon: Boolean,
     onBaseUrlChange: (String) -> Unit,
     onTokenChange: (String) -> Unit,
     onPromptChange: (String) -> Unit,
     onTerminologyChange: (String) -> Unit,
     onToggleTokenVisibility: () -> Unit,
+    onHideMicIconChange: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
     onSave: () -> Unit
 ) {
     SectionHeader(title = stringResource(R.string.speech_recognition_settings))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.hide_mic_icon),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Switch(
+            checked = hideMicIcon,
+            onCheckedChange = onHideMicIconChange
+        )
+    }
+
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
     OutlinedTextField(
         value = aiBuilderBaseURL,

@@ -66,6 +66,7 @@ data class AppState(
     val streamingReasoningPart: Part? = null,
     val isRecording: Boolean = false,
     val isTranscribing: Boolean = false,
+    val hideMicIcon: Boolean = false,
     val speechError: String? = null,
     val aiBuilderConnectionOK: Boolean = false,
     val aiBuilderConnectionError: String? = null,
@@ -178,7 +179,8 @@ data class AppState(
         val contextUsage: ContextUsage? = null,
         val agents: List<AgentInfo> = emptyList(),
         val providers: ProvidersResponse? = null,
-        val isRecording: Boolean = false
+        val isRecording: Boolean = false,
+        val hideMicIcon: Boolean = false
     )
 
     val connectionState: ConnectionState
@@ -241,7 +243,8 @@ data class AppState(
             contextUsage = contextUsage,
             agents = agents,
             providers = providers,
-            isRecording = isRecording
+            isRecording = isRecording,
+            hideMicIcon = hideMicIcon
         )
 
     val currentSession: Session?
@@ -631,6 +634,11 @@ class MainViewModel @Inject constructor(
         settingsManager.languageMode = mode
         _state.update { it.copy(languageMode = mode) }
         _recreateEvent.tryEmit(Unit)
+    }
+
+    fun setHideMicIcon(hide: Boolean) {
+        settingsManager.hideMicIcon = hide
+        _state.update { it.copy(hideMicIcon = hide) }
     }
 
     fun setFontSizeScale(scale: Float, persist: Boolean = true) {

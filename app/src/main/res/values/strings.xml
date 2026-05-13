@@ -141,6 +141,7 @@
 
     <!-- Speech Settings -->
     <string name="speech_recognition_settings">Speech Recognition</string>
+    <string name="hide_mic_icon">Hide microphone icon</string>
     <string name="ai_builder_base_url">AI Builder Base URL</string>
     <string name="ai_builder_token">AI Builder Token</string>
     <string name="hide_token_cd">Hide token</string>

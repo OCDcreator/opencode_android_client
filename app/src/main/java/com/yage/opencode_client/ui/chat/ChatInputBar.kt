@@ -50,6 +50,7 @@ internal fun ChatInputBar(
     isRecording: Boolean,
     isTranscribing: Boolean,
     isSpeechConfigured: Boolean,
+    hideMicIcon: Boolean,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onAbort: () -> Unit,
@@ -84,6 +85,7 @@ internal fun ChatInputBar(
                 isRecording = isRecording,
                 isTranscribing = isTranscribing,
                 isSpeechConfigured = isSpeechConfigured,
+                hideMicIcon = hideMicIcon,
                 useVerticalActions = useVerticalActions,
                 canSend = text.isNotBlank() && !isTranscribing,
                 onAbort = onAbort,
@@ -100,6 +102,7 @@ private fun ChatInputActions(
     isRecording: Boolean,
     isTranscribing: Boolean,
     isSpeechConfigured: Boolean,
+    hideMicIcon: Boolean,
     useVerticalActions: Boolean,
     canSend: Boolean,
     onAbort: () -> Unit,
@@ -113,6 +116,7 @@ private fun ChatInputActions(
                 isRecording = isRecording,
                 isTranscribing = isTranscribing,
                 isSpeechConfigured = isSpeechConfigured,
+                hideMicIcon = hideMicIcon,
                 canSend = canSend,
                 onAbort = onAbort,
                 onToggleRecording = onToggleRecording,
@@ -126,6 +130,7 @@ private fun ChatInputActions(
                 isRecording = isRecording,
                 isTranscribing = isTranscribing,
                 isSpeechConfigured = isSpeechConfigured,
+                hideMicIcon = hideMicIcon,
                 canSend = canSend,
                 onAbort = onAbort,
                 onToggleRecording = onToggleRecording,
@@ -141,6 +146,7 @@ private fun ChatInputActionButton(
     isRecording: Boolean,
     isTranscribing: Boolean,
     isSpeechConfigured: Boolean,
+    hideMicIcon: Boolean,
     canSend: Boolean,
     onAbort: () -> Unit,
     onToggleRecording: () -> Unit,
@@ -151,19 +157,21 @@ private fun ChatInputActionButton(
             Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_cd), tint = MaterialTheme.colorScheme.error)
         }
     }
-    IconButton(onClick = onToggleRecording, enabled = !isTranscribing) {
-        if (isTranscribing) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()), strokeWidth = 2.dp)
-        } else {
-            Icon(
-                Icons.Default.Mic,
-                contentDescription = stringResource(R.string.speech_cd),
-                tint = when {
-                    isRecording -> Color.Red
-                    isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                }
-            )
+    if (!hideMicIcon) {
+        IconButton(onClick = onToggleRecording, enabled = !isTranscribing) {
+            if (isTranscribing) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.speech_cd),
+                    tint = when {
+                        isRecording -> Color.Red
+                        isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                    }
+                )
+            }
         }
     }
     IconButton(onClick = onSend, enabled = canSend) {
