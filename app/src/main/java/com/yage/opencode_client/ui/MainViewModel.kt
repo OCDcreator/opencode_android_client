@@ -7,6 +7,7 @@ import com.yage.opencode_client.data.audio.AudioRecorderManager
 import com.yage.opencode_client.data.model.*
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
+import com.yage.opencode_client.util.LanguageMode
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -55,6 +56,7 @@ data class AppState(
     val inputText: String = "",
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val languageMode: LanguageMode = LanguageMode.SYSTEM,
     val fontSizeScale: Float = 1.0f,
     val uiScale: Float = 1.0f,
     val workingDirectory: String = "",
@@ -166,6 +168,7 @@ data class AppState(
     data class SettingsState(
         val error: String? = null,
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
+        val languageMode: LanguageMode = LanguageMode.SYSTEM,
         val fontSizeScale: Float = 1.0f,
         val uiScale: Float = 1.0f,
         val workingDirectory: String = "",
@@ -228,6 +231,7 @@ data class AppState(
         get() = SettingsState(
             error = error,
             themeMode = themeMode,
+            languageMode = languageMode,
             fontSizeScale = fontSizeScale,
             uiScale = uiScale,
             workingDirectory = workingDirectory,
@@ -326,6 +330,9 @@ class MainViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state.asStateFlow()
+
+    private val _recreateEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val recreateEvent: SharedFlow<Unit> = _recreateEvent.asSharedFlow()
 
     private var sseJob: Job? = null
     private var pollJob: Job? = null
@@ -618,6 +625,12 @@ class MainViewModel @Inject constructor(
     fun setThemeMode(mode: ThemeMode) {
         settingsManager.themeMode = mode
         _state.update { it.copy(themeMode = mode) }
+    }
+
+    fun setLanguageMode(mode: LanguageMode) {
+        settingsManager.languageMode = mode
+        _state.update { it.copy(languageMode = mode) }
+        _recreateEvent.tryEmit(Unit)
     }
 
     fun setFontSizeScale(scale: Float, persist: Boolean = true) {

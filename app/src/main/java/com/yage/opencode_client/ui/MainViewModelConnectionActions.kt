@@ -32,6 +32,7 @@ internal fun applySavedSettings(
             selectedModelIndex = modelIndex,
             selectedAgentName = settingsManager.selectedAgentName ?: "build",
             themeMode = settingsManager.themeMode,
+            languageMode = settingsManager.languageMode,
             fontSizeScale = settingsManager.fontSizeScale,
             uiScale = settingsManager.uiScale,
             workingDirectory = settingsManager.workingDirectory

@@ -58,6 +58,7 @@ import com.yage.opencode_client.data.model.FileNode
 import com.yage.opencode_client.ui.AIBuilderSettings
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.ui.theme.uiScaled
+import com.yage.opencode_client.util.LanguageMode
 import com.yage.opencode_client.util.ThemeMode
 import kotlin.math.roundToInt
 
@@ -454,9 +455,11 @@ private fun inferParentDirectoryFromNodes(nodes: List<FileNode>): String? {
 @Composable
 internal fun AppearanceSection(
     themeMode: ThemeMode,
+    languageMode: LanguageMode,
     fontSizeScale: Float,
     uiScale: Float,
     onThemeSelected: (ThemeMode) -> Unit,
+    onLanguageSelected: (LanguageMode) -> Unit,
     onFontSizeScaleChanged: (Float) -> Unit,
     onFontSizeScaleChangeFinished: () -> Unit,
     onUiScaleChanged: (Float) -> Unit,
@@ -481,6 +484,34 @@ internal fun AppearanceSection(
                     ThemeMode.LIGHT -> stringResource(R.string.light)
                     ThemeMode.DARK -> stringResource(R.string.dark)
                     ThemeMode.SYSTEM -> stringResource(R.string.system_default)
+                }
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp.uiScaled()))
+
+    Text(
+        text = stringResource(R.string.language),
+        style = MaterialTheme.typography.bodyMedium
+    )
+    LanguageMode.values().forEach { mode ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp.uiScaled()),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = languageMode == mode,
+                onClick = { onLanguageSelected(mode) }
+            )
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Text(
+                when (mode) {
+                    LanguageMode.SYSTEM -> stringResource(R.string.system_default)
+                    LanguageMode.ENGLISH -> stringResource(R.string.english)
+                    LanguageMode.CHINESE -> stringResource(R.string.chinese)
                 }
             )
         }

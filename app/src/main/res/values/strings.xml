@@ -132,6 +132,9 @@
     <string name="light">Light</string>
     <string name="dark">Dark</string>
     <string name="system_default">System default</string>
+    <string name="language">Language</string>
+    <string name="english">English</string>
+    <string name="chinese">中文</string>
     <string name="font_size">Text Size</string>
     <string name="interface_scale">Interface Scale</string>
     <string name="scale_percentage">%1$d%%</string>

@@ -1,5 +1,6 @@
 package com.yage.opencode_client
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,7 +46,9 @@ import com.yage.opencode_client.ui.settings.SettingsScreen
 import com.yage.opencode_client.ui.theme.OpenCodeTheme
 import com.yage.opencode_client.ui.theme.compactTypography
 import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
+import com.yage.opencode_client.util.LanguageMode
 import com.yage.opencode_client.util.ThemeMode
+import com.yage.opencode_client.util.wrapWithLanguage
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -82,6 +85,10 @@ val screens = listOf(Screen.Chat, Screen.Files, Screen.Settings)
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.wrapWithLanguage())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -91,6 +98,11 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(lifecycleOwner) {
                 lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     viewModel.testConnection()
+                }
+            }
+            LaunchedEffect(Unit) {
+                viewModel.recreateEvent.collect {
+                    recreate()
                 }
             }
             val state by viewModel.state.collectAsStateWithLifecycle()

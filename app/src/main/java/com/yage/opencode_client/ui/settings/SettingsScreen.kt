@@ -148,9 +148,11 @@ fun SettingsScreen(
 
             AppearanceSection(
                 themeMode = state.themeMode,
+                languageMode = state.languageMode,
                 fontSizeScale = state.fontSizeScale,
                 uiScale = state.uiScale,
                 onThemeSelected = viewModel::setThemeMode,
+                onLanguageSelected = viewModel::setLanguageMode,
                 onFontSizeScaleChanged = { viewModel.setFontSizeScale(it, persist = false) },
                 onFontSizeScaleChangeFinished = viewModel::persistFontSizeScale,
                 onUiScaleChanged = { viewModel.setUiScale(it, persist = false) },

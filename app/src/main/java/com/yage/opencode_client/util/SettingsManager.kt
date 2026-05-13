@@ -2,11 +2,13 @@ package com.yage.opencode_client.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.LocaleList
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -94,6 +96,10 @@ class SettingsManager @Inject constructor(
     var uiScale: Float
         get() = encryptedPrefs.getFloat(KEY_UI_SCALE, 1.0f)
         set(value) = encryptedPrefs.edit().putFloat(KEY_UI_SCALE, value.coerceIn(0.65f, 1.35f)).apply()
+
+    var languageMode: LanguageMode
+        get() = loadLanguageMode(context)
+        set(value) = saveLanguageMode(context, value)
 
     var aiBuilderBaseURL: String
         get() = encryptedPrefs.getString(KEY_AI_BUILDER_BASE_URL, DEFAULT_AI_BUILDER_BASE_URL) ?: DEFAULT_AI_BUILDER_BASE_URL
@@ -207,6 +213,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_THEME = "theme"
         private const val KEY_FONT_SIZE_SCALE = "font_size_scale"
         private const val KEY_UI_SCALE = "ui_scale"
+        private const val KEY_LANGUAGE = "language"
         private const val KEY_AI_BUILDER_BASE_URL = "ai_builder_base_url"
         private const val KEY_AI_BUILDER_TOKEN = "ai_builder_token"
         private const val KEY_AI_BUILDER_CUSTOM_PROMPT = "ai_builder_custom_prompt"
@@ -229,4 +236,38 @@ class SettingsManager @Inject constructor(
 
 enum class ThemeMode {
     LIGHT, DARK, SYSTEM
+}
+
+enum class LanguageMode {
+    SYSTEM, ENGLISH, CHINESE
+}
+
+private const val LANGUAGE_PREFS_NAME = "language_prefs"
+private const val KEY_LANG_MODE = "language_mode"
+
+fun saveLanguageMode(context: Context, mode: LanguageMode) {
+    context.getSharedPreferences(LANGUAGE_PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_LANG_MODE, mode.name).apply()
+}
+
+fun loadLanguageMode(context: Context): LanguageMode {
+    val name = context.getSharedPreferences(LANGUAGE_PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_LANG_MODE, null)
+    return name?.let { runCatching { LanguageMode.valueOf(it) }.getOrDefault(LanguageMode.SYSTEM) }
+        ?: LanguageMode.SYSTEM
+}
+
+fun Context.wrapWithLanguage(): Context {
+    val mode = loadLanguageMode(this)
+    if (mode == LanguageMode.SYSTEM) return this
+    val locale = when (mode) {
+        LanguageMode.ENGLISH -> Locale.ENGLISH
+        LanguageMode.CHINESE -> Locale.SIMPLIFIED_CHINESE
+        LanguageMode.SYSTEM -> return this
+    }
+    Locale.setDefault(locale)
+    val config = resources.configuration
+    config.setLocale(locale)
+    config.setLocales(LocaleList(locale))
+    return createConfigurationContext(config)
 }
