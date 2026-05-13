@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -31,6 +33,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -609,6 +612,10 @@ private fun ModelAndAgentPickerPopup(
         }.groupBy { it.providerName }
     }
 
+    var expandedProviders by remember(grouped.keys) {
+        mutableStateOf(grouped.keys.toSet())
+    }
+
     Popup(
         alignment = Alignment.TopEnd,
         offset = IntOffset(0, with(LocalDensity.current) { 4.dp.uiScaled().roundToPx() }),
@@ -665,27 +672,133 @@ private fun ModelAndAgentPickerPopup(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
-                ) {
-                    if (grouped.isNotEmpty()) {
-                        grouped.forEach { (providerName, items) ->
-                            item(key = "header_$providerName") {
-                                Text(
-                                    text = providerName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary,
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(5f)
+                            .fillMaxHeight()
+                    ) {
+                        if (grouped.isNotEmpty()) {
+                            grouped.forEach { (providerName, items) ->
+                                item(key = "header_$providerName") {
+                                    val expanded = providerName in expandedProviders
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                            .clickable {
+                                                expandedProviders = if (expanded) {
+                                                    expandedProviders - providerName
+                                                } else {
+                                                    expandedProviders + providerName
+                                                }
+                                            }
+                                            .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                                    ) {
+                                        Text(
+                                            text = providerName,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Icon(
+                                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp.uiScaled()),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                if (providerName in expandedProviders) {
+                                    items(items = items, key = { "model_${it.index}" }) { item ->
+                                    val selected = item.index == selectedModelIndex
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = if (selected)
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                        else
+                                            Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp.uiScaled())
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { onSelectModel(item.index) }
+                                                .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
+                                        ) {
+                                            Text(
+                                                text = item.model.displayName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (selected)
+                                                    MaterialTheme.colorScheme.primary
+                                                else
+                                                    MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (selected) {
+                                                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp.uiScaled()),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                    VerticalDivider(
+                        modifier = Modifier.fillMaxHeight(),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(4f)
+                            .fillMaxHeight()
+                    ) {
+                        item(key = "agent_header") {
+                            Text(
+                                text = stringResource(R.string.agent),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
+                            )
+                        }
+
+                        if (agents.isEmpty()) {
+                            item(key = "no_agents") {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                        .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
-                                )
+                                        .padding(vertical = 16.dp.uiScaled()),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        noAgentsText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
                             }
-                            items(items = items, key = { "model_${it.index}" }) { item ->
-                                val selected = item.index == selectedModelIndex
+                        } else {
+                            items(items = agents, key = { "agent_${it.name}" }) { agent ->
+                                val selected = agent.name == selectedAgent
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
                                     color = if (selected)
@@ -698,11 +811,11 @@ private fun ModelAndAgentPickerPopup(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onSelectModel(item.index) }
+                                            .clickable { onSelectAgent(agent.name) }
                                             .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
                                     ) {
                                         Text(
-                                            text = item.model.displayName,
+                                            text = agent.name,
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                             color = if (selected)
@@ -722,82 +835,6 @@ private fun ModelAndAgentPickerPopup(
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    item(key = "agent_header") {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                            modifier = Modifier.padding(vertical = 4.dp.uiScaled())
-                        )
-                        Text(
-                            text = stringResource(R.string.agent),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                .padding(horizontal = 20.dp.uiScaled(), vertical = 8.dp.uiScaled())
-                        )
-                    }
-
-                    if (agents.isEmpty()) {
-                        item(key = "no_agents") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp.uiScaled()),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    noAgentsText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                        }
-                    } else {
-                        items(items = agents, key = { "agent_${it.name}" }) { agent ->
-                            val selected = agent.name == selectedAgent
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = if (selected)
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                                else
-                                    Color.Transparent,
-                                shape = RoundedCornerShape(8.dp.uiScaled())
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSelectAgent(agent.name) }
-                                        .padding(horizontal = 20.dp.uiScaled(), vertical = 12.dp.uiScaled())
-                                ) {
-                                    Text(
-                                        text = agent.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (selected)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (selected) {
-                                        Spacer(modifier = Modifier.width(8.dp.uiScaled()))
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp.uiScaled()),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
                                     }
                                 }
                             }
