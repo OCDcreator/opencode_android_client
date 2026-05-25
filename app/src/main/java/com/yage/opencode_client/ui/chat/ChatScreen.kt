@@ -141,7 +141,7 @@ fun ChatScreen(
                 isSpeechConfigured = state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
                 hideMicIcon = state.hideMicIcon,
                 onTextChange = viewModel::setInputText,
-                onSend = { viewModel.sendMessage() },
+                onSend = { text -> viewModel.sendMessage(text) },
                 onAbort = { viewModel.abortSession() },
                 onToggleRecording = {
                     if (state.isRecording) {

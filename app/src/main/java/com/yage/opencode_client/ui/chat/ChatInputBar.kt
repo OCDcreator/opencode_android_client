@@ -26,8 +26,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,7 +54,7 @@ internal fun ChatInputBar(
     isSpeechConfigured: Boolean,
     hideMicIcon: Boolean,
     onTextChange: (String) -> Unit,
-    onSend: () -> Unit,
+    onSend: (String) -> Unit,
     onAbort: () -> Unit,
     onToggleRecording: () -> Unit
 ) {
@@ -60,6 +62,14 @@ internal fun ChatInputBar(
     var textFieldHeightPx by remember { mutableIntStateOf(0) }
     val useVerticalActions = with(density) {
         shouldUseVerticalChatActions(textFieldHeightPx.toDp(), ChatUiTuning.inputActionVerticalThreshold.uiScaled())
+    }
+
+    // Use local state to avoid IME composition issues (e.g. Chinese input duplication)
+    var localText by remember { mutableStateOf(text) }
+    LaunchedEffect(text) {
+        if (text != localText) {
+            localText = text
+        }
     }
 
     Surface(
@@ -71,8 +81,11 @@ internal fun ChatInputBar(
             verticalAlignment = if (useVerticalActions) Alignment.Bottom else Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
+                value = localText,
+                onValueChange = {
+                    localText = it
+                    onTextChange(it)
+                },
                 modifier = Modifier.weight(1f).onGloballyPositioned { textFieldHeightPx = it.size.height },
                 placeholder = { Text(stringResource(R.string.type_message)) },
                 minLines = 1,
@@ -87,10 +100,10 @@ internal fun ChatInputBar(
                 isSpeechConfigured = isSpeechConfigured,
                 hideMicIcon = hideMicIcon,
                 useVerticalActions = useVerticalActions,
-                canSend = text.isNotBlank() && !isTranscribing,
+                canSend = localText.isNotBlank() && !isTranscribing,
                 onAbort = onAbort,
                 onToggleRecording = onToggleRecording,
-                onSend = onSend
+                onSend = { onSend(localText) }
             )
         }
     }

@@ -557,10 +557,10 @@ class MainViewModel @Inject constructor(
         launchDeleteSession(viewModelScope, repository, _state, sessionId, ::selectSession)
     }
 
-    fun sendMessage() {
+    fun sendMessage(text: String) {
         val sessionId = _state.value.currentSessionId ?: return
-        val text = _state.value.inputText.trim()
-        if (text.isEmpty()) return
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
 
         val agent = _state.value.selectedAgentName
         val model = buildSelectedModel(_state.value)
@@ -576,7 +576,7 @@ class MainViewModel @Inject constructor(
             repository = repository,
             state = _state,
             sessionId = sessionId,
-            text = text,
+            text = trimmed,
             agent = agent,
             model = model,
             onRefreshMessages = ::loadMessagesWithRetry,

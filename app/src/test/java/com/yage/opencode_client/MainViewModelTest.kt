@@ -167,7 +167,7 @@ class MainViewModelTest {
         viewModel.selectAgent("review")
         viewModel.selectModel(1)
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("  hello world  ")
         advanceUntilIdle()
 
         val selected = ModelPresets.list[1]
@@ -192,7 +192,7 @@ class MainViewModelTest {
         advanceUntilIdle()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("hello")
         advanceUntilIdle()
 
         assertEquals("hello", viewModel.state.value.inputText)
@@ -213,7 +213,7 @@ class MainViewModelTest {
             )
         }
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("queue this next")
         advanceUntilIdle()
 
         coVerify {
@@ -234,7 +234,7 @@ class MainViewModelTest {
         advanceUntilIdle()
         viewModel.setInputText("   ")
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("   ")
         advanceUntilIdle()
 
         coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any()) }
@@ -246,7 +246,7 @@ class MainViewModelTest {
         val viewModel = createViewModel()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("hello")
         advanceUntilIdle()
 
         coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any()) }
@@ -739,7 +739,7 @@ class MainViewModelTest {
         advanceUntilIdle()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage()
+        viewModel.sendMessage("hello")
         advanceUntilIdle()
 
         verify { settingsManager.setDraftText("s1", "") }
