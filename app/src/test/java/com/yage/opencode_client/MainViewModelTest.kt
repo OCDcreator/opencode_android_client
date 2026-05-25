@@ -1041,6 +1041,117 @@ class MainViewModelTest {
         assertEquals(listOf("question-2"), viewModel.state.value.pendingQuestions.map { it.id })
     }
 
+    @Test
+    fun `handleSSEEvent question asked filters by directory`() = runTest {
+        val viewModel = createViewModel()
+        updateState(viewModel) { it.copy(workingDirectory = "/project-a") }
+
+        // Event for a different project — should be ignored
+        handleSse(
+            viewModel,
+            SSEEvent(
+                directory = "/project-b",
+                payload = SSEPayload(
+                    type = "question.asked",
+                    properties = buildJsonObject {
+                        put("id", JsonPrimitive("question-1"))
+                        put("sessionID", JsonPrimitive("session-1"))
+                        put("questions", buildJsonArray {})
+                    }
+                )
+            )
+        )
+
+        assertEquals(emptyList<String>(), viewModel.state.value.pendingQuestions.map { it.id })
+
+        // Event for matching project — should be added
+        handleSse(
+            viewModel,
+            SSEEvent(
+                directory = "/project-a",
+                payload = SSEPayload(
+                    type = "question.asked",
+                    properties = buildJsonObject {
+                        put("id", JsonPrimitive("question-2"))
+                        put("sessionID", JsonPrimitive("session-1"))
+                        put("questions", buildJsonArray {})
+                    }
+                )
+            )
+        )
+
+        assertEquals(listOf("question-2"), viewModel.state.value.pendingQuestions.map { it.id })
+    }
+
+    @Test
+    fun `handleSSEEvent question asked without directory passes through`() = runTest {
+        val viewModel = createViewModel()
+        updateState(viewModel) { it.copy(workingDirectory = "/project-a") }
+
+        // Event with no directory field — should pass through for backward compatibility
+        handleSse(
+            viewModel,
+            SSEEvent(
+                payload = SSEPayload(
+                    type = "question.asked",
+                    properties = buildJsonObject {
+                        put("id", JsonPrimitive("question-1"))
+                        put("sessionID", JsonPrimitive("session-1"))
+                        put("questions", buildJsonArray {})
+                    }
+                )
+            )
+        )
+
+        assertEquals(listOf("question-1"), viewModel.state.value.pendingQuestions.map { it.id })
+    }
+
+    @Test
+    fun `handleSSEEvent question rejected filters by directory`() = runTest {
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                workingDirectory = "/project-a",
+                pendingQuestions = listOf(
+                    QuestionRequest(id = "question-1", sessionId = "session-1", questions = emptyList()),
+                    QuestionRequest(id = "question-2", sessionId = "session-2", questions = emptyList())
+                )
+            )
+        }
+
+        // Rejection from different project — should be ignored
+        handleSse(
+            viewModel,
+            SSEEvent(
+                directory = "/project-b",
+                payload = SSEPayload(
+                    type = "question.rejected",
+                    properties = buildJsonObject {
+                        put("requestID", JsonPrimitive("question-1"))
+                    }
+                )
+            )
+        )
+
+        assertEquals(listOf("question-1", "question-2"), viewModel.state.value.pendingQuestions.map { it.id })
+
+        // Rejection from matching project — should remove
+        handleSse(
+            viewModel,
+            SSEEvent(
+                directory = "/project-a",
+                payload = SSEPayload(
+                    type = "question.rejected",
+                    properties = buildJsonObject {
+                        put("requestID", JsonPrimitive("question-1"))
+                    }
+                )
+            )
+        )
+
+        assertEquals(listOf("question-2"), viewModel.state.value.pendingQuestions.map { it.id })
+    }
+
     @org.junit.After
     fun tearDown() {
         unmockkAll()

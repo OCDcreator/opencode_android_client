@@ -105,6 +105,17 @@ internal fun parseQuestionAskedEvent(event: SSEEvent): QuestionRequest? {
     }.getOrNull()
 }
 
+/**
+ * Returns true if an SSE event should be processed for the given working directory.
+ * Allows through when directory info is missing (null/empty) for backward compatibility,
+ * and filters when both event and client directory are present.
+ */
+internal fun isEventForCurrentDirectory(event: SSEEvent, workingDirectory: String): Boolean {
+    val eventDir = event.directory ?: return true
+    if (workingDirectory.isBlank()) return true
+    return eventDir == workingDirectory
+}
+
 internal fun reasoningPartOrNull(partType: String, partId: String, messageId: String, sessionId: String): Part? {
     return if (partType == "reasoning") {
         Part(id = partId, messageId = messageId, sessionId = sessionId, type = "reasoning")

@@ -87,11 +87,15 @@ interface OpenCodeApi {
     @POST("question/{requestId}/reply")
     suspend fun replyQuestion(
         @Path("requestId") requestId: String,
-        @Body body: QuestionReplyRequest
+        @Body body: QuestionReplyRequest,
+        @Query("directory") directory: String? = null
     ): Response<Unit>
 
     @POST("question/{requestId}/reject")
-    suspend fun rejectQuestion(@Path("requestId") requestId: String): Response<Unit>
+    suspend fun rejectQuestion(
+        @Path("requestId") requestId: String,
+        @Query("directory") directory: String? = null
+    ): Response<Unit>
 
     @GET("config/providers")
     suspend fun getProviders(@Query("directory") directory: String? = null): ProvidersResponse

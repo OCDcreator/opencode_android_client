@@ -489,6 +489,62 @@ class OpenCodeRepositoryTest {
     }
 
     @Test
+    fun `replyQuestion includes directory query param when configured`() = runBlocking {
+        repository.configure(
+            baseUrl = server.url("/").toString().trimEnd('/'),
+            workingDirectory = "/tmp/project"
+        )
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val result = repository.replyQuestion("question-1", listOf(listOf("A")))
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertTrue(request.path!!.contains("directory="))
+    }
+
+    @Test
+    fun `replyQuestion without directory omits query param`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val result = repository.replyQuestion("question-1", listOf(listOf("A")))
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/question/question-1/reply", request.path)
+    }
+
+    @Test
+    fun `rejectQuestion includes directory query param when configured`() = runBlocking {
+        repository.configure(
+            baseUrl = server.url("/").toString().trimEnd('/'),
+            workingDirectory = "/tmp/project"
+        )
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val result = repository.rejectQuestion("question-1")
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertTrue(request.path!!.contains("directory="))
+    }
+
+    @Test
+    fun `rejectQuestion without directory omits query param`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val result = repository.rejectQuestion("question-1")
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/question/question-1/reject", request.path)
+    }
+
+    @Test
     fun `getFileContent parses text response and sends path query`() = runBlocking {
         server.enqueue(
             MockResponse()

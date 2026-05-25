@@ -146,6 +146,7 @@ internal fun handleIncomingSseEvent(
             onLoadPendingPermissions()
         }
         "question.asked" -> {
+            if (!isEventForCurrentDirectory(event, state.value.workingDirectory)) return
             val question = parseQuestionAskedEvent(event)
             if (question != null) {
                 state.update { currentState ->
@@ -161,6 +162,7 @@ internal fun handleIncomingSseEvent(
             }
         }
         "question.replied", "question.rejected" -> {
+            if (!isEventForCurrentDirectory(event, state.value.workingDirectory)) return
             val requestId = event.payload.getString("requestID") 
                 ?: event.payload.getString("id")
             if (requestId != null) {

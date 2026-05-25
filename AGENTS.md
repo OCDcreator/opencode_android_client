@@ -64,6 +64,26 @@ app/src/main/java/com/yage/opencode_client/
 - Font size and UI scale are first-class app settings. New UI should respect `ProvideScaledDpDensity`, `uiScaled()`, and remain usable in bottom sheets/dialogs at larger scales.
 - `StreamDebugLogger` is debug-only tracing for send/stream/message refresh behavior; keep production behavior independent from it.
 
+## OpenCode Server Source
+
+The upstream OpenCode server (TypeScript monorepo) is at:
+
+```
+/Volumes/SDD2T/obsidian-vault-write/open-source-project/AI-tools-agents/opencode/
+```
+
+Key server paths:
+
+| Path | Purpose |
+|------|---------|
+| `packages/opencode/src/server/routes/instance/httpapi/` | HTTP API route handlers + middleware |
+| `packages/opencode/src/server/routes/instance/httpapi/handlers/question.ts` | Question reply/reject handlers |
+| `packages/opencode/src/server/routes/instance/httpapi/middleware/workspace-routing.ts` | `?directory=` / `?workspace=` query param → instance resolution |
+| `packages/opencode/src/question/index.ts` | Question service: ask/reply/reject with per-instance pending map |
+| `packages/opencode/src/question/schema.ts` | QuestionID (`que_` prefix) schema |
+| `packages/opencode/src/session/message-v2.ts` | Part types (TextPartInput, FilePartInput, etc.) |
+| `packages/sdk/js/src/v2/gen/types.gen.ts` | SDK-generated request/response types |
+
 ## References
 
 - `docs/agents/style.md` - coding conventions, state/viewmodel/repository rules, Compose patterns

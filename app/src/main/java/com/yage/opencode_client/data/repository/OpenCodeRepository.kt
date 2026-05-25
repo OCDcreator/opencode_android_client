@@ -163,7 +163,7 @@ class OpenCodeRepository @Inject constructor() {
     }
 
     suspend fun replyQuestion(requestId: String, answers: List<List<String>>): Result<Unit> = runCatching {
-        val response = api.replyQuestion(requestId, QuestionReplyRequest(answers))
+        val response = api.replyQuestion(requestId, QuestionReplyRequest(answers), effectiveDirectory())
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string() ?: response.message()
             throw Exception("Reply failed ${response.code()}: $errorBody")
@@ -171,7 +171,7 @@ class OpenCodeRepository @Inject constructor() {
     }
 
     suspend fun rejectQuestion(requestId: String): Result<Unit> = runCatching {
-        val response = api.rejectQuestion(requestId)
+        val response = api.rejectQuestion(requestId, effectiveDirectory())
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string() ?: response.message()
             throw Exception("Reject failed ${response.code()}: $errorBody")
