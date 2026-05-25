@@ -115,11 +115,14 @@
     <string name="select_working_directory">选择工作目录</string>
     <string name="server_default_directory">服务器默认目录</string>
     <string name="parent_directory">上一级</string>
-    <string name="go_to_root">前往 /</string>
-    <string name="go_to_volumes">前往 /Volumes</string>
     <string name="use_current_directory">使用此文件夹</string>
     <string name="use_server_default_directory">使用默认目录</string>
     <string name="no_subdirectories">没有可用的子目录。</string>
+    <string name="no_matching_directories">没有匹配的目录。</string>
+    <string name="path_input_hint">输入或粘贴路径直接跳转</string>
+    <string name="jump_to_path">跳转</string>
+    <string name="filter_directories_hint">过滤目录…</string>
+    <string name="path_not_found">路径不存在或不可访问</string>
     <string name="password_optional">密码（可选）</string>
     <string name="hide_password_cd">隐藏密码</string>
     <string name="show_password_cd">显示密码</string>

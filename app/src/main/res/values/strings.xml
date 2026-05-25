@@ -116,11 +116,14 @@
     <string name="select_working_directory">Select Working Directory</string>
     <string name="server_default_directory">Server default directory</string>
     <string name="parent_directory">Up</string>
-    <string name="go_to_root">Go to /</string>
-    <string name="go_to_volumes">Go to /Volumes</string>
     <string name="use_current_directory">Use This Folder</string>
     <string name="use_server_default_directory">Use Default</string>
     <string name="no_subdirectories">No subdirectories found.</string>
+    <string name="no_matching_directories">No matching directories.</string>
+    <string name="path_input_hint">Type or paste path to jump</string>
+    <string name="jump_to_path">Go</string>
+    <string name="filter_directories_hint">Filter directories…</string>
+    <string name="path_not_found">Path not found or not accessible</string>
     <string name="password_optional">Password (optional)</string>
     <string name="hide_password_cd">Hide password</string>
     <string name="show_password_cd">Show password</string>

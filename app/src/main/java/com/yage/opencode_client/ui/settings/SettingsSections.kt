@@ -1,29 +1,38 @@
 package com.yage.opencode_client.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -31,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,11 +49,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,10 +64,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.FileNode
 import com.yage.opencode_client.ui.AIBuilderSettings
@@ -282,6 +299,7 @@ internal fun ServerConnectionSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ServerDirectoryPickerDialog(
     initialDirectory: String?,
@@ -290,149 +308,349 @@ private fun ServerDirectoryPickerDialog(
     loadDirectories: suspend (String?) -> Result<List<FileNode>>
 ) {
     var currentDirectory by remember(initialDirectory) { mutableStateOf(initialDirectory) }
+    var confirmedDirectory by remember(initialDirectory) { mutableStateOf(initialDirectory) }
     var directories by remember { mutableStateOf<List<FileNode>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Merged input: auto-detect path jump vs filter
+    var searchText by remember { mutableStateOf("") }
+    var pathError by remember { mutableStateOf<String?>(null) }
+    var showSearch by remember { mutableStateOf(false) }
+    val searchFocusRequester = remember { FocusRequester() }
+
+    val pathNotFoundText = stringResource(R.string.path_not_found)
+
+    // Detect: starts with "/" or "\" or "X:" → path jump, else → filter
+    val isPathInput = searchText.trim().let { t ->
+        t.startsWith("/") || t.startsWith("\\") || Regex("^[A-Za-z]:").containsMatchIn(t)
+    }
+
     LaunchedEffect(currentDirectory) {
+        // Capture requested path to guard against stale results from cancelled loads
+        val requestedDirectory = currentDirectory
         isLoading = true
         errorMessage = null
-        loadDirectories(currentDirectory)
+        pathError = null
+        // Only clear search when navigating successfully (not on failed jumps)
+        if (requestedDirectory == confirmedDirectory) {
+            searchText = ""
+        }
+        loadDirectories(requestedDirectory)
             .onSuccess { nodes ->
-                directories = nodes.filter { it.isDirectory }.sortedBy { it.name.lowercase() }
-                if (currentDirectory == null) {
-                    inferParentDirectoryFromNodes(nodes)?.let { inferred ->
-                        currentDirectory = inferred
+                // Only apply if this is still the current request
+                if (currentDirectory == requestedDirectory) {
+                    directories = nodes.filter { it.isDirectory }.sortedBy { it.name.lowercase() }
+                    if (requestedDirectory == null) {
+                        inferParentDirectoryFromNodes(nodes)?.let { inferred ->
+                            currentDirectory = inferred
+                        }
                     }
+                    confirmedDirectory = requestedDirectory
+                    searchText = ""
                 }
             }
             .onFailure { error ->
-                directories = emptyList()
-                errorMessage = error.message ?: error.toString()
+                if (currentDirectory == requestedDirectory) {
+                    directories = emptyList()
+                    val msg = error.message ?: error.toString()
+                    if (msg.contains("not found", ignoreCase = true) ||
+                        msg.contains("404", ignoreCase = true) ||
+                        msg.contains("does not exist", ignoreCase = true)
+                    ) {
+                        pathError = pathNotFoundText
+                    }
+                    errorMessage = msg
+                }
             }
-        isLoading = false
+        if (currentDirectory == requestedDirectory) {
+            isLoading = false
+        }
     }
 
-    val parentDirectory = currentDirectory?.let(::parentServerDirectory)
-    val supportsUnixShortcuts = currentDirectory?.startsWith("/") == true ||
-        directories.any { it.absolute?.startsWith("/") == true }
+    val parentDirectory = confirmedDirectory?.let(::parentServerDirectory)
 
-    AlertDialog(
+    val breadcrumbSegments = remember(confirmedDirectory) {
+        val dir = confirmedDirectory
+        if (dir == null) emptyList()
+        else buildBreadcrumbSegments(dir)
+    }
+
+    // Filter only when search is NOT a path
+    val filteredDirectories = remember(directories, searchText, isPathInput) {
+        if (searchText.isBlank() || isPathInput) directories
+        else directories.filter { it.name.contains(searchText, ignoreCase = true) }
+    }
+
+    // Confirm disabled while loading or when there's any error (path or general)
+    val canConfirm = !isLoading && pathError == null && errorMessage == null
+
+    val executePathJump: () -> Unit = {
+        val target = searchText.trim()
+        if (target.isNotBlank() && isPathInput) {
+            pathError = null
+            currentDirectory = target
+        }
+    }
+
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.select_working_directory)) },
-        text = {
-            Column {
-                Text(
-                    text = currentDirectory ?: stringResource(R.string.server_default_directory),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp.uiScaled()))
-                if (supportsUnixShortcuts) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
-                    ) {
-                        AssistChip(
-                            onClick = { currentDirectory = "/Users" },
-                            label = { Text(stringResource(R.string.go_to_root)) }
-                        )
-                        AssistChip(
-                            onClick = { currentDirectory = "/Volumes/SDD2T" },
-                            label = { Text(stringResource(R.string.go_to_volumes)) }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
-                }
-                Spacer(modifier = Modifier.height(12.dp.uiScaled()))
-                when {
-                    isLoading -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.select_working_directory)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showSearch = !showSearch }) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = stringResource(R.string.filter_directories_hint)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onSelectDirectory(confirmedDirectory.orEmpty()) },
+                            enabled = canConfirm
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp.uiScaled()), strokeWidth = 2.dp)
+                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.use_current_directory))
                         }
                     }
-                    errorMessage != null -> {
-                        Text(
-                            text = errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    directories.isEmpty() -> {
-                        Text(
-                            text = stringResource(R.string.no_subdirectories),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                    else -> {
-                        LazyColumn(
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Breadcrumb bar (sticky)
+                if (breadcrumbSegments.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 280.dp.uiScaled())
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp.uiScaled(), vertical = 6.dp.uiScaled()),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            items(directories, key = { it.path }) { directory ->
-                                ListItem(
-                                    headlineContent = { Text(directory.name) },
-                                    supportingContent = {
-                                        directory.absolute?.let { Text(it) }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            currentDirectory = directory.absolute ?: directory.path
-                                        }
-                                )
+                            breadcrumbSegments.forEachIndexed { index, segment ->
+                                if (index > 0) {
+                                    Text(
+                                        text = " / ",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                                val isLast = index == breadcrumbSegments.lastIndex
+                                TextButton(
+                                    onClick = { currentDirectory = segment.path },
+                                    enabled = !isLast,
+                                    contentPadding = PaddingValues(
+                                        horizontal = 4.dp.uiScaled(),
+                                        vertical = 2.dp.uiScaled()
+                                    )
+                                ) {
+                                    Text(
+                                        text = segment.label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isLast) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { currentDirectory = parentDirectory },
-                    enabled = parentDirectory != null,
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp.uiScaled())
-                    )
-                    Spacer(modifier = Modifier.width(4.dp.uiScaled()))
-                    Text(stringResource(R.string.parent_directory))
+
+                // Search / path input (toggle via search icon)
+                AnimatedVisibility(visible = showSearch) {
+                    Column {
+                        OutlinedTextField(
+                            value = searchText,
+                            onValueChange = { searchText = it; pathError = null },
+                            placeholder = {
+                                Text(
+                                    if (isPathInput) stringResource(R.string.path_input_hint)
+                                    else stringResource(R.string.filter_directories_hint)
+                                )
+                            },
+                            singleLine = true,
+                            isError = pathError != null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp.uiScaled())
+                                .focusRequester(searchFocusRequester),
+                            supportingText = pathError?.let {
+                                { Text(it, color = MaterialTheme.colorScheme.error) }
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (isPathInput) Icons.Default.FolderOpen else Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp.uiScaled())
+                                )
+                            },
+                            trailingIcon = {
+                                if (isPathInput) {
+                                    IconButton(
+                                        onClick = executePathJump,
+                                        enabled = searchText.isNotBlank() && !isLoading
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = stringResource(R.string.jump_to_path)
+                                        )
+                                    }
+                                }
+                            },
+                            keyboardOptions = if (isPathInput) KeyboardOptions(imeAction = ImeAction.Go)
+                            else KeyboardOptions.Default,
+                            keyboardActions = if (isPathInput) KeyboardActions(onGo = { executePathJump() })
+                            else KeyboardActions.Default
+                        )
+                    }
                 }
-                Button(
-                    onClick = { onSelectDirectory(currentDirectory.orEmpty()) },
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
+
+                // Auto-focus search field when opened
+                LaunchedEffect(showSearch) {
+                    if (showSearch) {
+                        searchFocusRequester.requestFocus()
+                    }
+                }
+
+                // Directory list — fills remaining space
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
-                    Text(
-                        if (currentDirectory == null) {
-                            stringResource(R.string.use_server_default_directory)
-                        } else {
-                            stringResource(R.string.use_current_directory)
+                    when {
+                        isLoading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(24.dp.uiScaled())
+                                    .align(Alignment.Center),
+                                strokeWidth = 2.dp.uiScaled()
+                            )
                         }
-                    )
+                        errorMessage != null && filteredDirectories.isEmpty() -> {
+                            Text(
+                                text = errorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(16.dp.uiScaled())
+                            )
+                        }
+                        filteredDirectories.isEmpty() -> {
+                            Text(
+                                text = if (directories.isNotEmpty())
+                                    stringResource(R.string.no_matching_directories)
+                                else stringResource(R.string.no_subdirectories),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(16.dp.uiScaled())
+                            )
+                        }
+                        else -> {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(filteredDirectories, key = { it.absolute ?: it.path }) { directory ->
+                                    ListItem(
+                                        headlineContent = { Text(directory.name) },
+                                        supportingContent = {
+                                            directory.absolute?.let { Text(it) }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                currentDirectory = directory.absolute ?: directory.path
+                                            }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-                TextButton(
-                    onClick = onDismiss,
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled())
+
+                // Bottom action bar
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp.uiScaled(), vertical = 8.dp.uiScaled()),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(R.string.cancel))
+                    OutlinedButton(
+                        onClick = { currentDirectory = parentDirectory },
+                        enabled = parentDirectory != null && !isLoading
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp.uiScaled())
+                        )
+                        Spacer(modifier = Modifier.width(4.dp.uiScaled()))
+                        Text(stringResource(R.string.parent_directory))
+                    }
+                    Button(
+                        onClick = { onSelectDirectory(confirmedDirectory.orEmpty()) },
+                        enabled = canConfirm
+                    ) {
+                        Text(
+                            if (confirmedDirectory == null)
+                                stringResource(R.string.use_server_default_directory)
+                            else stringResource(R.string.use_current_directory)
+                        )
+                    }
                 }
             }
         }
-    )
+    }
+}
+
+/** Parse a path into breadcrumb segments with their accumulated paths. */
+private data class BreadcrumbSegment(val label: String, val path: String)
+
+private fun buildBreadcrumbSegments(path: String): List<BreadcrumbSegment> {
+    val normalized = path.replace('\\', '/')
+    val isWindowsDrive = Regex("^[A-Za-z]:/?$").matches(normalized)
+
+    if (isWindowsDrive) {
+        return listOf(BreadcrumbSegment(normalized.trimEnd('/'), normalized.trimEnd('/')))
+    }
+
+    val parts = normalized.trim('/').split('/').filter { it.isNotEmpty() }
+    if (parts.isEmpty() && normalized.startsWith("/")) {
+        return listOf(BreadcrumbSegment("/", "/"))
+    }
+
+    val segments = mutableListOf<BreadcrumbSegment>()
+    // Add root for Unix paths
+    if (normalized.startsWith("/")) {
+        segments.add(BreadcrumbSegment("/", "/"))
+    }
+    var accumulated = if (normalized.startsWith("/")) "" else ""
+    for ((index, part) in parts.withIndex()) {
+        accumulated = if (normalized.startsWith("/")) {
+            if (index == 0) "/$part" else "$accumulated/$part"
+        } else {
+            if (index == 0) part else "$accumulated/$part"
+        }
+        segments.add(BreadcrumbSegment(part, accumulated))
+    }
+    return segments
 }
 
 private fun parentServerDirectory(path: String): String? {
