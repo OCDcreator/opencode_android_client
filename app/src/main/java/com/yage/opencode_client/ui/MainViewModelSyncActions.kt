@@ -120,10 +120,10 @@ internal fun handleIncomingSseEvent(
                         deltaLength = deltaEvent.delta.length
                     )
                     val key = "${deltaEvent.messageId}:${deltaEvent.partId}"
-                    val previousValue = state.value.streamingPartTexts[key] ?: ""
+                    // part.text is the server's full accumulated text — replace, not append
                     state.update {
                         it.copy(
-                            streamingPartTexts = it.streamingPartTexts + (key to (previousValue + deltaEvent.delta)),
+                            streamingPartTexts = it.streamingPartTexts + (key to deltaEvent.delta),
                             streamingReasoningPart = reasoningPartOrNull(
                                 partType = deltaEvent.partType,
                                 partId = deltaEvent.partId,

@@ -95,7 +95,20 @@ data class Part(
     @SerialName("callID") val callId: String? = null,
     val state: PartState? = null,
     val metadata: PartMetadata? = null,
-    @Serializable(with = PartFilesSerializer::class) val files: List<FileChange>? = null
+    @Serializable(with = PartFilesSerializer::class) val files: List<FileChange>? = null,
+    // Subtask fields
+    val prompt: String? = null,
+    val description: String? = null,
+    val agent: String? = null,
+    val command: String? = null,
+    // Step-finish fields
+    val reason: String? = null,
+    val cost: Double? = null,
+    val tokens: PartTokenInfo? = null,
+    // File part fields
+    val mime: String? = null,
+    val filename: String? = null,
+    val url: String? = null
 ) {
     val isText: Boolean get() = type == "text"
     val isReasoning: Boolean get() = type == "reasoning"
@@ -103,6 +116,10 @@ data class Part(
     val isPatch: Boolean get() = type == "patch"
     val isStepStart: Boolean get() = type == "step-start"
     val isStepFinish: Boolean get() = type == "step-finish"
+    val isSubtask: Boolean get() = type == "subtask"
+    val isAgentPart: Boolean get() = type == "agent"
+    val isFile: Boolean get() = type == "file"
+    val isCompaction: Boolean get() = type == "compaction"
 
     val stateDisplay: String? get() = state?.displayString
     val toolReason: String? get() = state?.title
@@ -310,6 +327,14 @@ data class PartMetadata(
     val title: String? = null,
     val input: String? = null,
     val todos: List<TodoItem>? = null
+)
+
+@Serializable
+data class PartTokenInfo(
+    val total: Int? = null,
+    val input: Int? = null,
+    val output: Int? = null,
+    val reasoning: Int? = null
 )
 
 private fun String.normalizePath(): String {

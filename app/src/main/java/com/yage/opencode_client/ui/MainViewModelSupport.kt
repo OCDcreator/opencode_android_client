@@ -89,12 +89,15 @@ internal fun parseMessagePartDeltaEvent(event: SSEEvent): MessagePartDeltaEvent?
     val messageId = (partObj?.get("messageID") as? JsonPrimitive)?.content
     val partId = (partObj?.get("id") as? JsonPrimitive)?.content
     val partType = (partObj?.get("type") as? JsonPrimitive)?.content ?: "text"
+    // Server's message.part.updated carries full accumulated text in part.text,
+    // NOT an incremental delta. message.part.delta is a BusEvent that never reaches SSE.
+    val text = (partObj?.get("text") as? JsonPrimitive)?.content
     return MessagePartDeltaEvent(
         sessionId = sessionId,
         messageId = messageId,
         partId = partId,
         partType = partType,
-        delta = event.payload.getString("delta")
+        delta = text
     )
 }
 

@@ -94,7 +94,9 @@ internal object StreamDebugLogger {
                 partType = partType
             )
         val updated = previous.copy(
-            totalChars = previous.totalChars + deltaLength,
+            // After SSE fix, deltaLength is the full accumulated text length (not an increment).
+            // Track current length directly; chunkCount still counts events.
+            totalChars = deltaLength,
             chunkCount = previous.chunkCount + 1
         )
         val shouldLog = previous.chunkCount == 0 ||

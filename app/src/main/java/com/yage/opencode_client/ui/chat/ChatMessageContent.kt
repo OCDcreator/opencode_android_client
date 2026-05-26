@@ -2,6 +2,7 @@ package com.yage.opencode_client.ui.chat
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ChevronRight
@@ -33,12 +35,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.MessageWithParts
 import com.yage.opencode_client.data.model.Part
+import com.yage.opencode_client.data.model.PartTokenInfo
 import com.yage.opencode_client.data.model.TodoItem
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.ToolWritePatchBackgroundDark
@@ -341,6 +346,26 @@ private fun PartView(
             modifier = modifier
         )
         part.isPatch && part.filePathsForNavigationFiltered.isNotEmpty() -> PatchCard(part.filePathsForNavigationFiltered, onFileClick, modifier)
+        part.isSubtask -> SubtaskCard(
+            agentName = part.agent ?: "unknown",
+            description = part.description,
+            prompt = part.prompt,
+            modifier = modifier
+        )
+        part.isStepFinish -> StepDivider(
+            reason = part.reason,
+            cost = part.cost,
+            tokens = part.tokens,
+            modifier = modifier
+        )
+        part.isFile -> FileAttachmentCard(
+            filename = part.filename,
+            mime = part.mime,
+            modifier = modifier
+        )
+        part.isAgentPart -> AgentChip(part.agent ?: "unknown", modifier)
+        part.isCompaction -> CompactionIndicator(modifier)
+        // step-start, retry, snapshot: intentionally not rendered
     }
 }
 
@@ -644,4 +669,169 @@ private fun PatchCard(
             }
         }
     }
+}
+
+@Composable
+private fun SubtaskCard(
+    agentName: String,
+    description: String?,
+    prompt: String?,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Card(
+        modifier = modifier.padding(vertical = 4.dp.uiScaled()),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp.uiScaled())) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.AutoMirrored.Filled.CallSplit,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp.uiScaled()),
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                Text(
+                    text = description ?: "Sub-agent task",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(4.dp.uiScaled())
+                ) {
+                    Text(
+                        text = "@$agentName",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp.uiScaled(), vertical = 2.dp.uiScaled()),
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+            if (!prompt.isNullOrBlank()) {
+                Spacer(modifier = Modifier.size(6.dp.uiScaled()))
+                Text(
+                    text = prompt.take(200) + if (prompt.length > 200) "\u2026" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepDivider(
+    reason: String?,
+    cost: Double?,
+    tokens: PartTokenInfo?,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Row(
+        modifier = modifier.padding(vertical = 2.dp.uiScaled()),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            thickness = 1.dp
+        )
+        if (cost != null && cost > 0) {
+            Text(
+                text = "\$${String.format("%.4f", cost)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(horizontal = 8.dp.uiScaled())
+            )
+        }
+        if (tokens != null) {
+            val total = tokens.total ?: (tokens.input ?: 0) + (tokens.output ?: 0) + (tokens.reasoning ?: 0)
+            if (total > 0) {
+                Text(
+                    text = "${total}t",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            thickness = 1.dp
+        )
+    }
+}
+
+@Composable
+private fun FileAttachmentCard(
+    filename: String?,
+    mime: String?,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Surface(
+        modifier = modifier.padding(vertical = 2.dp.uiScaled()),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(8.dp.uiScaled())
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp.uiScaled()),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.AttachFile,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp.uiScaled()),
+                tint = MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Column {
+                Text(
+                    text = filename ?: "Attachment",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (mime != null) {
+                    Text(
+                        text = mime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentChip(
+    agentName: String,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Surface(
+        modifier = modifier.padding(vertical = 2.dp.uiScaled()),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(4.dp.uiScaled())
+    ) {
+        Text(
+            text = "\u2192 @$agentName",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 8.dp.uiScaled(), vertical = 4.dp.uiScaled())
+        )
+    }
+}
+
+@Composable
+private fun CompactionIndicator(
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Text(
+        text = "Context compressed",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.outline,
+        modifier = modifier.padding(vertical = 2.dp.uiScaled())
+    )
 }
