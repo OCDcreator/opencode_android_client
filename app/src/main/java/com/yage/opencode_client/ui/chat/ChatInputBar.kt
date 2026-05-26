@@ -1,17 +1,21 @@
 package com.yage.opencode_client.ui.chat
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,7 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,8 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
@@ -68,6 +70,7 @@ internal fun ChatInputBar(
     isRecording: Boolean,
     isTranscribing: Boolean,
     isSpeechConfigured: Boolean,
+    hideMicIcon: Boolean,
     pendingImages: List<PendingImageUi>,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
@@ -76,52 +79,96 @@ internal fun ChatInputBar(
     onPickImage: () -> Unit,
     onRemoveImage: (String) -> Unit
 ) {
-    val density = LocalDensity.current
-    var textFieldHeightPx by remember { mutableIntStateOf(0) }
-    val useVerticalActions = with(density) {
-        shouldUseVerticalChatActions(textFieldHeightPx.toDp(), ChatUiTuning.inputActionVerticalThreshold.uiScaled())
-    }
-
     val hasImages = pendingImages.isNotEmpty()
     val anyImageProcessing = pendingImages.any { it.isProcessing || it.error != null }
     val canSend = (text.isNotBlank() || hasImages) && !isTranscribing && !anyImageProcessing
+    var previewImage by remember { mutableStateOf<PendingImageUi?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxWidth().imePadding(),
         tonalElevation = 0.dp
     ) {
-        Column {
+        Column(modifier = Modifier.padding(start = 12.dp.uiScaled(), end = 12.dp.uiScaled(), top = 8.dp.uiScaled(), bottom = 8.dp.uiScaled())) {
             if (hasImages) {
                 ImagePreviewRow(
                     images = pendingImages,
-                    onRemove = onRemoveImage
+                    onRemove = onRemoveImage,
+                    onPreview = { previewImage = it }
                 )
             }
 
+            // Secondary actions row — image + mic above the input field
             Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp.uiScaled()),
-                verticalAlignment = if (useVerticalActions) Alignment.Bottom else Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isBusy) {
+                    IconButton(onClick = onAbort, modifier = Modifier.size(40.dp.uiScaled())) {
+                        Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_cd), tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+                if (!isBusy) {
+                    IconButton(onClick = onPickImage, modifier = Modifier.size(40.dp.uiScaled())) {
+                        Icon(
+                            Icons.Default.AddPhotoAlternate,
+                            contentDescription = stringResource(R.string.image_add_cd),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (!hideMicIcon) {
+                    IconButton(
+                        onClick = onToggleRecording,
+                        enabled = isSpeechConfigured && !isBusy,
+                        modifier = Modifier.size(40.dp.uiScaled())
+                    ) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = stringResource(R.string.speech_cd),
+                            tint = when {
+                                isRecording -> MaterialTheme.colorScheme.error
+                                !isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Input row — text field + send button, full width
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom
             ) {
                 OutlinedTextField(
                     value = text,
                     onValueChange = onTextChange,
-                    modifier = Modifier.weight(1f).onGloballyPositioned { textFieldHeightPx = it.size.height },
+                    modifier = Modifier.weight(1f),
                     placeholder = { Text(stringResource(R.string.type_message)) },
                     maxLines = 4,
                     enabled = true
                 )
                 Spacer(modifier = Modifier.width(8.dp.uiScaled()))
-                ChatInputActions(
-                    isBusy = isBusy,
-                    isSpeechConfigured = isSpeechConfigured,
-                    useVerticalActions = useVerticalActions,
-                    canSend = canSend,
-                    onAbort = onAbort,
-                    onToggleRecording = onToggleRecording,
-                    onPickImage = onPickImage,
-                    onSend = onSend
-                )
+                IconButton(
+                    onClick = onSend,
+                    enabled = canSend,
+                    modifier = Modifier.size(40.dp.uiScaled())
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = stringResource(R.string.send_cd)
+                    )
+                }
             }
+        }
+
+        // Full-screen image preview dialog
+        if (previewImage != null) {
+            ImagePreviewDialog(
+                image = previewImage!!,
+                onDismiss = { previewImage = null }
+            )
         }
     }
 }
@@ -129,7 +176,8 @@ internal fun ChatInputBar(
 @Composable
 private fun ImagePreviewRow(
     images: List<PendingImageUi>,
-    onRemove: (String) -> Unit
+    onRemove: (String) -> Unit,
+    onPreview: (PendingImageUi) -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(start = 12.dp.uiScaled(), end = 12.dp.uiScaled(), top = 8.dp.uiScaled()),
@@ -138,7 +186,8 @@ private fun ImagePreviewRow(
         items(items = images, key = { it.id }) { image ->
             ImageThumbnail(
                 image = image,
-                onRemove = { onRemove(image.id) }
+                onRemove = { onRemove(image.id) },
+                onPreview = { onPreview(image) }
             )
         }
     }
@@ -147,9 +196,10 @@ private fun ImagePreviewRow(
 @Composable
 private fun ImageThumbnail(
     image: PendingImageUi,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onPreview: () -> Unit
 ) {
-    Box(modifier = Modifier.size(64.dp.uiScaled())) {
+    Box(modifier = Modifier.size(64.dp.uiScaled()).clickable(enabled = image.thumbnail != null) { onPreview() }) {
         when {
             image.isProcessing -> {
                 Box(
@@ -214,79 +264,61 @@ private fun ImageThumbnail(
 }
 
 @Composable
-private fun ChatInputActions(
-    isBusy: Boolean,
-    isSpeechConfigured: Boolean,
-    useVerticalActions: Boolean,
-    canSend: Boolean,
-    onAbort: () -> Unit,
-    onToggleRecording: () -> Unit,
-    onPickImage: () -> Unit,
-    onSend: () -> Unit
+private fun ImagePreviewDialog(
+    image: PendingImageUi,
+    onDismiss: () -> Unit
 ) {
-    if (useVerticalActions) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp.uiScaled()), horizontalAlignment = Alignment.CenterHorizontally) {
-            ChatInputActionButton(
-                isBusy = isBusy,
-                isSpeechConfigured = isSpeechConfigured,
-                canSend = canSend,
-                onAbort = onAbort,
-                onToggleRecording = onToggleRecording,
-                onPickImage = onPickImage,
-                onSend = onSend
-            )
-        }
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp.uiScaled()), verticalAlignment = Alignment.CenterVertically) {
-            ChatInputActionButton(
-                isBusy = isBusy,
-                isSpeechConfigured = isSpeechConfigured,
-                canSend = canSend,
-                onAbort = onAbort,
-                onToggleRecording = onToggleRecording,
-                onPickImage = onPickImage,
-                onSend = onSend
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChatInputActionButton(
-    isBusy: Boolean,
-    isSpeechConfigured: Boolean,
-    canSend: Boolean,
-    onAbort: () -> Unit,
-    onToggleRecording: () -> Unit,
-    onPickImage: () -> Unit,
-    onSend: () -> Unit
-) {
-    if (isBusy) {
-        IconButton(onClick = onAbort, modifier = Modifier.size(40.dp.uiScaled())) {
-            Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_cd), tint = MaterialTheme.colorScheme.error)
-        }
-    }
-    if (!isBusy) {
-        IconButton(onClick = onPickImage) {
-            Icon(
-                Icons.Default.AddPhotoAlternate,
-                contentDescription = stringResource(R.string.image_add_cd),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-    IconButton(onClick = onToggleRecording, enabled = isSpeechConfigured && !isBusy) {
-        Icon(
-            Icons.Default.Mic,
-            contentDescription = stringResource(R.string.speech_cd),
-            tint = when {
-                !isSpeechConfigured -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (image.dataUri != null && image.dataUri.startsWith("data:image")) {
+                    // Decode base64 from data URI
+                    val base64Data = image.dataUri.substringAfter(",")
+                    val imageBytes = remember(image.id) {
+                        android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    }
+                    val bitmap = remember(image.id) {
+                        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
+                    }
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = image.filename,
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .fillMaxHeight(0.7f),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Text("Failed to load image", color = Color.White)
+                    }
+                } else if (image.thumbnail != null) {
+                    val bitmap = remember(image.id) { image.thumbnail.asImageBitmap() }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = image.filename,
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .fillMaxHeight(0.7f),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                if (image.filename != null) {
+                    Spacer(modifier = Modifier.size(16.dp.uiScaled()))
+                    Text(
+                        text = image.filename,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-        )
-    }
-    IconButton(onClick = onSend, enabled = canSend) {
-        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send_cd))
+        }
     }
 }
 

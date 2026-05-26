@@ -39,6 +39,7 @@ data class PendingImageUi(
     val id: String,
     val filename: String? = null,
     val thumbnail: android.graphics.Bitmap? = null,
+    val dataUri: String? = null,
     val byteSize: Int = 0,
     val isProcessing: Boolean = false,
     val error: String? = null
@@ -503,6 +504,7 @@ class MainViewModel @Inject constructor(
                         if (it.id == id) it.copy(
                             isProcessing = false,
                             thumbnail = result.thumbnail,
+                            dataUri = result.dataUri,
                             byteSize = result.byteSize,
                             filename = result.filename
                         )

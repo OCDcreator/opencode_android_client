@@ -152,6 +152,7 @@ fun ChatScreen(
                 isRecording = state.isRecording,
                 isTranscribing = state.isTranscribing,
                 isSpeechConfigured = state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
+                hideMicIcon = state.hideMicIcon,
                 pendingImages = state.pendingImages,
                 onTextChange = viewModel::setInputText,
                 onSend = { viewModel.sendMessage() },
