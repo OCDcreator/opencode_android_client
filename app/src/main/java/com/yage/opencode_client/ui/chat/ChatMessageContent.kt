@@ -220,26 +220,15 @@ private fun MessageRow(
     onForkFromMessage: (String) -> Unit
 ) {
     val isUser = message.info.isUser
-    val showModelInfo = remember(message.info.id, messageIndex, allMessages.size) {
-        if (isUser) false
-        else {
-            val nextMsg = allMessages.getOrNull(messageIndex + 1)
-            nextMsg == null || nextMsg.info.isUser ||
-                message.info.parentId == null || message.info.parentId != nextMsg.info.parentId
-        }
-    }
-    val showStepFinish = remember(message.info.id, messageIndex, allMessages.size) {
-        if (isUser) true
-        else {
-            val prevMsg = allMessages.getOrNull(messageIndex - 1)
-            val nextMsg = allMessages.getOrNull(messageIndex + 1)
-            val hasSameParentAsPrev = prevMsg != null && !prevMsg.info.isUser &&
-                message.info.parentId != null && message.info.parentId == prevMsg.info.parentId
-            val hasSameParentAsNext = nextMsg != null && !nextMsg.info.isUser &&
-                message.info.parentId != null && message.info.parentId == nextMsg.info.parentId
-            !hasSameParentAsPrev && !hasSameParentAsNext || !hasSameParentAsNext
-        }
-    }
+    val isAssistant = message.info.isAssistant
+    val newerMsg = allMessages.getOrNull(messageIndex - 1)
+    val hasNewerSameParent = isAssistant &&
+        message.info.parentId != null &&
+        newerMsg != null &&
+        newerMsg.info.isAssistant &&
+        newerMsg.info.parentId == message.info.parentId
+    val showModelInfo = !isUser && !hasNewerSameParent
+    val showStepFinish = !isAssistant || !hasNewerSameParent
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
         var i = 0
@@ -294,7 +283,7 @@ private fun MessageRow(
                 i += 1
             }
         }
-        if (!isUser && showModelInfo) {
+        if (isAssistant && showModelInfo) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp.uiScaled(), top = 2.dp.uiScaled()),
                 verticalAlignment = Alignment.CenterVertically
