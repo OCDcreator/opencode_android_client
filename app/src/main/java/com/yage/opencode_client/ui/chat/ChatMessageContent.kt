@@ -168,9 +168,12 @@ internal fun ChatMessageList(
                 }
             }
         }
-        items(messages.reversed(), key = { it.info.id }) { message ->
+        val reversedMessages = messages.reversed()
+        items(reversedMessages.mapIndexed { index, msg -> index to msg }, key = { it.second.info.id }) { (index, message) ->
             MessageRow(
                 message = message,
+                allMessages = reversedMessages,
+                messageIndex = index,
                 streamingPartTexts = streamingPartTexts,
                 repository = repository,
                 workspaceDirectory = workspaceDirectory,
@@ -208,6 +211,8 @@ internal fun ChatMessageList(
 @Composable
 private fun MessageRow(
     message: MessageWithParts,
+    allMessages: List<MessageWithParts>,
+    messageIndex: Int,
     streamingPartTexts: Map<String, String>,
     repository: OpenCodeRepository,
     workspaceDirectory: String?,
@@ -215,11 +220,35 @@ private fun MessageRow(
     onForkFromMessage: (String) -> Unit
 ) {
     val isUser = message.info.isUser
+    val showModelInfo = remember(message.info.id, messageIndex, allMessages.size) {
+        if (isUser) false
+        else {
+            val nextMsg = allMessages.getOrNull(messageIndex + 1)
+            nextMsg == null || nextMsg.info.isUser ||
+                message.info.parentId == null || message.info.parentId != nextMsg.info.parentId
+        }
+    }
+    val showStepFinish = remember(message.info.id, messageIndex, allMessages.size) {
+        if (isUser) true
+        else {
+            val prevMsg = allMessages.getOrNull(messageIndex - 1)
+            val nextMsg = allMessages.getOrNull(messageIndex + 1)
+            val hasSameParentAsPrev = prevMsg != null && !prevMsg.info.isUser &&
+                message.info.parentId != null && message.info.parentId == prevMsg.info.parentId
+            val hasSameParentAsNext = nextMsg != null && !nextMsg.info.isUser &&
+                message.info.parentId != null && message.info.parentId == nextMsg.info.parentId
+            !hasSameParentAsPrev && !hasSameParentAsNext || !hasSameParentAsNext
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
         var i = 0
         while (i < message.parts.size) {
             val part = message.parts[i]
+            if (!showStepFinish && part.isStepFinish) {
+                i += 1
+                continue
+            }
             val streamingText = streamingPartTexts["${message.info.id}:${part.id}"]
             val isToolLike = part.isTool || (part.isPatch && part.filePathsForNavigationFiltered.isNotEmpty())
             if (isToolLike) {
@@ -265,7 +294,7 @@ private fun MessageRow(
                 i += 1
             }
         }
-        if (!isUser) {
+        if (!isUser && showModelInfo) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp.uiScaled(), top = 2.dp.uiScaled()),
                 verticalAlignment = Alignment.CenterVertically
