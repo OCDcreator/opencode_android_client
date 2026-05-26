@@ -1,5 +1,6 @@
 package com.yage.opencode_client.data.repository
 
+import android.util.Log
 import com.yage.opencode_client.data.api.*
 import com.yage.opencode_client.data.model.*
 import kotlinx.coroutines.flow.Flow
@@ -91,8 +92,16 @@ class OpenCodeRepository @Inject constructor() {
 
     suspend fun checkHealth(): Result<HealthResponse> = runCatching { api.getHealth() }
 
-    suspend fun getSessions(limit: Int? = null, directory: String? = null): Result<List<Session>> = runCatching {
-        api.getSessions(effectiveDirectory(directory), limit)
+    suspend fun getSessions(limit: Int? = null, directory: String? = null): Result<List<Session>> {
+        val resolvedDirectory = effectiveDirectory(directory)
+        debugLog("getSessions directory=$resolvedDirectory limit=$limit scope=project")
+        return runCatching {
+            api.getSessions(resolvedDirectory, "project", limit).also { sessions ->
+                debugLog("getSessions returned count=${sessions.size}")
+            }
+        }.onFailure { error ->
+            debugLog("getSessions failed directory=$resolvedDirectory limit=$limit", error)
+        }
     }
 
     suspend fun createSession(title: String? = null, directory: String? = null): Result<Session> = runCatching {
@@ -215,7 +224,16 @@ class OpenCodeRepository @Inject constructor() {
 
     fun connectSSE(): Flow<Result<SSEEvent>> = sseClient.connect(baseUrl, username, password)
 
+    private fun debugLog(message: String, throwable: Throwable? = null) {
+        try {
+            if (throwable == null) Log.d(TAG, message) else Log.d(TAG, message, throwable)
+        } catch (_: RuntimeException) {
+            // android.util.Log is not mocked in local JVM unit tests.
+        }
+    }
+
     companion object {
+        private const val TAG = "OpenCodeRepository"
         const val DEFAULT_SERVER = "http://localhost:4096"
     }
 }

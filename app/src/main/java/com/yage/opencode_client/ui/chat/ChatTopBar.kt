@@ -440,12 +440,13 @@ private fun ModelPickerPopup(
     Popup(
         alignment = Alignment.TopEnd,
         offset = IntOffset(0, with(LocalDensity.current) { 4.dp.uiScaled().roundToPx() }),
-        properties = PopupProperties(focusable = true),
+        properties = PopupProperties(focusable = true, usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp.uiScaled())
                 .wrapContentHeight()
                 .fillMaxHeight(0.65f),
             shape = RoundedCornerShape(16.dp.uiScaled()),
@@ -622,12 +623,13 @@ private fun ModelAndAgentPickerPopup(
     Popup(
         alignment = Alignment.TopEnd,
         offset = IntOffset(0, with(LocalDensity.current) { 4.dp.uiScaled().roundToPx() }),
-        properties = PopupProperties(focusable = true),
+        properties = PopupProperties(focusable = true, usePlatformDefaultWidth = false),
         onDismissRequest = onDismiss
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp.uiScaled())
                 .wrapContentHeight()
                 .fillMaxHeight(0.75f),
             shape = RoundedCornerShape(16.dp.uiScaled()),

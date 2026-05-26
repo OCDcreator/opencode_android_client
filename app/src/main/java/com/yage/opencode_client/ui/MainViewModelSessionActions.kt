@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui
 
+import android.util.Log
 import com.yage.opencode_client.data.api.PromptRequest
 import com.yage.opencode_client.data.model.Message
 import com.yage.opencode_client.data.model.ProvidersResponse
@@ -21,6 +22,7 @@ internal fun launchLoadSessions(
 ) {
     scope.launch {
         val limit = MainViewModelTimings.sessionPageSize
+        debugSessionLog("loadSessions start limit=$limit")
         state.update {
             it.copy(
                 loadedSessionLimit = limit,
@@ -30,6 +32,7 @@ internal fun launchLoadSessions(
         }
         repository.getSessions(limit)
             .onSuccess { sessions ->
+                debugSessionLog("loadSessions success count=${sessions.size}")
                 state.update {
                     it.copy(
                         sessions = sessions,
@@ -54,6 +57,7 @@ internal fun launchLoadSessions(
                 }
             }
             .onFailure { error ->
+                debugSessionLog("loadSessions failed", error)
                 state.update {
                     it.copy(
                         isLoadingMoreSessions = false,
@@ -83,8 +87,10 @@ internal fun launchLoadMoreSessions(
     }
     if (!shouldLaunch) return
     scope.launch {
+        debugSessionLog("loadMoreSessions start limit=$nextLimit")
         repository.getSessions(nextLimit)
             .onSuccess { sessions ->
+                debugSessionLog("loadMoreSessions success count=${sessions.size}")
                 if (state.value.loadedSessionLimit > nextLimit) {
                     state.update { it.copy(isLoadingMoreSessions = false) }
                     return@onSuccess
@@ -107,6 +113,7 @@ internal fun launchLoadMoreSessions(
                 }
             }
             .onFailure { error ->
+                debugSessionLog("loadMoreSessions failed", error)
                 state.update {
                     it.copy(
                         isLoadingMoreSessions = false,
@@ -114,6 +121,16 @@ internal fun launchLoadMoreSessions(
                     )
                 }
             }
+    }
+}
+
+private const val SESSION_ACTIONS_TAG = "MainViewModelSessions"
+
+private fun debugSessionLog(message: String, throwable: Throwable? = null) {
+    try {
+        if (throwable == null) Log.d(SESSION_ACTIONS_TAG, message) else Log.d(SESSION_ACTIONS_TAG, message, throwable)
+    } catch (_: RuntimeException) {
+        // android.util.Log is not mocked in local JVM unit tests.
     }
 }
 

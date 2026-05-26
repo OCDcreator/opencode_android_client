@@ -111,6 +111,25 @@ class OpenCodeRepositoryTest {
         assertEquals(1, list.size)
         assertEquals("s1", list[0].id)
         assertEquals("/project", list[0].directory)
+        assertTrue(server.takeRequest().path!!.contains("scope=project"))
+    }
+
+    @Test
+    fun `getSessions includes directory and project scope when configured`() = runBlocking {
+        repository.configure(
+            baseUrl = server.url("/").toString().trimEnd('/'),
+            workingDirectory = "/Users/me/project"
+        )
+        server.enqueue(jsonResponse("[]"))
+
+        val result = repository.getSessions(limit = 30)
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertTrue(request.path!!.contains("directory="))
+        assertTrue(request.path!!.contains("scope=project"))
+        assertTrue(request.path!!.contains("limit=30"))
     }
 
     @Test

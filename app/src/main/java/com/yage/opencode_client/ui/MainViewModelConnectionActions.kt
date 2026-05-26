@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui
 
+import android.util.Log
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
@@ -13,6 +14,10 @@ internal fun applySavedSettings(
     settingsManager: SettingsManager,
     state: MutableStateFlow<AppState>
 ) {
+    debugConnectionLog(
+        "applySavedSettings serverUrl=${settingsManager.serverUrl} " +
+            "workingDirectory=${settingsManager.workingDirectory}"
+    )
     repository.configure(
         baseUrl = settingsManager.serverUrl,
         username = settingsManager.username,
@@ -60,6 +65,7 @@ internal fun launchConnectionTest(
         state.update { it.copy(isConnecting = true, error = null) }
         repository.checkHealth()
             .onSuccess { health ->
+                debugConnectionLog("testConnection success healthy=${health.healthy} version=${health.version}")
                 state.update {
                     it.copy(
                         isConnected = health.healthy,
@@ -72,6 +78,7 @@ internal fun launchConnectionTest(
                 }
             }
             .onFailure { error ->
+                debugConnectionLog("testConnection failed", error)
                 state.update {
                     it.copy(
                         isConnected = false,
@@ -80,6 +87,16 @@ internal fun launchConnectionTest(
                     )
                 }
             }
+    }
+}
+
+private const val CONNECTION_ACTIONS_TAG = "MainViewModelConnection"
+
+private fun debugConnectionLog(message: String, throwable: Throwable? = null) {
+    try {
+        if (throwable == null) Log.d(CONNECTION_ACTIONS_TAG, message) else Log.d(CONNECTION_ACTIONS_TAG, message, throwable)
+    } catch (_: RuntimeException) {
+        // android.util.Log is not mocked in local JVM unit tests.
     }
 }
 

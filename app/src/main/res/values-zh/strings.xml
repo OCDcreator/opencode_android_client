@@ -21,6 +21,8 @@
     <string name="new_session">新建</string>
     <string name="collapse">收起</string>
     <string name="expand">展开</string>
+    <string name="expand_message">展开全文</string>
+    <string name="collapse_message">收起</string>
     <string name="files">文件</string>
     <string name="chat">聊天</string>
 

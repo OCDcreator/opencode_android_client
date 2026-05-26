@@ -3,13 +3,16 @@ package com.yage.opencode_client.ui.chat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +51,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.MessageWithParts
@@ -70,10 +75,14 @@ import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
+import androidx.compose.animation.animateContentSize
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.StreamDebugLogger
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ChatMessageList(
@@ -92,6 +101,7 @@ internal fun ChatMessageList(
     val listState = rememberLazyListState()
     val layoutInfo = listState.layoutInfo
     var shouldAutoScroll by remember { mutableStateOf(true) }
+
     val contentVersion = remember(messages, streamingPartTexts, streamingReasoningPart, isLoading) {
         messages.size +
             messages.sumOf { it.parts.size } +
@@ -100,9 +110,15 @@ internal fun ChatMessageList(
             (if (isLoading) 1 else 0)
     }
 
+    // Normal layout: "at bottom" means last visible item is the final item and flush with viewport bottom
     LaunchedEffect(listState) {
         snapshotFlow {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 24
+            val info = listState.layoutInfo
+            val visible = info.visibleItemsInfo
+            val total = info.totalItemsCount
+            val lastVisible = visible.lastOrNull()
+            lastVisible != null && lastVisible.index >= total - 1 &&
+                lastVisible.offset + lastVisible.size <= info.viewportSize.height + 24
         }.collect { atBottom ->
             shouldAutoScroll = atBottom
         }
@@ -110,7 +126,8 @@ internal fun ChatMessageList(
 
     LaunchedEffect(contentVersion) {
         if (shouldAutoScroll && (messages.isNotEmpty() || streamingReasoningPart != null)) {
-            listState.animateScrollToItem(0)
+            val targetIndex = listState.layoutInfo.totalItemsCount - 1
+            if (targetIndex >= 0) listState.animateScrollToItem(targetIndex)
         }
     }
 
@@ -132,17 +149,15 @@ internal fun ChatMessageList(
         )
     }
 
-    // remember keys prevent stale-closure: isLoading/messages/messageLimit are plain values, not State.
-    // reverseLayout=true: highest index = visual top (oldest). lastVisible >= total-3 fires there.
+    // Normal layout: load more when near the top (oldest messages)
     val shouldLoadMore = remember(isLoading, messages.size, messageLimit) {
         derivedStateOf {
             if (isLoading || messages.isEmpty()) return@derivedStateOf false
             if (messages.size < messageLimit) return@derivedStateOf false
             val visible = layoutInfo.visibleItemsInfo
             if (visible.isEmpty()) return@derivedStateOf false
-            val total = layoutInfo.totalItemsCount
-            val lastVisible = visible.maxOfOrNull { it.index } ?: return@derivedStateOf false
-            lastVisible >= total - 3
+            val firstVisible = visible.firstOrNull()?.index ?: return@derivedStateOf false
+            firstVisible <= 2
         }
     }
     LaunchedEffect(shouldLoadMore.value) {
@@ -152,35 +167,8 @@ internal fun ChatMessageList(
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        reverseLayout = true,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp.uiScaled())
     ) {
-        if (streamingReasoningPart != null) {
-            val streamingKey = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
-            val streamingText = streamingPartTexts[streamingKey] ?: ""
-            item(key = "streaming-reasoning") {
-                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
-                    ReasoningCard(
-                        text = streamingText,
-                        title = streamingReasoningPart.toolReason,
-                        isStreaming = true
-                    )
-                }
-            }
-        }
-        val reversedMessages = messages.reversed()
-        items(reversedMessages.mapIndexed { index, msg -> index to msg }, key = { it.second.info.id }) { (index, message) ->
-            MessageRow(
-                message = message,
-                allMessages = reversedMessages,
-                messageIndex = index,
-                streamingPartTexts = streamingPartTexts,
-                repository = repository,
-                workspaceDirectory = workspaceDirectory,
-                onFileClick = onFileClick,
-                onForkFromMessage = onForkFromMessage
-            )
-        }
         if (isLoading && messages.size >= messageLimit) {
             item(key = "load-more-indicator") {
                 Box(
@@ -205,6 +193,31 @@ internal fun ChatMessageList(
                 }
             }
         }
+        items(messages.mapIndexed { index, msg -> index to msg }, key = { it.second.info.id }) { (index, message) ->
+            MessageRow(
+                message = message,
+                allMessages = messages,
+                messageIndex = index,
+                streamingPartTexts = streamingPartTexts,
+                repository = repository,
+                workspaceDirectory = workspaceDirectory,
+                onFileClick = onFileClick,
+                onForkFromMessage = onForkFromMessage
+            )
+        }
+        if (streamingReasoningPart != null) {
+            val streamingKey = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
+            val streamingText = streamingPartTexts[streamingKey] ?: ""
+            item(key = "streaming-reasoning") {
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
+                    ReasoningCard(
+                        text = streamingText,
+                        title = streamingReasoningPart.toolReason,
+                        isStreaming = true
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -221,7 +234,7 @@ private fun MessageRow(
 ) {
     val isUser = message.info.isUser
     val isAssistant = message.info.isAssistant
-    val newerMsg = allMessages.getOrNull(messageIndex - 1)
+    val newerMsg = allMessages.getOrNull(messageIndex + 1)
     val hasNewerSameParent = isAssistant &&
         message.info.parentId != null &&
         newerMsg != null &&
@@ -229,6 +242,7 @@ private fun MessageRow(
         newerMsg.info.parentId == message.info.parentId
     val showModelInfo = !isUser && !hasNewerSameParent
     val showStepFinish = !isAssistant || !hasNewerSameParent
+    val expandedTools = remember(message.info.id) { mutableStateMapOf<String, Boolean>() as androidx.compose.runtime.snapshots.SnapshotStateMap<String, Boolean> }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp.uiScaled(), vertical = 4.dp.uiScaled())) {
         var i = 0
@@ -250,23 +264,100 @@ private fun MessageRow(
                         j++
                     } else break
                 }
-                run.chunked(2).forEach { chunk ->
+                // Layout: expanded = full width, collapsed = half width side-by-side
+                var pendingCollapsed: Part? = null
+                for (p in run) {
+                    val key = "${message.info.id}:${p.id}"
+                    val expanded = if (p.isTool) {
+                        expandedTools[key] ?: (p.stateDisplay == "running")
+                    } else {
+                        true
+                    }
+                    if (expanded) {
+                        pendingCollapsed?.let { first ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
+                            ) {
+                                PartView(
+                                    part = first,
+                                    isUser = isUser,
+                                    streamingTextOverride = streamingPartTexts["${message.info.id}:${first.id}"],
+                                    repository = repository,
+                                    workspaceDirectory = workspaceDirectory,
+                                    onFileClick = onFileClick,
+                                    toolExpanded = false,
+                                    onToolExpandedChange = { expandedTools["${message.info.id}:${first.id}"] = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            pendingCollapsed = null
+                        }
+                        PartView(
+                            part = p,
+                            isUser = isUser,
+                            streamingTextOverride = streamingPartTexts["${message.info.id}:${p.id}"],
+                            repository = repository,
+                            workspaceDirectory = workspaceDirectory,
+                            onFileClick = onFileClick,
+                            toolExpanded = true,
+                            onToolExpandedChange = { expandedTools[key] = it },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        val first = pendingCollapsed
+                        if (first == null) {
+                            pendingCollapsed = p
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
+                            ) {
+                                PartView(
+                                    part = first,
+                                    isUser = isUser,
+                                    streamingTextOverride = streamingPartTexts["${message.info.id}:${first.id}"],
+                                    repository = repository,
+                                    workspaceDirectory = workspaceDirectory,
+                                    onFileClick = onFileClick,
+                                    toolExpanded = false,
+                                    onToolExpandedChange = { expandedTools["${message.info.id}:${first.id}"] = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                PartView(
+                                    part = p,
+                                    isUser = isUser,
+                                    streamingTextOverride = streamingPartTexts["${message.info.id}:${p.id}"],
+                                    repository = repository,
+                                    workspaceDirectory = workspaceDirectory,
+                                    onFileClick = onFileClick,
+                                    toolExpanded = false,
+                                    onToolExpandedChange = { expandedTools[key] = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            pendingCollapsed = null
+                        }
+                    }
+                }
+                pendingCollapsed?.let { first ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
                     ) {
-                        chunk.forEach { p ->
-                            PartView(
-                                part = p,
-                                isUser = isUser,
-                                streamingTextOverride = streamingPartTexts["${message.info.id}:${p.id}"],
-                                repository = repository,
-                                workspaceDirectory = workspaceDirectory,
-                                onFileClick = onFileClick,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        if (chunk.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        PartView(
+                            part = first,
+                            isUser = isUser,
+                            streamingTextOverride = streamingPartTexts["${message.info.id}:${first.id}"],
+                            repository = repository,
+                            workspaceDirectory = workspaceDirectory,
+                            onFileClick = onFileClick,
+                            toolExpanded = false,
+                            onToolExpandedChange = { expandedTools["${message.info.id}:${first.id}"] = it },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
                 i = j
@@ -341,7 +432,9 @@ private fun PartView(
     repository: OpenCodeRepository,
     workspaceDirectory: String?,
     onFileClick: (String) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    toolExpanded: Boolean = false,
+    onToolExpandedChange: (Boolean) -> Unit = {}
 ) {
     when {
         part.isText -> TextPart(
@@ -361,6 +454,8 @@ private fun PartView(
             filePaths = part.filePathsForNavigationFiltered,
             todos = part.toolTodos,
             onFileClick = onFileClick,
+            expanded = toolExpanded,
+            onExpandedChange = onToolExpandedChange,
             modifier = modifier
         )
         part.isPatch && part.filePathsForNavigationFiltered.isNotEmpty() -> PatchCard(part.filePathsForNavigationFiltered, onFileClick, modifier)
@@ -397,18 +492,43 @@ private fun TextPart(
 ) {
     val innerModifier = modifier.padding(12.dp.uiScaled())
     if (isUser) {
+        var expanded by remember { mutableStateOf(false) }
+        var overflows by remember { mutableStateOf(false) }
+        val maxHeight = 160.dp.uiScaled()
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(8.dp.uiScaled()),
             modifier = modifier
         ) {
-            SelectionContainer {
-                Text(
-                    text = text,
-                    modifier = Modifier.padding(12.dp.uiScaled()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (expanded) Modifier else Modifier.heightIn(max = maxHeight))
+                        .clipToBounds()
+                ) {
+                    SelectionContainer {
+                        Text(
+                            text = text,
+                            modifier = Modifier.padding(12.dp.uiScaled()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            onTextLayout = { result ->
+                                if (!expanded) overflows = result.hasVisualOverflow
+                            }
+                        )
+                    }
+                }
+                if (overflows) {
+                    Text(
+                        text = stringResource(if (expanded) R.string.collapse_message else R.string.expand_message),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { expanded = !expanded }
+                            .padding(horizontal = 12.dp.uiScaled(), vertical = 2.dp.uiScaled())
+                    )
+                }
             }
         }
     } else {
@@ -530,10 +650,11 @@ private fun ToolCard(
     filePaths: List<String>,
     todos: List<TodoItem> = emptyList(),
     onFileClick: (String) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     val isRunning = status == "running"
-    var expanded by remember { mutableStateOf(isRunning) }
     val firstFile = filePaths.firstOrNull()
     val isWriteOrPatch = toolName == "write" || toolName == "patch" || toolName.contains("write")
     val isDark = isSystemInDarkTheme()
@@ -558,7 +679,7 @@ private fun ToolCard(
                             Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                         }
                     }
-                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp.uiScaled())) {
+                    IconButton(onClick = { onExpandedChange(!expanded) }, modifier = Modifier.size(24.dp.uiScaled())) {
                         Icon(
                             if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.ChevronRight,
                             contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),

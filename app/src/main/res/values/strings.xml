@@ -21,6 +21,8 @@
     <string name="new_session">New</string>
     <string name="collapse">Collapse</string>
     <string name="expand">Expand</string>
+    <string name="expand_message">Show more</string>
+    <string name="collapse_message">Show less</string>
     <string name="files">Files</string>
     <string name="chat">Chat</string>
 

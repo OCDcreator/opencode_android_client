@@ -12,6 +12,7 @@ interface OpenCodeApi {
     @GET("session")
     suspend fun getSessions(
         @Query("directory") directory: String? = null,
+        @Query("scope") scope: String? = null,
         @Query("limit") limit: Int? = null
     ): List<Session>
 
