@@ -156,10 +156,19 @@ data class PromptRequest(
     val model: ModelInput? = null
 ) {
     @kotlinx.serialization.Serializable
-    data class PartInput(
-        val type: String = "text",
-        val text: String
-    )
+    sealed interface PartInput {
+        @kotlinx.serialization.Serializable
+        @kotlinx.serialization.SerialName("text")
+        data class Text(val text: String) : PartInput
+
+        @kotlinx.serialization.Serializable
+        @kotlinx.serialization.SerialName("file")
+        data class File(
+            val mime: String,
+            val url: String,
+            val filename: String? = null
+        ) : PartInput
+    }
 
     @kotlinx.serialization.Serializable
     data class ModelInput(

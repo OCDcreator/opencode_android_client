@@ -30,3 +30,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep sealed PartInput discriminator for kotlinx.serialization
+-keep class com.yage.opencode_client.data.api.PromptRequest$PartInput { *; }
+-keep class * implements com.yage.opencode_client.data.api.PromptRequest$PartInput { *; }

@@ -3,6 +3,7 @@ package com.yage.opencode_client.ui.chat
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.AlertDialog
@@ -53,6 +54,13 @@ fun ChatScreen(
             viewModel.toggleRecording()
         } else {
             viewModel.setSpeechError(micPermissionDeniedMessage)
+        }
+    }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(5)
+    ) { uris ->
+        uris.forEach { uri ->
+            viewModel.addImage(uri, context.contentResolver)
         }
     }
 
@@ -144,9 +152,9 @@ fun ChatScreen(
                 isRecording = state.isRecording,
                 isTranscribing = state.isTranscribing,
                 isSpeechConfigured = state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
-                hideMicIcon = state.hideMicIcon,
+                pendingImages = state.pendingImages,
                 onTextChange = viewModel::setInputText,
-                onSend = { text -> viewModel.sendMessage(text) },
+                onSend = { viewModel.sendMessage() },
                 onAbort = { viewModel.abortSession() },
                 onToggleRecording = {
                     if (state.isRecording) {
@@ -162,7 +170,9 @@ fun ChatScreen(
                             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
                     }
-                }
+                },
+                onPickImage = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                onRemoveImage = viewModel::removeImage
             )
         }
 

@@ -123,10 +123,17 @@ class OpenCodeRepository @Inject constructor() {
         text: String,
         agent: String = "build",
         model: Message.ModelInfo? = null,
-        directory: String? = null
+        directory: String? = null,
+        imageParts: List<PromptRequest.PartInput.File> = emptyList()
     ): Result<Unit> = runCatching {
+        val parts = mutableListOf<PromptRequest.PartInput>()
+        if (text.isNotEmpty()) {
+            parts.add(PromptRequest.PartInput.Text(text = text))
+        }
+        parts.addAll(imageParts)
+        require(parts.isNotEmpty()) { "Message must contain text or images" }
         val request = PromptRequest(
-            parts = listOf(PromptRequest.PartInput(text = text)),
+            parts = parts,
             agent = agent,
             model = model?.let { PromptRequest.ModelInput(it.providerId, it.modelId) }
         )

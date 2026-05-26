@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui
 
+import com.yage.opencode_client.data.api.PromptRequest
 import com.yage.opencode_client.data.model.Message
 import com.yage.opencode_client.data.model.ProvidersResponse
 import com.yage.opencode_client.data.repository.OpenCodeRepository
@@ -426,11 +427,12 @@ internal fun launchSendMessage(
     text: String,
     agent: String,
     model: Message.ModelInfo?,
+    imageParts: List<PromptRequest.PartInput.File> = emptyList(),
     onRefreshMessages: (String, Boolean) -> Unit,
     onSuccess: (() -> Unit)? = null
 ) {
     scope.launch {
-        repository.sendMessage(sessionId, text, agent, model)
+        repository.sendMessage(sessionId, text, agent, model, imageParts = imageParts)
             .onSuccess {
                 StreamDebugLogger.logSendAccepted(sessionId)
                 state.update {

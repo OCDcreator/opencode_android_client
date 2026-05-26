@@ -2,6 +2,7 @@ package com.yage.opencode_client
 
 import android.util.Log
 import com.yage.opencode_client.data.audio.AudioRecorderManager
+import com.yage.opencode_client.data.image.ImageAttachmentCompressor
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.AppState
@@ -39,6 +40,7 @@ class ForkSessionTest {
     private lateinit var repository: OpenCodeRepository
     private lateinit var settingsManager: SettingsManager
     private lateinit var audioRecorderManager: AudioRecorderManager
+    private lateinit var imageCompressor: ImageAttachmentCompressor
 
     @Before
     fun setUp() {
@@ -51,6 +53,7 @@ class ForkSessionTest {
         repository = mockk(relaxed = true)
         settingsManager = mockk(relaxed = true)
         audioRecorderManager = mockk(relaxed = true)
+        imageCompressor = mockk(relaxed = true)
 
         every { settingsManager.serverUrl } returns "http://server.test"
         every { settingsManager.username } returns null
@@ -99,7 +102,7 @@ class ForkSessionTest {
     }
 
     private fun createViewModel(): MainViewModel {
-        return MainViewModel(repository, settingsManager, audioRecorderManager)
+        return MainViewModel(repository, settingsManager, audioRecorderManager, imageCompressor)
     }
 
     @Test

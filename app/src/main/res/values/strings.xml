@@ -194,4 +194,11 @@
     <string name="failed_send_message">Failed to send message</string>
     <string name="transcription_failed">Transcription failed</string>
     <string name="sse_error">SSE Error: %1$s</string>
+
+    <!-- Image Input -->
+    <string name="image_add_cd">Select image</string>
+    <string name="image_remove_cd">Remove image</string>
+    <string name="image_max_reached">Maximum 5 images allowed</string>
+    <string name="image_compression_failed">Failed to process image: %1$s</string>
+    <string name="image_too_large">Image too large after compression (%.1f MB)</string>
 </resources>

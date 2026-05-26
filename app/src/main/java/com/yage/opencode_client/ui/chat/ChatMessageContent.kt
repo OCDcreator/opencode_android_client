@@ -329,7 +329,17 @@ private fun PartView(
             workspaceDirectory = workspaceDirectory
         )
         part.isReasoning -> ReasoningCard(streamingTextOverride ?: part.text ?: "", part.toolReason, false, modifier)
-        part.isTool -> ToolCard(part.tool ?: "", part.stateDisplay, part.toolReason, part.filePathsForNavigationFiltered, part.toolTodos, onFileClick, modifier)
+        part.isTool -> ToolCard(
+            toolName = part.tool ?: "",
+            status = part.stateDisplay,
+            reason = part.toolReason,
+            inputSummary = part.toolInputSummary,
+            output = part.toolOutput,
+            filePaths = part.filePathsForNavigationFiltered,
+            todos = part.toolTodos,
+            onFileClick = onFileClick,
+            modifier = modifier
+        )
         part.isPatch && part.filePathsForNavigationFiltered.isNotEmpty() -> PatchCard(part.filePathsForNavigationFiltered, onFileClick, modifier)
     }
 }
@@ -465,11 +475,15 @@ private fun ReasoningCard(
     }
 }
 
+private const val MAX_OUTPUT_DISPLAY_CHARS = 2000
+
 @Composable
 private fun ToolCard(
     toolName: String,
     status: String?,
     reason: String?,
+    inputSummary: String?,
+    output: String?,
     filePaths: List<String>,
     todos: List<TodoItem> = emptyList(),
     onFileClick: (String) -> Unit,
@@ -486,6 +500,7 @@ private fun ToolCard(
     Card(modifier = modifier.padding(vertical = 4.dp.uiScaled()), colors = CardDefaults.cardColors(containerColor = cardColor)) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             Column(modifier = Modifier.padding(12.dp.uiScaled())) {
+                // Header row
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     if (isRunning) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp.uiScaled()), strokeWidth = 2.dp)
@@ -509,42 +524,82 @@ private fun ToolCard(
                     }
                 }
 
-                if (expanded && todos.isNotEmpty()) {
-                    Spacer(modifier = Modifier.size(8.dp.uiScaled()))
-                    todos.forEach { todo ->
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (todo.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp.uiScaled()),
-                                tint = if (todo.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                            )
-                            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                if (expanded) {
+                    // Input summary (command, path, etc.)
+                    if (!inputSummary.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.size(8.dp.uiScaled()))
+                        Text(
+                            text = inputSummary,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    // Tool output
+                    if (!output.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.size(6.dp.uiScaled()))
+                        val displayOutput = if (output.length > MAX_OUTPUT_DISPLAY_CHARS) {
+                            output.take(MAX_OUTPUT_DISPLAY_CHARS) + "…"
+                        } else {
+                            output
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(4.dp.uiScaled()),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(
-                                text = todo.content,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    textDecoration = if (todo.isCompleted) TextDecoration.LineThrough else null
-                                ),
-                                modifier = Modifier.weight(1f)
+                                text = displayOutput,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp.uiScaled(), vertical = 6.dp.uiScaled())
                             )
-                            if (todo.priority != "medium") {
-                                Text(text = todo.priority, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+
+                    // Todos
+                    if (todos.isNotEmpty()) {
+                        Spacer(modifier = Modifier.size(8.dp.uiScaled()))
+                        todos.forEach { todo ->
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (todo.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp.uiScaled()),
+                                    tint = if (todo.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                                Text(
+                                    text = todo.content,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        textDecoration = if (todo.isCompleted) TextDecoration.LineThrough else null
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (todo.priority != "medium") {
+                                    Text(text = todo.priority, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                }
                             }
                         }
                     }
-                }
-                if (expanded && filePaths.isNotEmpty()) {
-                    Spacer(modifier = Modifier.size(8.dp.uiScaled()))
-                    filePaths.forEach { path ->
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                            Text(
-                                text = path,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
-                                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
+
+                    // File paths
+                    if (filePaths.isNotEmpty()) {
+                        Spacer(modifier = Modifier.size(8.dp.uiScaled()))
+                        filePaths.forEach { path ->
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                                Text(
+                                    text = path,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
+                                    Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
+                                }
                             }
                         }
                     }

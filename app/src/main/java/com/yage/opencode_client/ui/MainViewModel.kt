@@ -3,13 +3,16 @@ package com.yage.opencode_client.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yage.opencode_client.data.api.PromptRequest
 import com.yage.opencode_client.data.audio.AudioRecorderManager
+import com.yage.opencode_client.data.image.ImageAttachmentCompressor
 import com.yage.opencode_client.data.model.*
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.LanguageMode
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -30,6 +33,15 @@ data class AIBuilderSettings(
     val token: String,
     val customPrompt: String,
     val terminology: String
+)
+
+data class PendingImageUi(
+    val id: String,
+    val filename: String? = null,
+    val thumbnail: android.graphics.Bitmap? = null,
+    val byteSize: Int = 0,
+    val isProcessing: Boolean = false,
+    val error: String? = null
 )
 
 data class AppState(
@@ -54,6 +66,7 @@ data class AppState(
     val pendingPermissions: List<PermissionRequest> = emptyList(),
     val pendingQuestions: List<QuestionRequest> = emptyList(),
     val inputText: String = "",
+    val pendingImages: List<PendingImageUi> = emptyList(),
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val languageMode: LanguageMode = LanguageMode.SYSTEM,
@@ -328,7 +341,8 @@ private fun Message.TokenInfo.totalTokenCount(): Int? {
 class MainViewModel @Inject constructor(
     internal val repository: OpenCodeRepository,
     private val settingsManager: SettingsManager,
-    private val audioRecorderManager: AudioRecorderManager
+    private val audioRecorderManager: AudioRecorderManager,
+    private val imageCompressor: ImageAttachmentCompressor
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppState())
@@ -340,6 +354,8 @@ class MainViewModel @Inject constructor(
     private var sseJob: Job? = null
     private var pollJob: Job? = null
     private var lastHealthCheckTime = 0L
+    private val imageDataUris = mutableMapOf<String, String>()
+    private val compressionJobs = mutableMapOf<String, Job>()
 
     init {
         loadSettings()
@@ -457,6 +473,66 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(speechError = null) }
     }
 
+    fun addImage(uri: android.net.Uri, contentResolver: android.content.ContentResolver) {
+        val sessionId = _state.value.currentSessionId ?: return
+        if (_state.value.pendingImages.size >= 5) {
+            _state.update { it.copy(error = "Maximum 5 images allowed") }
+            return
+        }
+        val id = java.util.UUID.randomUUID().toString()
+        _state.update { it.copy(pendingImages = it.pendingImages + PendingImageUi(id, isProcessing = true)) }
+        val capturedSessionId = sessionId
+        val job = viewModelScope.launch {
+            try {
+                val result = imageCompressor.compress(contentResolver, uri)
+                if (_state.value.currentSessionId != capturedSessionId) return@launch
+                if (!_state.value.pendingImages.any { it.id == id }) return@launch
+                if (result.byteSize > 2 * 1024 * 1024) {
+                    val sizeMb = result.byteSize / (1024.0 * 1024.0)
+                    _state.update { s ->
+                        s.copy(pendingImages = s.pendingImages.map {
+                            if (it.id == id) it.copy(isProcessing = false, error = "Image too large after compression (%.1f MB)".format(sizeMb))
+                            else it
+                        })
+                    }
+                    return@launch
+                }
+                imageDataUris[id] = result.dataUri
+                _state.update { s ->
+                    s.copy(pendingImages = s.pendingImages.map {
+                        if (it.id == id) it.copy(
+                            isProcessing = false,
+                            thumbnail = result.thumbnail,
+                            byteSize = result.byteSize,
+                            filename = result.filename
+                        )
+                        else it
+                    })
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (_state.value.currentSessionId != capturedSessionId) return@launch
+                _state.update { s ->
+                    s.copy(pendingImages = s.pendingImages.map {
+                        if (it.id == id) it.copy(isProcessing = false, error = "Failed to process image: ${e.message}")
+                        else it
+                    })
+                }
+            } finally {
+                compressionJobs.remove(id)
+            }
+        }
+        compressionJobs[id] = job
+    }
+
+    fun removeImage(id: String) {
+        compressionJobs[id]?.cancel()
+        compressionJobs.remove(id)
+        imageDataUris.remove(id)
+        _state.update { it.copy(pendingImages = it.pendingImages.filter { img -> img.id != id }) }
+    }
+
     fun setSpeechError(message: String) {
         _state.update { it.copy(speechError = message) }
     }
@@ -504,6 +580,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun selectSession(sessionId: String) {
+        compressionJobs.values.forEach { it.cancel() }
+        compressionJobs.clear()
+        imageDataUris.clear()
+        _state.update { it.copy(pendingImages = emptyList()) }
         selectSessionState(_state, settingsManager, sessionId)
         loadMessages(sessionId)
         loadSessionStatus()
@@ -557,10 +637,14 @@ class MainViewModel @Inject constructor(
         launchDeleteSession(viewModelScope, repository, _state, sessionId, ::selectSession)
     }
 
-    fun sendMessage(text: String) {
+    fun sendMessage() {
         val sessionId = _state.value.currentSessionId ?: return
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
+        val text = _state.value.inputText.trim()
+        val images = _state.value.pendingImages
+
+        if (text.isEmpty() && images.isEmpty()) return
+        if (images.any { it.isProcessing || it.error != null }) return
+        if (images.any { !imageDataUris.containsKey(it.id) }) return
 
         val agent = _state.value.selectedAgentName
         val model = buildSelectedModel(_state.value)
@@ -571,16 +655,34 @@ class MainViewModel @Inject constructor(
             model = model
         )
 
+        val imageParts = images.map { ui ->
+            PromptRequest.PartInput.File(
+                mime = "image/jpeg",
+                url = imageDataUris[ui.id]!!,
+                filename = ui.filename
+            )
+        }
+
         launchSendMessage(
             scope = viewModelScope,
             repository = repository,
             state = _state,
             sessionId = sessionId,
-            text = trimmed,
+            text = text,
             agent = agent,
             model = model,
+            imageParts = imageParts,
             onRefreshMessages = ::loadMessagesWithRetry,
-            onSuccess = { settingsManager.setDraftText(sessionId, "") }
+            onSuccess = {
+                settingsManager.setDraftText(sessionId, "")
+                val sentIds = images.map { it.id }.toSet()
+                sentIds.forEach { id ->
+                    imageDataUris.remove(id)
+                    compressionJobs[id]?.cancel()
+                    compressionJobs.remove(id)
+                }
+                _state.update { it.copy(pendingImages = emptyList()) }
+            }
         )
     }
 

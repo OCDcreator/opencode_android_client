@@ -223,8 +223,23 @@ object PartStateSerializer : kotlinx.serialization.KSerializer<PartState> {
                 if (inputObj is JsonPrimitive) {
                     inputSummary = inputObj.content
                 } else if (inputObj is JsonObject) {
-                    inputSummary = (inputObj["command"] as? JsonPrimitive)?.content
+                    // Try common input field names to build a concise summary
+                    val command = (inputObj["command"] as? JsonPrimitive)?.content
+                    val pattern = (inputObj["pattern"] as? JsonPrimitive)?.content
+                    val filePath = (inputObj["file_path"] as? JsonPrimitive)?.content
+                        ?: (inputObj["filePath"] as? JsonPrimitive)?.content
                         ?: (inputObj["path"] as? JsonPrimitive)?.content
+                    val description = (inputObj["description"] as? JsonPrimitive)?.content
+                    val prompt = (inputObj["prompt"] as? JsonPrimitive)?.content
+                    val query = (inputObj["query"] as? JsonPrimitive)?.content
+
+                    inputSummary = command
+                        ?: if (pattern != null && filePath != null) "$pattern → $filePath"
+                           else if (pattern != null) pattern
+                           else filePath
+                        ?: description
+                        ?: query
+                        ?: prompt
 
                     val todosObj = inputObj["todos"]
                     if (todosObj is JsonArray) {

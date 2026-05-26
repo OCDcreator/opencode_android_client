@@ -2,6 +2,7 @@ package com.yage.opencode_client
 
 import android.util.Log
 import com.yage.opencode_client.data.audio.AudioRecorderManager
+import com.yage.opencode_client.data.image.ImageAttachmentCompressor
 import com.yage.opencode_client.data.model.Message
 import com.yage.opencode_client.data.model.MessageWithParts
 import com.yage.opencode_client.data.model.Part
@@ -16,6 +17,7 @@ import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.ModelPresets
+import com.yage.opencode_client.ui.PendingImageUi
 import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.ThemeMode
 import io.mockk.coEvery
@@ -54,6 +56,7 @@ class MainViewModelTest {
     private lateinit var repository: OpenCodeRepository
     private lateinit var settingsManager: SettingsManager
     private lateinit var audioRecorderManager: AudioRecorderManager
+    private lateinit var imageCompressor: ImageAttachmentCompressor
 
     @Before
     fun setUp() {
@@ -66,6 +69,7 @@ class MainViewModelTest {
         repository = mockk(relaxed = true)
         settingsManager = mockk(relaxed = true)
         audioRecorderManager = mockk(relaxed = true)
+        imageCompressor = mockk(relaxed = true)
 
         every { settingsManager.serverUrl } returns "http://server.test"
         every { settingsManager.username } returns null
@@ -109,7 +113,7 @@ class MainViewModelTest {
     }
 
     private fun createViewModel(): MainViewModel {
-        return MainViewModel(repository, settingsManager, audioRecorderManager)
+        return MainViewModel(repository, settingsManager, audioRecorderManager, imageCompressor)
     }
 
     private fun updateState(viewModel: MainViewModel, transform: (AppState) -> AppState) {
@@ -158,7 +162,7 @@ class MainViewModelTest {
 
     @Test
     fun `sendMessage success clears input and uses selected preset model`() = runTest {
-        coEvery { repository.sendMessage(any(), any(), any(), any()) } returns Result.success(Unit)
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
 
         val viewModel = createViewModel()
         viewModel.selectSession("session-1")
@@ -167,7 +171,7 @@ class MainViewModelTest {
         viewModel.selectAgent("review")
         viewModel.selectModel(1)
 
-        viewModel.sendMessage("  hello world  ")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
         val selected = ModelPresets.list[1]
@@ -176,7 +180,9 @@ class MainViewModelTest {
                 "session-1",
                 "hello world",
                 "review",
-                Message.ModelInfo(selected.providerId, selected.modelId)
+                Message.ModelInfo(selected.providerId, selected.modelId),
+                any(),
+                any()
             )
         }
         assertEquals("", viewModel.state.value.inputText)
@@ -185,14 +191,14 @@ class MainViewModelTest {
 
     @Test
     fun `sendMessage failure keeps input and exposes error`() = runTest {
-        coEvery { repository.sendMessage(any(), any(), any(), any()) } returns Result.failure(IllegalStateException("send failed"))
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.failure(IllegalStateException("send failed"))
 
         val viewModel = createViewModel()
         viewModel.selectSession("session-1")
         advanceUntilIdle()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage("hello")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
         assertEquals("hello", viewModel.state.value.inputText)
@@ -201,7 +207,7 @@ class MainViewModelTest {
 
     @Test
     fun `sendMessage still queues prompt when current session is busy`() = runTest {
-        coEvery { repository.sendMessage(any(), any(), any(), any()) } returns Result.success(Unit)
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
 
         val viewModel = createViewModel()
         viewModel.selectSession("session-1")
@@ -213,13 +219,15 @@ class MainViewModelTest {
             )
         }
 
-        viewModel.sendMessage("queue this next")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
         coVerify {
             repository.sendMessage(
                 "session-1",
                 "queue this next",
+                any(),
+                any(),
                 any(),
                 any()
             )
@@ -234,10 +242,10 @@ class MainViewModelTest {
         advanceUntilIdle()
         viewModel.setInputText("   ")
 
-        viewModel.sendMessage("   ")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any(), any(), any()) }
         assertEquals("   ", viewModel.state.value.inputText)
     }
 
@@ -246,10 +254,10 @@ class MainViewModelTest {
         val viewModel = createViewModel()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage("hello")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any(), any(), any()) }
         assertEquals("hello", viewModel.state.value.inputText)
     }
 
@@ -732,17 +740,206 @@ class MainViewModelTest {
 
     @Test
     fun `sendMessage on success clears draft for current session`() = runTest {
-        coEvery { repository.sendMessage(any(), any(), any(), any()) } returns Result.success(Unit)
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
 
         val viewModel = createViewModel()
         viewModel.selectSession("s1")
         advanceUntilIdle()
         viewModel.setInputText("hello")
 
-        viewModel.sendMessage("hello")
+        viewModel.sendMessage()
         advanceUntilIdle()
 
         verify { settingsManager.setDraftText("s1", "") }
+    }
+
+    @Test
+    fun `addImage returns early when no session selected`() = runTest {
+        val uri = mockk<android.net.Uri>(relaxed = true)
+        val resolver = mockk<android.content.ContentResolver>()
+        val viewModel = createViewModel()
+
+        viewModel.addImage(uri, resolver)
+
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.pendingImages.isEmpty())
+        coVerify(exactly = 0) { imageCompressor.compress(any(), any()) }
+    }
+
+    @Test
+    fun `addImage rejects beyond max 5 images`() = runTest {
+        val uri = mockk<android.net.Uri>(relaxed = true)
+        val resolver = mockk<android.content.ContentResolver>(relaxed = true)
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                currentSessionId = "session-1",
+                pendingImages = (1..5).map { i ->
+                    PendingImageUi(id = "img-$i", isProcessing = false, thumbnail = mockk(relaxed = true))
+                }
+            )
+        }
+
+        viewModel.addImage(uri, resolver)
+
+        assertEquals("Maximum 5 images allowed", viewModel.state.value.error)
+    }
+
+    @Test
+    fun `removeImage cancels compression and removes from state`() = runTest {
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                currentSessionId = "session-1",
+                pendingImages = listOf(PendingImageUi(id = "img-1", isProcessing = true))
+            )
+        }
+
+        viewModel.removeImage("img-1")
+
+        assertTrue(viewModel.state.value.pendingImages.isEmpty())
+    }
+
+    @Test
+    fun `selectSession clears all pending images and compression jobs`() = runTest {
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                currentSessionId = "session-1",
+                pendingImages = listOf(
+                    PendingImageUi(id = "img-1", isProcessing = false, thumbnail = mockk(relaxed = true)),
+                    PendingImageUi(id = "img-2", isProcessing = true)
+                )
+            )
+        }
+
+        viewModel.selectSession("session-2")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.pendingImages.isEmpty())
+    }
+
+    @Test
+    fun `sendMessage with images includes imageParts in repository call`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+
+        val viewModel = createViewModel()
+        viewModel.selectSession("session-1")
+        advanceUntilIdle()
+
+        val bitmap = mockk<android.graphics.Bitmap>(relaxed = true)
+        val compressed = ImageAttachmentCompressor.CompressedImage(
+            dataUri = "data:image/jpeg;base64,/9j/4AAQ",
+            filename = "photo.jpg",
+            byteSize = 1024,
+            thumbnail = bitmap
+        )
+        coEvery { imageCompressor.compress(any(), any()) } returns compressed
+
+        val uri = mockk<android.net.Uri>(relaxed = true)
+        val resolver = mockk<android.content.ContentResolver>(relaxed = true)
+        viewModel.addImage(uri, resolver)
+        advanceUntilIdle()
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        coVerify {
+            repository.sendMessage(
+                "session-1",
+                "",
+                any(),
+                any(),
+                any(),
+                match { it.isNotEmpty() && it.first().url == compressed.dataUri }
+            )
+        }
+    }
+
+    @Test
+    fun `sendMessage skips images still processing`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+
+        val viewModel = createViewModel()
+        viewModel.selectSession("session-1")
+        advanceUntilIdle()
+        viewModel.setInputText("hello")
+        updateState(viewModel) {
+            it.copy(pendingImages = listOf(PendingImageUi(id = "img-1", isProcessing = true)))
+        }
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.sendMessage(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `sendMessage clears pending images on success`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+
+        val viewModel = createViewModel()
+        viewModel.selectSession("session-1")
+        advanceUntilIdle()
+        viewModel.setInputText("hello")
+        updateState(viewModel) {
+            it.copy(pendingImages = listOf(
+                PendingImageUi(id = "img-1", isProcessing = false, thumbnail = mockk(relaxed = true))
+            ))
+        }
+        val imageDataUrisField = MainViewModel::class.java.getDeclaredField("imageDataUris")
+        imageDataUrisField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val map = imageDataUrisField.get(viewModel) as MutableMap<String, String>
+        map["img-1"] = "data:image/jpeg;base64,/9j/4AAQ"
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.pendingImages.isEmpty())
+        assertEquals("", viewModel.state.value.inputText)
+    }
+
+    @Test
+    fun `addImage shows error when compression fails`() = runTest {
+        coEvery { imageCompressor.compress(any(), any()) } throws java.io.IOException("decode error")
+
+        val viewModel = createViewModel()
+        updateState(viewModel) { it.copy(currentSessionId = "session-1") }
+
+        val uri = mockk<android.net.Uri>(relaxed = true)
+        val resolver = mockk<android.content.ContentResolver>(relaxed = true)
+        viewModel.addImage(uri, resolver)
+        advanceUntilIdle()
+
+        val image = viewModel.state.value.pendingImages.firstOrNull()
+        org.junit.Assert.assertNotNull(image)
+        org.junit.Assert.assertTrue(image!!.error!!.contains("decode error"))
+        assertFalse(image.isProcessing)
+    }
+
+    @Test
+    fun `sendMessage with text-only sends empty imageParts`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+
+        val viewModel = createViewModel()
+        viewModel.selectSession("session-1")
+        advanceUntilIdle()
+        viewModel.setInputText("hello")
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        coVerify {
+            repository.sendMessage(
+                "session-1",
+                "hello",
+                any(),
+                any(),
+                any(),
+                emptyList()
+            )
+        }
     }
 
     @Test
