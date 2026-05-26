@@ -94,14 +94,27 @@ class OpenCodeRepository @Inject constructor() {
 
     suspend fun getSessions(limit: Int? = null, directory: String? = null): Result<List<Session>> {
         val resolvedDirectory = effectiveDirectory(directory)
-        debugLog("getSessions directory=$resolvedDirectory limit=$limit scope=project")
+        debugLog("getSessions directory=$resolvedDirectory limit=$limit")
         return runCatching {
-            api.getSessions(resolvedDirectory, "project", limit).also { sessions ->
-                debugLog("getSessions returned count=${sessions.size}")
-            }
+            // Use the experimental/session endpoint — it uses listGlobal which
+            // queries across all projects (no project_id isolation). The web UI
+            // uses this same endpoint. Supports roots=true to hide sub-agent sessions.
+            val sessions = api.getSessionsExperimental(
+                directory = resolvedDirectory,
+                roots = "true",
+                limit = limit
+            )
+            debugLog("getSessions returned count=${sessions.size}")
+            sessions
         }.onFailure { error ->
             debugLog("getSessions failed directory=$resolvedDirectory limit=$limit", error)
         }
+    }
+
+    /** Check if the 400 error is the known V2 archived-timestamp serialization bug */
+    private fun isV2SerializationError(e: retrofit2.HttpException): Boolean {
+        val body = e.response()?.errorBody()?.string() ?: return false
+        return body.contains("DateTime.Utc") && body.contains("archived")
     }
 
     suspend fun createSession(title: String? = null, directory: String? = null): Result<Session> = runCatching {
@@ -235,5 +248,8 @@ class OpenCodeRepository @Inject constructor() {
     companion object {
         private const val TAG = "OpenCodeRepository"
         const val DEFAULT_SERVER = "http://localhost:4096"
+
+        /** Max safe limit for V2 API before server serialization bug (numeric archived timestamp) */
+        private const val V2_SAFE_LIMIT = 10
     }
 }

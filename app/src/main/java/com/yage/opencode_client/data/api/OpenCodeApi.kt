@@ -9,6 +9,19 @@ interface OpenCodeApi {
     @GET("global/health")
     suspend fun getHealth(): HealthResponse
 
+    @GET("experimental/session")
+    suspend fun getSessionsExperimental(
+        @Query("directory") directory: String? = null,
+        @Query("roots") roots: String? = null,
+        @Query("limit") limit: Int? = null
+    ): List<Session>
+
+    @GET("api/session")
+    suspend fun getSessionsV2(
+        @Query("directory") directory: String? = null,
+        @Query("limit") limit: Int? = null
+    ): SessionsResponse
+
     @GET("session")
     suspend fun getSessions(
         @Query("directory") directory: String? = null,
