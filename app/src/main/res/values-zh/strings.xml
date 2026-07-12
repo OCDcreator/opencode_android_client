@@ -214,4 +214,6 @@
     <string name="chat_todo_empty">暂无待办</string>
     <string name="chat_todo_progress">%1$d/%2$d 已完成</string>
     <string name="common_done">完成</string>
+    <string name="collapse_sessions_pane">折叠会话面板</string>
+    <string name="show_sessions_pane">展开会话面板</string>
 </resources>

@@ -213,7 +213,8 @@ fun SessionList(
     onToggleSessionExpanded: (String) -> Unit = {},
     onLoadMoreSessions: () -> Unit = {},
     onShowAllSessions: ((Boolean) -> Unit)? = null,
-    onOpenSettings: (() -> Unit)? = null
+    onOpenSettings: (() -> Unit)? = null,
+    onCollapseSessions: (() -> Unit)? = null
 ) {
     val tree = remember(sessions) { buildSessionTree(sessions) }
     val visibleRows = remember(tree, expandedSessionIds) {
@@ -259,6 +260,14 @@ fun SessionList(
                 if (onOpenSettings != null) {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                    }
+                }
+                if (onCollapseSessions != null) {
+                    IconButton(onClick = { onCollapseSessions() }) {
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.collapse_sessions_pane)
+                        )
                     }
                 }
             }
