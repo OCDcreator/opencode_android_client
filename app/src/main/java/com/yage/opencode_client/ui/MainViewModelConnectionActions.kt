@@ -2,6 +2,7 @@ package com.yage.opencode_client.ui
 
 import android.util.Log
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
+import com.yage.opencode_client.data.repository.HostProfileStore
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 internal fun applySavedSettings(
     repository: OpenCodeRepository,
     settingsManager: SettingsManager,
+    hostProfileStore: HostProfileStore,
     state: MutableStateFlow<AppState>
 ) {
     debugConnectionLog(
@@ -24,6 +26,10 @@ internal fun applySavedSettings(
         password = settingsManager.password,
         workingDirectory = settingsManager.workingDirectory
     )
+
+    // Load host profiles into state
+    val profiles = hostProfileStore.profiles()
+    val currentProfileId = hostProfileStore.currentProfile().id
 
     val savedModelKey = settingsManager.selectedModelKey
     val modelIndex = if (savedModelKey.isNotEmpty()) {
@@ -41,7 +47,9 @@ internal fun applySavedSettings(
             fontSizeScale = settingsManager.fontSizeScale,
             uiScale = settingsManager.uiScale,
             hideMicIcon = settingsManager.hideMicIcon,
-            workingDirectory = settingsManager.workingDirectory
+            workingDirectory = settingsManager.workingDirectory,
+            hostProfiles = profiles,
+            currentHostProfileId = currentProfileId
         )
     }
 
@@ -70,7 +78,8 @@ internal fun launchConnectionTest(
                     it.copy(
                         isConnected = health.healthy,
                         serverVersion = health.version,
-                        isConnecting = false
+                        isConnecting = false,
+                        connectionPhase = if (health.healthy) null else "HEALTH"
                     )
                 }
                 if (health.healthy) {
@@ -83,6 +92,7 @@ internal fun launchConnectionTest(
                     it.copy(
                         isConnected = false,
                         isConnecting = false,
+                        connectionPhase = "HEALTH",
                         error = errorMessageOrFallback(error, "Connection failed")
                     )
                 }

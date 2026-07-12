@@ -13,7 +13,10 @@ import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.data.model.SSEEvent
 import com.yage.opencode_client.data.model.SSEPayload
 import com.yage.opencode_client.data.model.HealthResponse
+import com.yage.opencode_client.data.repository.HostProfileStore
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import com.yage.opencode_client.ssh.SSHKeyManager
+import com.yage.opencode_client.ssh.TunnelManager
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.ModelPresets
@@ -58,6 +61,9 @@ class MainViewModelTest {
     private lateinit var settingsManager: SettingsManager
     private lateinit var audioRecorderManager: AudioRecorderManager
     private lateinit var imageCompressor: ImageAttachmentCompressor
+    private lateinit var hostProfileStore: HostProfileStore
+    private lateinit var tunnelManager: TunnelManager
+    private lateinit var sshKeyManager: SSHKeyManager
 
     @Before
     fun setUp() {
@@ -71,6 +77,11 @@ class MainViewModelTest {
         settingsManager = mockk(relaxed = true)
         audioRecorderManager = mockk(relaxed = true)
         imageCompressor = mockk(relaxed = true)
+        hostProfileStore = mockk(relaxed = true)
+        tunnelManager = mockk(relaxed = true)
+        sshKeyManager = mockk(relaxed = true)
+
+        every { hostProfileStore.profiles() } returns emptyList()
 
         every { settingsManager.serverUrl } returns "http://server.test"
         every { settingsManager.username } returns null
@@ -114,7 +125,7 @@ class MainViewModelTest {
     }
 
     private fun createViewModel(): MainViewModel {
-        return MainViewModel(repository, settingsManager, audioRecorderManager, imageCompressor)
+        return MainViewModel(repository, settingsManager, audioRecorderManager, imageCompressor, hostProfileStore, tunnelManager, sshKeyManager)
     }
 
     private fun updateState(viewModel: MainViewModel, transform: (AppState) -> AppState) {

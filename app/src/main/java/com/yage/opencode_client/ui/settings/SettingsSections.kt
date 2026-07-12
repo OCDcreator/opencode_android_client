@@ -959,7 +959,7 @@ internal fun AboutSection() {
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+internal fun SectionHeader(title: String) {
     Text(
         title,
         style = MaterialTheme.typography.titleMedium

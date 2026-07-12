@@ -86,6 +86,14 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp.uiScaled())
         ) {
+            HostProfilesSection(viewModel = viewModel)
+
+            SettingsSectionDivider()
+
+            SshPublicKeySection(viewModel = viewModel)
+
+            SettingsSectionDivider()
+
             ServerConnectionSection(
                 serverUrl = serverUrl,
                 username = username,

@@ -107,6 +107,8 @@ dependencies {
     implementation(libs.markdown.renderer.m3)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.bcprov)
+    implementation(libs.jsch)
     
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
