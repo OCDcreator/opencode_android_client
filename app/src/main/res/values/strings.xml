@@ -203,4 +203,8 @@
     <string name="image_max_reached">Maximum 5 images allowed</string>
     <string name="image_compression_failed">Failed to process image: %1$s</string>
     <string name="image_too_large">Image too large after compression (%.1f MB)</string>
+    <string name="sessions_empty_filtered">No sessions in this working directory.</string>
+    <string name="sessions_empty_filtered_hint">%1$d session(s) exist under other directories.</string>
+    <string name="sessions_show_all">Show all sessions</string>
+    <string name="sessions_show_filtered">Only show sessions in this directory</string>
 </resources>

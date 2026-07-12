@@ -86,6 +86,8 @@ internal data class ChatTopBarState(
     val sessionStatuses: Map<String, SessionStatus>,
     val hasMoreSessions: Boolean,
     val isLoadingMoreSessions: Boolean,
+    val totalSessionCount: Int = 0,
+    val showAllSessions: Boolean = false,
     val expandedSessionIds: Set<String> = emptySet(),
     val agents: List<AgentInfo>,
     val selectedAgent: String,
@@ -104,6 +106,7 @@ internal data class ChatTopBarActions(
     val onDeleteSession: (String) -> Unit,
     val onLoadMoreSessions: () -> Unit,
     val onToggleSessionExpanded: (String) -> Unit = {},
+    val onShowAllSessions: (Boolean) -> Unit = {},
     val onSelectAgent: (String) -> Unit,
     val onSelectModel: (Int) -> Unit,
     val onOpenContextUsage: () -> Unit = {},
@@ -277,6 +280,8 @@ internal fun ChatTopBar(
                     hasMoreSessions = state.hasMoreSessions,
                     isLoadingMoreSessions = state.isLoadingMoreSessions,
                     expandedSessionIds = state.expandedSessionIds,
+                    totalSessionCount = state.totalSessionCount,
+                    showAllSessions = state.showAllSessions,
                     onSelectSession = {
                         actions.onSelectSession(it)
                         showSessionSheet = false
@@ -291,6 +296,7 @@ internal fun ChatTopBar(
                     },
                     onLoadMoreSessions = actions.onLoadMoreSessions,
                     onToggleSessionExpanded = actions.onToggleSessionExpanded,
+                    onShowAllSessions = actions.onShowAllSessions,
                     onOpenSettings = null
                 )
             }

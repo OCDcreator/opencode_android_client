@@ -1,7 +1,10 @@
 package com.yage.opencode_client.ui
 
+import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.data.model.SSEEvent
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -171,6 +174,32 @@ internal fun handleIncomingSseEvent(
                         pendingQuestions = currentState.pendingQuestions.filter { it.id != requestId }
                     )
                 }
+            }
+        }
+        "session.error" -> {
+            val sessionId = event.payload.getString("sessionID")
+            val errorObj = event.payload.properties?.get("error") as? JsonObject
+            val errorName = (errorObj?.get("name") as? JsonPrimitive)?.content
+            val errorData = errorObj?.get("data") as? JsonObject
+            val errorMessage = (errorData?.get("message") as? JsonPrimitive)?.content
+            val displayMessage = when {
+                errorMessage != null && errorName != null -> "$errorName: $errorMessage"
+                errorMessage != null -> errorMessage
+                errorName != null -> "Session error: $errorName"
+                else -> "Session error"
+            }
+            val isCurrentSession = sessionId == null || sessionId == state.value.currentSessionId
+            state.update {
+                it.copy(
+                    error = displayMessage,
+                    streamingPartTexts = if (isCurrentSession) emptyMap() else it.streamingPartTexts,
+                    streamingReasoningPart = if (isCurrentSession) null else it.streamingReasoningPart,
+                    sessionStatuses = if (isCurrentSession && sessionId != null) {
+                        it.sessionStatuses + (sessionId to SessionStatus(type = "idle"))
+                    } else {
+                        it.sessionStatuses
+                    }
+                )
             }
         }
     }

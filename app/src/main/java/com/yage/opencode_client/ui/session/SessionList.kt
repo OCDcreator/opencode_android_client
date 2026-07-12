@@ -139,11 +139,14 @@ fun SessionList(
     hasMoreSessions: Boolean = false,
     isLoadingMoreSessions: Boolean = false,
     expandedSessionIds: Set<String> = emptySet(),
+    totalSessionCount: Int = 0,
+    showAllSessions: Boolean = false,
     onSelectSession: (String) -> Unit,
     onCreateSession: () -> Unit,
     onDeleteSession: (String) -> Unit,
     onToggleSessionExpanded: (String) -> Unit = {},
     onLoadMoreSessions: () -> Unit = {},
+    onShowAllSessions: ((Boolean) -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null
 ) {
     val tree = remember(sessions) { buildSessionTree(sessions) }
@@ -179,6 +182,11 @@ fun SessionList(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                if (showAllSessions && onShowAllSessions != null) {
+                    TextButton(onClick = { onShowAllSessions(false) }) {
+                        Text(stringResource(R.string.sessions_show_filtered))
+                    }
+                }
                 TextButton(onClick = onCreateSession) {
                     Text(stringResource(R.string.new_session))
                 }
@@ -196,6 +204,33 @@ fun SessionList(
                 .fillMaxWidth()
                 .testTag("session_list")
         ) {
+            // Empty state: no sessions after directory filtering, but the server has some.
+            if (visibleRows.isEmpty() && totalSessionCount > 0 && onShowAllSessions != null) {
+                item(key = "empty-filtered") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp.uiScaled()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(R.string.sessions_empty_filtered),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Spacer(modifier = Modifier.height(8.dp.uiScaled()))
+                        Text(
+                            text = stringResource(R.string.sessions_empty_filtered_hint, totalSessionCount),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Spacer(modifier = Modifier.height(16.dp.uiScaled()))
+                        TextButton(onClick = { onShowAllSessions(true) }) {
+                            Text(stringResource(R.string.sessions_show_all))
+                        }
+                    }
+                }
+            }
             itemsIndexed(visibleRows, key = { _, (node, _) -> node.session.id }) { index, (node, depth) ->
                 val session = node.session
                 val isSelected = session.id == currentSessionId

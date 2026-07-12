@@ -53,6 +53,11 @@ data class AppState(
     val loadedSessionLimit: Int = MainViewModelTimings.sessionPageSize,
     val hasMoreSessions: Boolean = true,
     val isLoadingMoreSessions: Boolean = false,
+    // Total unfiltered session count from the server (before the working-directory filter).
+    // Lets the empty state hint "N sessions exist elsewhere" + offer a "show all" entry.
+    val totalSessionCount: Int = 0,
+    // When true, the session list ignores the working-directory filter and shows every session.
+    val showAllSessions: Boolean = false,
     val expandedSessionIds: Set<String> = emptySet(),
     val currentSessionId: String? = null,
     val sessionStatuses: Map<String, SessionStatus> = emptyMap(),
@@ -575,6 +580,15 @@ class MainViewModel @Inject constructor(
             state = _state,
             onSelectSession = ::selectSession
         )
+    }
+
+    /**
+     * Toggle whether the session list ignores the working-directory filter.
+     * Reloads sessions so the list reflects the new mode immediately.
+     */
+    fun setShowAllSessions(showAll: Boolean) {
+        _state.update { it.copy(showAllSessions = showAll) }
+        loadSessions()
     }
 
     private fun loadSessionStatus() {

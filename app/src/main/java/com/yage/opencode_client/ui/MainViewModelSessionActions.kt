@@ -22,7 +22,8 @@ internal fun launchLoadSessions(
 ) {
     scope.launch {
         val limit = MainViewModelTimings.sessionPageSize
-        debugSessionLog("loadSessions start limit=$limit")
+        val ignoreDir = state.value.showAllSessions
+        debugSessionLog("loadSessions start limit=$limit ignoreDir=$ignoreDir")
         state.update {
             it.copy(
                 loadedSessionLimit = limit,
@@ -30,14 +31,23 @@ internal fun launchLoadSessions(
                 isLoadingMoreSessions = false
             )
         }
-        repository.getSessions(limit)
+        repository.getSessions(limit, ignoreDirectoryFilter = ignoreDir)
             .onSuccess { sessions ->
                 debugSessionLog("loadSessions success count=${sessions.size}")
+                // When filtering by directory, fetch the unfiltered count once so the
+                // empty state can hint "N sessions exist under other directories".
+                val totalCount = if (!ignoreDir && sessions.isEmpty()) {
+                    repository.getSessions(limit, ignoreDirectoryFilter = true)
+                        .getOrNull()?.size ?: 0
+                } else {
+                    sessions.size
+                }
                 state.update {
                     it.copy(
                         sessions = sessions,
                         hasMoreSessions = sessions.size >= limit,
-                        isLoadingMoreSessions = false
+                        isLoadingMoreSessions = false,
+                        totalSessionCount = totalCount
                     )
                 }
                 val currentId = state.value.currentSessionId
@@ -86,9 +96,10 @@ internal fun launchLoadMoreSessions(
         }
     }
     if (!shouldLaunch) return
+    val ignoreDir = state.value.showAllSessions
     scope.launch {
-        debugSessionLog("loadMoreSessions start limit=$nextLimit")
-        repository.getSessions(nextLimit)
+        debugSessionLog("loadMoreSessions start limit=$nextLimit ignoreDir=$ignoreDir")
+        repository.getSessions(nextLimit, ignoreDirectoryFilter = ignoreDir)
             .onSuccess { sessions ->
                 debugSessionLog("loadMoreSessions success count=${sessions.size}")
                 if (state.value.loadedSessionLimit > nextLimit) {

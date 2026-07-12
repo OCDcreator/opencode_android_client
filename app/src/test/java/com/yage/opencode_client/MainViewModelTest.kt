@@ -462,9 +462,11 @@ class MainViewModelTest {
                                 put("messageID", JsonPrimitive("message-1"))
                                 put("id", JsonPrimitive("part-1"))
                                 put("type", JsonPrimitive("reasoning"))
+                                // The server's message.part.updated carries the full accumulated
+                                // text in part.text (not an incremental "delta").
+                                put("text", JsonPrimitive("thinking"))
                             }
                         )
-                        put("delta", JsonPrimitive("thinking"))
                     }
                 )
             )

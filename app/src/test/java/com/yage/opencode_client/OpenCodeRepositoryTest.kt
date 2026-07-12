@@ -111,11 +111,16 @@ class OpenCodeRepositoryTest {
         assertEquals(1, list.size)
         assertEquals("s1", list[0].id)
         assertEquals("/project", list[0].directory)
-        assertTrue(server.takeRequest().path!!.contains("scope=project"))
+        // getSessions uses the experimental/session endpoint with roots=true.
+        assertTrue(server.takeRequest().path!!.contains("roots=true"))
     }
 
     @Test
-    fun `getSessions includes directory and project scope when configured`() = runBlocking {
+    fun `getSessions does not forward directory to the API even when configured`() = runBlocking {
+        // The server's experimental/session endpoint treats a present `directory` param as an
+        // EXACT string match on the session's stored directory column, which breaks prefix-style
+        // "this dir and its subdirs" filtering. So the client fetches all sessions (no directory
+        // param) and filters locally via filterByDirectory instead.
         repository.configure(
             baseUrl = server.url("/").toString().trimEnd('/'),
             workingDirectory = "/Users/me/project"
@@ -127,9 +132,33 @@ class OpenCodeRepositoryTest {
         assertTrue(result.isSuccess)
         val request = server.takeRequest()
         assertEquals("GET", request.method)
-        assertTrue(request.path!!.contains("directory="))
-        assertTrue(request.path!!.contains("scope=project"))
+        assertFalse(request.path!!.contains("directory="))
+        assertTrue(request.path!!.contains("roots=true"))
         assertTrue(request.path!!.contains("limit=30"))
+    }
+
+    @Test
+    fun `filterByDirectory keeps exact and subdirectory matches`() {
+        val sessions = listOf(
+            Session(id = "exact", directory = "/Users/me/project"),
+            Session(id = "sub", directory = "/Users/me/project/sub"),
+            Session(id = "deep", directory = "/Users/me/project/a/b"),
+            Session(id = "other", directory = "/Users/me/other"),
+            Session(id = "trailing", directory = "/Users/me/project/"),
+            Session(id = "nocase", directory = "/users/me/project")
+        )
+        // Exact + nested children match; siblings and case-mismatched dirs do not.
+        val filtered = repository.filterByDirectory(sessions, "/Users/me/project")
+        assertEquals(listOf("exact", "sub", "deep", "trailing"), filtered.map { it.id })
+    }
+
+    @Test
+    fun `filterByDirectory returns all when filter is null`() {
+        val sessions = listOf(
+            Session(id = "a", directory = "/x"),
+            Session(id = "b", directory = "/y")
+        )
+        assertEquals(sessions, repository.filterByDirectory(sessions, null))
     }
 
     @Test

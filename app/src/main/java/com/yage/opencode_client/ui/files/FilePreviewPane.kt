@@ -47,6 +47,7 @@ import androidx.core.content.FileProvider
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.FileContent
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import com.yage.opencode_client.ui.theme.markdownComponentsWithScrollableTable
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
 import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
@@ -147,6 +148,7 @@ private fun PreviewMarkdown(
             Markdown(
                 content = resolvedContent ?: content,
                 typography = markdownTypographyCompact(),
+                components = markdownComponentsWithScrollableTable(),
                 modifier = Modifier.fillMaxWidth(),
                 imageTransformer = DataUriImageTransformer
             )

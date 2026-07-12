@@ -195,4 +195,8 @@
     <string name="failed_send_message">发送消息失败</string>
     <string name="transcription_failed">转写失败</string>
     <string name="sse_error">SSE 错误：%1$s</string>
+    <string name="sessions_empty_filtered">当前工作目录下没有会话。</string>
+    <string name="sessions_empty_filtered_hint">其他目录下还有 %1$d 个会话。</string>
+    <string name="sessions_show_all">显示所有会话</string>
+    <string name="sessions_show_filtered">仅显示当前目录的会话</string>
 </resources>

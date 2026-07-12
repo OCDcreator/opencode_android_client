@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.CheckCircle
@@ -55,7 +56,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,17 +70,16 @@ import com.yage.opencode_client.data.model.PartTokenInfo
 import com.yage.opencode_client.data.model.TodoItem
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.ToolWritePatchBackgroundDark
+import com.yage.opencode_client.ui.theme.markdownComponentsWithScrollableTable
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
 import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
-import androidx.compose.animation.animateContentSize
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.StreamDebugLogger
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -98,36 +97,60 @@ internal fun ChatMessageList(
     onFileClick: (String) -> Unit,
     onForkFromMessage: (String) -> Unit
 ) {
-    val listState = rememberLazyListState()
+    // Per-session scroll state so each session remembers its position when you switch away and back.
+    val listStates = remember { mutableStateMapOf<String, LazyListState>() }
+    val listState = currentSessionId?.let { id ->
+        listStates.getOrPut(id) { LazyListState() }
+    } ?: rememberLazyListState()
     val layoutInfo = listState.layoutInfo
-    var shouldAutoScroll by remember { mutableStateOf(true) }
 
-    val contentVersion = remember(messages, streamingPartTexts, streamingReasoningPart, isLoading) {
-        messages.size +
-            messages.sumOf { it.parts.size } +
-            streamingPartTexts.hashCode() +
-            (if (streamingReasoningPart != null) 1 else 0) +
-            (if (isLoading) 1 else 0)
-    }
-
-    // Normal layout: "at bottom" means last visible item is the final item and flush with viewport bottom
-    LaunchedEffect(listState) {
-        snapshotFlow {
+    // Synchronously derived "is the list scrolled to the bottom?" flag.
+    // A derivedStateOf reads layoutInfo directly, so there is no async gap between "at bottom"
+    // detection and the scroll decision that used to race during streaming (GH jump-to-top bug).
+    val atBottom by remember {
+        derivedStateOf {
             val info = listState.layoutInfo
-            val visible = info.visibleItemsInfo
-            val total = info.totalItemsCount
-            val lastVisible = visible.lastOrNull()
-            lastVisible != null && lastVisible.index >= total - 1 &&
-                lastVisible.offset + lastVisible.size <= info.viewportSize.height + 24
-        }.collect { atBottom ->
-            shouldAutoScroll = atBottom
+            val last = info.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf true
+            last.index >= info.totalItemsCount - 1 &&
+                last.offset + last.size <= info.viewportSize.height + 24
         }
     }
 
-    LaunchedEffect(contentVersion) {
-        if (shouldAutoScroll && (messages.isNotEmpty() || streamingReasoningPart != null)) {
-            val targetIndex = listState.layoutInfo.totalItemsCount - 1
-            if (targetIndex >= 0) listState.animateScrollToItem(targetIndex)
+    // Track which sessions have been scrolled at least once so that first open falls back to the
+    // newest message while later visits restore the remembered position.
+    val initializedSessions = remember { mutableStateMapOf<String, Boolean>() }
+
+    // Scroll triggers. bottomAnchor changes only when item/part counts change (not per streaming
+    // token); streamingTrigger fires on every delta so streaming stays pinned to the bottom.
+    val bottomAnchor = remember(messages, streamingReasoningPart) {
+        messages.size to messages.lastOrNull()?.parts?.size
+    }
+    val streamingTrigger = remember(streamingPartTexts) { streamingPartTexts.hashCode() }
+
+    // Stick to bottom when already there. Instant scrollToItem (not animated): during streaming the
+    // trigger fires many times per second and an animation never gets to finish.
+    LaunchedEffect(atBottom, bottomAnchor) {
+        if (atBottom && (messages.isNotEmpty() || streamingReasoningPart != null)) {
+            val idx = listState.layoutInfo.totalItemsCount - 1
+            if (idx >= 0) listState.scrollToItem(idx)
+        }
+    }
+    LaunchedEffect(streamingTrigger) {
+        if (atBottom && messages.isNotEmpty()) {
+            val idx = listState.layoutInfo.totalItemsCount - 1
+            if (idx >= 0) listState.scrollToItem(idx)
+        }
+    }
+
+    // First open of a session: no position to remember yet, so fall back to the newest message.
+    LaunchedEffect(currentSessionId, isLoading, messages.isEmpty()) {
+        val id = currentSessionId ?: return@LaunchedEffect
+        if (!isLoading && messages.isNotEmpty() && initializedSessions[id] != true) {
+            val idx = listState.layoutInfo.totalItemsCount - 1
+            if (idx >= 0) {
+                listState.scrollToItem(idx)
+                initializedSessions[id] = true
+            }
         }
     }
 
@@ -136,7 +159,7 @@ internal fun ChatMessageList(
         messages.size,
         streamingPartTexts,
         streamingReasoningPart,
-        shouldAutoScroll
+        atBottom
     ) {
         val sessionId = currentSessionId ?: return@LaunchedEffect
         StreamDebugLogger.logUiSnapshot(
@@ -145,7 +168,7 @@ internal fun ChatMessageList(
             streamingParts = streamingPartTexts.size,
             streamingChars = streamingPartTexts.values.sumOf { it.length },
             hasStreamingReasoning = streamingReasoningPart != null,
-            shouldAutoScroll = shouldAutoScroll
+            shouldAutoScroll = atBottom
         )
     }
 
@@ -164,11 +187,14 @@ internal fun ChatMessageList(
         if (shouldLoadMore.value) onLoadMore()
     }
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp.uiScaled())
-    ) {
+    val scope = rememberCoroutineScope()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp.uiScaled())
+        ) {
         if (isLoading && messages.size >= messageLimit) {
             item(key = "load-more-indicator") {
                 Box(
@@ -216,6 +242,28 @@ internal fun ChatMessageList(
                         isStreaming = true
                     )
                 }
+            }
+        }
+        }
+
+        if (!atBottom && messages.isNotEmpty()) {
+            Surface(
+                onClick = {
+                    val idx = listState.layoutInfo.totalItemsCount - 1
+                    if (idx >= 0) scope.launch { listState.scrollToItem(idx) }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp.uiScaled()),
+                shape = RoundedCornerShape(20.dp.uiScaled()),
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp
+            ) {
+                Text(
+                    text = "↓ 回到底部",
+                    modifier = Modifier.padding(horizontal = 16.dp.uiScaled(), vertical = 8.dp.uiScaled()),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
@@ -542,7 +590,7 @@ private fun TextPart(
         } else {
             SelectionContainer {
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                    Markdown(content = text, typography = markdownTypographyCompact(), modifier = innerModifier, imageTransformer = DataUriImageTransformer)
+                    Markdown(content = text, typography = markdownTypographyCompact(), components = markdownComponentsWithScrollableTable(), modifier = innerModifier, imageTransformer = DataUriImageTransformer)
                 }
             }
         }
@@ -577,6 +625,7 @@ private fun ResolvedMarkdownText(
             Markdown(
                 content = resolvedText ?: text,
                 typography = markdownTypographyCompact(),
+                components = markdownComponentsWithScrollableTable(),
                 modifier = modifier,
                 imageTransformer = DataUriImageTransformer
             )
@@ -628,6 +677,7 @@ private fun ReasoningCard(
                         Markdown(
                             content = text,
                             typography = markdownTypographyCompact(),
+                            components = markdownComponentsWithScrollableTable(),
                             modifier = Modifier.padding(horizontal = 12.dp.uiScaled(), vertical = 8.dp.uiScaled()),
                             imageTransformer = DataUriImageTransformer
                         )
@@ -676,7 +726,7 @@ private fun ToolCard(
                     Spacer(modifier = Modifier.weight(1f))
                     if (firstFile != null) {
                         IconButton(onClick = { onFileClick(firstFile) }, modifier = Modifier.size(28.dp.uiScaled())) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                         }
                     }
                     IconButton(onClick = { onExpandedChange(!expanded) }, modifier = Modifier.size(24.dp.uiScaled())) {
@@ -762,7 +812,7 @@ private fun ToolCard(
                                     modifier = Modifier.weight(1f)
                                 )
                                 IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
-                                    Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                                 }
                             }
                         }
@@ -801,7 +851,7 @@ private fun PatchCard(
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { onFileClick(path) }, modifier = Modifier.size(28.dp.uiScaled())) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.show_in_files_cd), modifier = Modifier.size(18.dp.uiScaled()))
                         }
                     }
                 }

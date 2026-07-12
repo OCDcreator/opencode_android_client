@@ -92,22 +92,52 @@ class OpenCodeRepository @Inject constructor() {
 
     suspend fun checkHealth(): Result<HealthResponse> = runCatching { api.getHealth() }
 
-    suspend fun getSessions(limit: Int? = null, directory: String? = null): Result<List<Session>> {
-        val resolvedDirectory = effectiveDirectory(directory)
-        debugLog("getSessions directory=$resolvedDirectory limit=$limit")
+    suspend fun getSessions(
+        limit: Int? = null,
+        directory: String? = null,
+        ignoreDirectoryFilter: Boolean = false
+    ): Result<List<Session>> {
+        val filterDir = if (ignoreDirectoryFilter) null else effectiveDirectory(directory)
+        debugLog("getSessions limit=$limit filterDir=$filterDir ignoreFilter=$ignoreDirectoryFilter")
         return runCatching {
             // Use the experimental/session endpoint — it uses listGlobal which
             // queries across all projects (no project_id isolation). The web UI
             // uses this same endpoint. Supports roots=true to hide sub-agent sessions.
+            //
+            // Do NOT forward the working directory as a query param: listGlobal treats
+            // a present `directory` param as an EXACT string match on the session's
+            // stored directory column (session.ts listGlobal), which yields 0 results
+            // unless the client's working dir is byte-for-byte identical to the
+            // dir the session was created in. Instead we fetch all sessions (no
+            // directory param) and prefix-filter client-side below, so selecting
+            // /a/b also shows sessions created under /a/b/any-project.
             val sessions = api.getSessionsExperimental(
-                directory = resolvedDirectory,
+                directory = null,
                 roots = "true",
                 limit = limit
             )
-            debugLog("getSessions returned count=${sessions.size}")
-            sessions
+            val filtered = filterByDirectory(sessions, filterDir)
+            debugLog("getSessions returned count=${filtered.size}/${sessions.size}")
+            filtered
         }.onFailure { error ->
-            debugLog("getSessions failed directory=$resolvedDirectory limit=$limit", error)
+            debugLog("getSessions failed limit=$limit", error)
+        }
+    }
+
+    /**
+     * Keep only sessions whose stored directory equals [filterDir] or lives under it.
+     * Null/empty [filterDir] returns all sessions. Exposed so callers can reuse the
+     * same rule (e.g. to compute a "filtered out" count for empty-state hints).
+     */
+    fun filterByDirectory(sessions: List<Session>, filterDir: String?): List<Session> {
+        if (filterDir == null) return sessions
+        // Normalize both sides so a trailing slash doesn't hide matches:
+        // /a/b should match sessions stored as /a/b and /a/b/project.
+        val base = filterDir.trimEnd('/').trimStart('/')
+        if (base.isEmpty()) return sessions
+        return sessions.filter { session ->
+            val dir = session.directory?.trimEnd('/')?.trimStart('/') ?: return@filter false
+            dir == base || dir.startsWith("$base/")
         }
     }
 
