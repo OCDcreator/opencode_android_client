@@ -229,4 +229,63 @@
     <string name="sessions_restore">Restore</string>
     <string name="sessions_archive_cd">Archive session</string>
     <string name="sessions_restore_cd">Restore session</string>
+
+    <!-- Host Profiles -->
+    <string name="host_profiles_title">Connection Profiles</string>
+    <string name="host_profiles_empty">No profiles yet. Tap \"Add Profile\" to create one.</string>
+    <string name="host_profiles_add">Add Profile</string>
+    <string name="host_profiles_more_options">More options</string>
+    <string name="host_profiles_edit">Edit</string>
+    <string name="host_profiles_duplicate">Duplicate</string>
+    <string name="host_profiles_export">Export</string>
+    <string name="host_profiles_delete">Delete</string>
+    <string name="host_profiles_delete_title">Delete profile</string>
+    <string name="host_profiles_delete_confirm">Delete \"%1$s\"? This cannot be undone.</string>
+    <string name="host_profiles_export_title">Export \"%1$s\"</string>
+    <string name="host_profiles_transport_direct">DIRECT</string>
+    <string name="host_profiles_transport_ssh">SSH</string>
+
+    <!-- Host Profile Editor -->
+    <string name="host_profile_name">Profile name</string>
+    <string name="host_profile_name_required">Name is required</string>
+    <string name="host_profile_server_url">Server URL</string>
+    <string name="host_profile_server_url_required">Server URL is required</string>
+    <string name="host_profile_ssh_hint">Tunneled target reached via the SSH gateway</string>
+    <string name="host_profile_username">Username</string>
+    <string name="host_profile_password">Password</string>
+    <string name="host_profile_ssh_gateway">SSH gateway host</string>
+    <string name="host_profile_ssh_port">SSH port</string>
+    <string name="host_profile_ssh_username">SSH username</string>
+    <string name="host_profile_remote_port">Assigned remote port</string>
+    <string name="host_profile_ssh_required">Required for SSH tunnel</string>
+    <string name="host_profile_save">Save</string>
+    <string name="host_profile_new">New Profile</string>
+    <string name="host_profile_edit_title">Edit Profile</string>
+    <string name="host_profile_auth_remove">Remove</string>
+    <string name="host_profile_auth_add">Add</string>
+
+    <!-- SSH Public Key -->
+    <string name="ssh_key_title">Device SSH Public Key</string>
+    <string name="ssh_key_copy">Copy</string>
+    <string name="ssh_key_copied">Copied</string>
+    <string name="ssh_key_copied_toast">Copied to clipboard</string>
+    <string name="ssh_key_rotate">Rotate Key</string>
+    <string name="ssh_key_rotate_title">Rotate SSH key</string>
+    <string name="ssh_key_rotate_confirm">This replaces the device key pair. The new public key must be re-authorized on the server. Continue?</string>
+    <string name="ssh_key_rotate_action">Rotate</string>
+
+    <!-- Agent activity status -->
+    <string name="agent_activity_delegating">Delegating</string>
+    <string name="agent_activity_planning">Planning</string>
+    <string name="agent_activity_gathering_context">Gathering context</string>
+    <string name="agent_activity_searching_codebase">Searching codebase</string>
+    <string name="agent_activity_searching_web">Searching web</string>
+    <string name="agent_activity_making_edits">Making edits</string>
+    <string name="agent_activity_running_commands">Running commands</string>
+    <string name="agent_activity_gathering_thoughts">Gathering thoughts</string>
+    <string name="agent_activity_thinking">Thinking</string>
+    <string name="agent_activity_thinking_topic">Thinking - %1$s</string>
+    <string name="agent_activity_retrying">Retrying</string>
+    <string name="link_error_open_failed">Could not open link</string>
+    <string name="link_error_workspace_changed">Workspace changed; reopen the link from the current session.</string>
 </resources>

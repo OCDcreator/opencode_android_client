@@ -221,4 +221,63 @@
     <string name="sessions_restore">恢复</string>
     <string name="sessions_archive_cd">归档会话</string>
     <string name="sessions_restore_cd">恢复会话</string>
+
+    <!-- Host Profiles -->
+    <string name="host_profiles_title">连接配置</string>
+    <string name="host_profiles_empty">暂无配置。点击"添加配置"创建一个。</string>
+    <string name="host_profiles_add">添加配置</string>
+    <string name="host_profiles_more_options">更多操作</string>
+    <string name="host_profiles_edit">编辑</string>
+    <string name="host_profiles_duplicate">复制</string>
+    <string name="host_profiles_export">导出</string>
+    <string name="host_profiles_delete">删除</string>
+    <string name="host_profiles_delete_title">删除配置</string>
+    <string name="host_profiles_delete_confirm">删除"%1$s"？此操作不可撤销。</string>
+    <string name="host_profiles_export_title">导出"%1$s"</string>
+    <string name="host_profiles_transport_direct">直连</string>
+    <string name="host_profiles_transport_ssh">SSH</string>
+
+    <!-- Host Profile Editor -->
+    <string name="host_profile_name">配置名称</string>
+    <string name="host_profile_name_required">名称为必填项</string>
+    <string name="host_profile_server_url">服务器地址</string>
+    <string name="host_profile_server_url_required">服务器地址为必填项</string>
+    <string name="host_profile_ssh_hint">通过 SSH 网关访问隧道目标</string>
+    <string name="host_profile_username">用户名</string>
+    <string name="host_profile_password">密码</string>
+    <string name="host_profile_ssh_gateway">SSH 网关地址</string>
+    <string name="host_profile_ssh_port">SSH 端口</string>
+    <string name="host_profile_ssh_username">SSH 用户名</string>
+    <string name="host_profile_remote_port">分配的远程端口</string>
+    <string name="host_profile_ssh_required">SSH 隧道必填</string>
+    <string name="host_profile_save">保存</string>
+    <string name="host_profile_new">新建配置</string>
+    <string name="host_profile_edit_title">编辑配置</string>
+    <string name="host_profile_auth_remove">移除</string>
+    <string name="host_profile_auth_add">添加</string>
+
+    <!-- SSH Public Key -->
+    <string name="ssh_key_title">设备 SSH 公钥</string>
+    <string name="ssh_key_copy">复制</string>
+    <string name="ssh_key_copied">已复制</string>
+    <string name="ssh_key_copied_toast">已复制到剪贴板</string>
+    <string name="ssh_key_rotate">轮换密钥</string>
+    <string name="ssh_key_rotate_title">轮换 SSH 密钥</string>
+    <string name="ssh_key_rotate_confirm">这将替换设备密钥对。新的公钥需要在服务器上重新授权。是否继续？</string>
+    <string name="ssh_key_rotate_action">轮换</string>
+
+    <!-- Agent activity status -->
+    <string name="agent_activity_delegating">委派中</string>
+    <string name="agent_activity_planning">规划中</string>
+    <string name="agent_activity_gathering_context">收集上下文</string>
+    <string name="agent_activity_searching_codebase">搜索代码库</string>
+    <string name="agent_activity_searching_web">搜索网络</string>
+    <string name="agent_activity_making_edits">编辑中</string>
+    <string name="agent_activity_running_commands">执行命令</string>
+    <string name="agent_activity_gathering_thoughts">整理思路</string>
+    <string name="agent_activity_thinking">思考中</string>
+    <string name="agent_activity_thinking_topic">思考中 - %1$s</string>
+    <string name="agent_activity_retrying">重试中</string>
+    <string name="link_error_open_failed">无法打开链接</string>
+    <string name="link_error_workspace_changed">工作区已变更，请从当前会话重新打开链接。</string>
 </resources>

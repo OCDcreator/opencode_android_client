@@ -56,12 +56,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.BasicAuthConfig
 import com.yage.opencode_client.data.model.HostProfile
 import com.yage.opencode_client.data.model.HostTransport
@@ -90,11 +92,11 @@ internal fun HostProfilesSection(viewModel: MainViewModel) {
     var exportedPayload by remember { mutableStateOf<String?>(null) }
     var exportName by remember { mutableStateOf<String?>(null) }
 
-    SectionHeader(title = "Connection Profiles")
+    SectionHeader(title = stringResource(R.string.host_profiles_title))
 
     if (profiles.isEmpty()) {
         Text(
-            text = "No profiles yet. Tap + to create one.",
+            text = stringResource(R.string.host_profiles_empty),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline
         )
@@ -123,7 +125,7 @@ internal fun HostProfilesSection(viewModel: MainViewModel) {
     ) {
         Icon(Icons.Default.Add, contentDescription = null)
         Spacer(modifier = Modifier.width(8.dp.uiScaled()))
-        Text("Add Profile")
+        Text(stringResource(R.string.host_profiles_add))
     }
 
     // New-profile editor
@@ -154,16 +156,16 @@ internal fun HostProfilesSection(viewModel: MainViewModel) {
     pendingDelete?.let { target ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete profile") },
-            text = { Text("Delete \"${target.displayName}\"? This cannot be undone.") },
+            title = { Text(stringResource(R.string.host_profiles_delete_title)) },
+            text = { Text(stringResource(R.string.host_profiles_delete_confirm, target.displayName)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteHostProfile(target.id)
                     pendingDelete = null
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.host_profiles_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -278,7 +280,7 @@ private fun HostProfileRow(
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
+                        contentDescription = stringResource(R.string.host_profiles_more_options),
                         tint = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {
@@ -291,7 +293,7 @@ private fun HostProfileRow(
                     onDismissRequest = { menuExpanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(stringResource(R.string.host_profiles_edit)) },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
@@ -299,7 +301,7 @@ private fun HostProfileRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Duplicate") },
+                        text = { Text(stringResource(R.string.host_profiles_duplicate)) },
                         leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
@@ -307,7 +309,7 @@ private fun HostProfileRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Export") },
+                        text = { Text(stringResource(R.string.host_profiles_export)) },
                         leadingIcon = { Icon(Icons.Default.IosShare, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
@@ -315,7 +317,7 @@ private fun HostProfileRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.host_profiles_delete)) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
@@ -340,7 +342,7 @@ private fun ExportPayloadDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Export \"$profileName\"") },
+        title = { Text(stringResource(R.string.host_profiles_export_title, profileName)) },
         text = {
             Column {
                 Text(
@@ -375,7 +377,7 @@ private fun ExportPayloadDialog(
                         )
                         Spacer(modifier = Modifier.width(4.dp.uiScaled()))
                         Text(
-                            text = "Copied to clipboard",
+                            text = stringResource(R.string.ssh_key_copied_toast),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -390,11 +392,11 @@ private fun ExportPayloadDialog(
             }) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
                 Spacer(modifier = Modifier.width(4.dp.uiScaled()))
-                Text(if (copied) "Copied" else "Copy")
+                Text(if (copied) stringResource(R.string.ssh_key_copied) else stringResource(R.string.ssh_key_copy))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
         }
     )
 }
@@ -442,7 +444,7 @@ internal fun HostProfileEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isNew) "New Profile" else "Edit Profile") },
+        title = { Text(if (isNew) stringResource(R.string.host_profile_new) else stringResource(R.string.host_profile_edit_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -452,12 +454,12 @@ internal fun HostProfileEditorDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Profile name") },
+                    label = { Text(stringResource(R.string.host_profile_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = nameError,
                     supportingText = if (nameError) {
-                        { Text("Name is required") }
+                        { Text(stringResource(R.string.host_profile_name_required)) }
                     } else null
                 )
 
@@ -487,16 +489,16 @@ internal fun HostProfileEditorDialog(
                     value = serverUrl,
                     onValueChange = { serverUrl = it },
                     label = {
-                        Text(if (transport == HostTransport.SSH_TUNNEL) "Local server URL" else "Server URL")
+                        Text(stringResource(R.string.host_profile_server_url))
                     },
                     placeholder = { Text(defaultServerUrl(transport)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = urlError,
                     supportingText = if (urlError) {
-                        { Text("Server URL is required") }
+                        { Text(stringResource(R.string.host_profile_server_url_required)) }
                     } else if (transport == HostTransport.SSH_TUNNEL) {
-                        { Text("Tunneled target reached via the SSH gateway") }
+                        { Text(stringResource(R.string.host_profile_ssh_hint)) }
                     } else null
                 )
 
@@ -513,14 +515,14 @@ internal fun HostProfileEditorDialog(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     TextButton(onClick = { hasBasicAuth = !hasBasicAuth }) {
-                        Text(if (hasBasicAuth) "Remove" else "Add")
+                        Text(if (hasBasicAuth) stringResource(R.string.host_profile_auth_remove) else stringResource(R.string.host_profile_auth_add))
                     }
                 }
                 if (hasBasicAuth) {
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
+                        label = { Text(stringResource(R.string.host_profile_username)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -529,7 +531,7 @@ internal fun HostProfileEditorDialog(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text(if (isNew) "Password" else "New password (leave blank to keep)") },
+                        label = { Text(stringResource(R.string.host_profile_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (showPw) VisualTransformation.None else PasswordVisualTransformation(),
@@ -569,19 +571,19 @@ internal fun HostProfileEditorDialog(
                             OutlinedTextField(
                                 value = sshHost,
                                 onValueChange = { sshHost = it },
-                                label = { Text("SSH gateway host") },
+                                label = { Text(stringResource(R.string.host_profile_ssh_gateway)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 isError = sshHostError,
                                 supportingText = if (sshHostError) {
-                                    { Text("Required for SSH tunnel") }
+                                    { Text(stringResource(R.string.host_profile_ssh_required)) }
                                 } else null
                             )
                             Spacer(modifier = Modifier.height(8.dp.uiScaled()))
                             OutlinedTextField(
                                 value = sshPort,
                                 onValueChange = { sshPort = it.filter { c -> c.isDigit() } },
-                                label = { Text("SSH port") },
+                                label = { Text(stringResource(R.string.host_profile_ssh_port)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 isError = portError,
@@ -593,7 +595,7 @@ internal fun HostProfileEditorDialog(
                             OutlinedTextField(
                                 value = sshUsername,
                                 onValueChange = { sshUsername = it },
-                                label = { Text("SSH username") },
+                                label = { Text(stringResource(R.string.host_profile_ssh_username)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -601,7 +603,7 @@ internal fun HostProfileEditorDialog(
                             OutlinedTextField(
                                 value = remotePort,
                                 onValueChange = { remotePort = it.filter { c -> c.isDigit() } },
-                                label = { Text("Assigned remote port") },
+                                label = { Text(stringResource(R.string.host_profile_remote_port)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 isError = remotePortError,
@@ -655,10 +657,10 @@ internal fun HostProfileEditorDialog(
                     onSave(profile, pw)
                 },
                 enabled = canSave
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.host_profile_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -706,7 +708,7 @@ internal fun SshPublicKeySection(viewModel: MainViewModel) {
         publicKey = viewModel.ensureSshPublicKey()
     }
 
-    SectionHeader(title = "Device SSH Public Key")
+    SectionHeader(title = stringResource(R.string.ssh_key_title))
 
     publicKey?.let { key ->
         Surface(
@@ -757,7 +759,7 @@ internal fun SshPublicKeySection(viewModel: MainViewModel) {
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
                 Spacer(modifier = Modifier.width(4.dp.uiScaled()))
-                Text("Copy")
+                Text(stringResource(R.string.ssh_key_copy))
             }
             OutlinedButton(
                 onClick = { showRotateConfirm = true },
@@ -765,7 +767,7 @@ internal fun SshPublicKeySection(viewModel: MainViewModel) {
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
                 Spacer(modifier = Modifier.width(4.dp.uiScaled()))
-                Text("Rotate Key")
+                Text(stringResource(R.string.ssh_key_rotate))
             }
         }
     } ?: run {
@@ -779,7 +781,7 @@ internal fun SshPublicKeySection(viewModel: MainViewModel) {
     if (showRotateConfirm) {
         AlertDialog(
             onDismissRequest = { showRotateConfirm = false },
-            title = { Text("Rotate SSH key") },
+            title = { Text(stringResource(R.string.ssh_key_rotate_title)) },
             text = {
                 Text(
                     "This permanently replaces the device SSH key pair. " +
@@ -791,10 +793,10 @@ internal fun SshPublicKeySection(viewModel: MainViewModel) {
                     publicKey = viewModel.rotateSshKey()
                     copied = false
                     showRotateConfirm = false
-                }) { Text("Rotate") }
+                }) { Text(stringResource(R.string.ssh_key_rotate_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { showRotateConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showRotateConfirm = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -807,9 +809,10 @@ private fun transportIcon(transport: HostTransport) = when (transport) {
     HostTransport.SSH_TUNNEL -> Icons.Default.VpnKey
 }
 
+@Composable
 private fun transportLabel(transport: HostTransport) = when (transport) {
-    HostTransport.DIRECT -> "DIRECT"
-    HostTransport.SSH_TUNNEL -> "SSH"
+    HostTransport.DIRECT -> stringResource(R.string.host_profiles_transport_direct)
+    HostTransport.SSH_TUNNEL -> stringResource(R.string.host_profiles_transport_ssh)
 }
 
 private fun defaultServerUrl(transport: HostTransport) = when (transport) {

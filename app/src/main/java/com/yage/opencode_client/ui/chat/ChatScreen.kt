@@ -77,6 +77,8 @@ fun ChatScreen(
     // full-screen Dialog hosting FilesScreen pointed at the resolved path.
     var previewRequest by remember { mutableStateOf<WorkspacePreviewRequest?>(null) }
     var linkError by remember { mutableStateOf<String?>(null) }
+    val linkOpenFailedMessage = stringResource(R.string.link_error_open_failed)
+    val workspaceChangedMessage = stringResource(R.string.link_error_workspace_changed)
 
     fun handleAssistantMarkdownLink(href: String) {
         val workspaceDirectory = state.currentSession?.directory
@@ -84,7 +86,7 @@ fun ChatScreen(
             is WorkspaceMarkdownLinkResolver.Resolution.External -> {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(resolution.url))
                 runCatching { context.startActivity(intent) }
-                    .onFailure { linkError = it.message ?: "Could not open link" }
+                    .onFailure { linkError = it.message ?: linkOpenFailedMessage }
             }
             is WorkspaceMarkdownLinkResolver.Resolution.Preview -> {
                 previewRequest = WorkspacePreviewRequest(
@@ -103,6 +105,18 @@ fun ChatScreen(
     var showContextUsageSheet by rememberSaveable { mutableStateOf(false) }
 
     // Derive a live agent-activity status string + start timestamp for the elapsed timer.
+    val activityLabels = ActivityLabels(
+        delegating = stringResource(R.string.agent_activity_delegating),
+        planning = stringResource(R.string.agent_activity_planning),
+        gatheringContext = stringResource(R.string.agent_activity_gathering_context),
+        searchingCodebase = stringResource(R.string.agent_activity_searching_codebase),
+        searchingWeb = stringResource(R.string.agent_activity_searching_web),
+        makingEdits = stringResource(R.string.agent_activity_making_edits),
+        runningCommands = stringResource(R.string.agent_activity_running_commands),
+        gatheringThoughts = stringResource(R.string.agent_activity_gathering_thoughts),
+        thinking = stringResource(R.string.agent_activity_thinking),
+        retrying = stringResource(R.string.agent_activity_retrying),
+    )
     val currentActivity = remember(
         state.currentSessionId,
         state.currentSessionStatus,
@@ -118,6 +132,7 @@ fun ChatScreen(
             streamingReasoningPart = state.streamingReasoningPart,
             streamingPartTexts = state.streamingPartTexts,
             sendTimestamp = state.currentSessionId?.let { state.sessionSendTimestamps[it] },
+            labels = activityLabels,
         )
     }
 
@@ -225,7 +240,7 @@ fun ChatScreen(
             ) {
                 androidx.compose.runtime.LaunchedEffect(request, state.currentSessionId, state.currentSession?.directory) {
                     previewRequest = null
-                    linkError = "Workspace changed; reopen the link from the current session."
+                    linkError = workspaceChangedMessage
                 }
             } else {
                 Dialog(
@@ -348,6 +363,23 @@ private data class CurrentSessionActivity(
     val startedAtMillis: Long?,
 )
 
+/**
+ * Localized labels for agent activity status, resolved once in the @Composable layer
+ * and passed into the non-composable resolver functions.
+ */
+internal data class ActivityLabels(
+    val delegating: String,
+    val planning: String,
+    val gatheringContext: String,
+    val searchingCodebase: String,
+    val searchingWeb: String,
+    val makingEdits: String,
+    val runningCommands: String,
+    val gatheringThoughts: String,
+    val thinking: String,
+    val retrying: String,
+)
+
 private fun currentSessionActivity(
     sessionId: String?,
     status: SessionStatus?,
@@ -355,11 +387,12 @@ private fun currentSessionActivity(
     streamingReasoningPart: Part?,
     streamingPartTexts: Map<String, String>,
     sendTimestamp: Long?,
+    labels: ActivityLabels,
 ): CurrentSessionActivity? {
     val sid = sessionId ?: return null
     val startedAt = messages.lastOrNull { it.info.sessionId == sid && it.info.isUser }?.info?.time?.created
         ?: sendTimestamp
-    val text = bestSessionActivityText(sid, status, messages, streamingReasoningPart, streamingPartTexts)
+    val text = bestSessionActivityText(sid, status, messages, streamingReasoningPart, streamingPartTexts, labels)
     return CurrentSessionActivity(text = text, startedAtMillis = startedAt)
 }
 
@@ -369,40 +402,41 @@ private fun bestSessionActivityText(
     messages: List<MessageWithParts>,
     streamingReasoningPart: Part?,
     streamingPartTexts: Map<String, String>,
+    labels: ActivityLabels,
 ): String {
     status?.message?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
 
     messages.asReversed().forEach { message ->
         if (message.info.sessionId != sessionId) return@forEach
         message.parts.asReversed().firstOrNull { it.isTool && it.stateDisplay == "running" }
-            ?.let { part -> formatStatusFromPart(part)?.let { return it } }
+            ?.let { part -> formatStatusFromPart(part, labels)?.let { return it } }
     }
 
     if (streamingReasoningPart?.sessionId == sessionId) {
         val key = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
-        return formatThinkingFromReasoningText(streamingPartTexts[key].orEmpty())
+        return formatThinkingFromReasoningText(streamingPartTexts[key].orEmpty(), labels)
     }
 
     messages.asReversed().forEach { message ->
         if (message.info.sessionId != sessionId) return@forEach
         message.parts.asReversed().firstOrNull()?.let { part ->
-            formatStatusFromPart(part)?.let { return it }
+            formatStatusFromPart(part, labels)?.let { return it }
         }
     }
 
-    return status?.takeIf { it.isRetry }?.let { "Retrying" } ?: "Thinking"
+    return status?.takeIf { it.isRetry }?.let { labels.retrying } ?: labels.thinking
 }
 
-private fun formatStatusFromPart(part: Part): String? {
+private fun formatStatusFromPart(part: Part, labels: ActivityLabels): String? {
     if (part.isTool) {
         val base = when (part.tool) {
-            "task" -> "Delegating"
-            "todowrite", "todoread" -> "Planning"
-            "read" -> "Gathering context"
-            "list", "grep", "glob" -> "Searching codebase"
-            "webfetch" -> "Searching web"
-            "edit", "write" -> "Making edits"
-            "bash" -> "Running commands"
+            "task" -> labels.delegating
+            "todowrite", "todoread" -> labels.planning
+            "read" -> labels.gatheringContext
+            "list", "grep", "glob" -> labels.searchingCodebase
+            "webfetch" -> labels.searchingWeb
+            "edit", "write" -> labels.makingEdits
+            "bash" -> labels.runningCommands
             else -> null
         }
         val topic = (part.toolReason ?: part.toolInputSummary)?.trim()?.takeIf { it.isNotEmpty() }
@@ -413,12 +447,12 @@ private fun formatStatusFromPart(part: Part): String? {
         }
     }
 
-    if (part.isReasoning) return formatThinkingFromReasoningText(part.text.orEmpty())
-    if (part.isText) return "Gathering thoughts"
+    if (part.isReasoning) return formatThinkingFromReasoningText(part.text.orEmpty(), labels)
+    if (part.isText) return labels.gatheringThoughts
     return null
 }
 
-private fun formatThinkingFromReasoningText(text: String): String {
+private fun formatThinkingFromReasoningText(text: String, labels: ActivityLabels): String {
     val topic = Regex("^\\*\\*([^*]+)\\*\\*").find(text.trim())?.groupValues?.getOrNull(1)?.trim()
-    return if (!topic.isNullOrEmpty()) "Thinking - $topic" else "Thinking"
+    return if (!topic.isNullOrEmpty()) "${labels.thinking} - $topic" else labels.thinking
 }
