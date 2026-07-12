@@ -34,6 +34,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yage.opencode_client.R
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
+import com.yage.opencode_client.data.model.MessageWithParts
+import com.yage.opencode_client.data.model.Part
+import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.files.FilesScreen
 import com.yage.opencode_client.ui.files.WorkspaceMarkdownLinkResolver
@@ -98,6 +101,25 @@ fun ChatScreen(
     var cachedContextUsage by remember(state.currentSessionId) { mutableStateOf(state.contextUsage) }
     state.contextUsage?.let { cachedContextUsage = it }
     var showContextUsageSheet by rememberSaveable { mutableStateOf(false) }
+
+    // Derive a live agent-activity status string + start timestamp for the elapsed timer.
+    val currentActivity = remember(
+        state.currentSessionId,
+        state.currentSessionStatus,
+        state.messages,
+        state.streamingReasoningPart,
+        state.streamingPartTexts,
+        state.sessionSendTimestamps,
+    ) {
+        currentSessionActivity(
+            sessionId = state.currentSessionId,
+            status = state.currentSessionStatus,
+            messages = state.messages,
+            streamingReasoningPart = state.streamingReasoningPart,
+            streamingPartTexts = state.streamingPartTexts,
+            sendTimestamp = state.currentSessionId?.let { state.sessionSendTimestamps[it] },
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ChatTopBar(
@@ -228,6 +250,8 @@ fun ChatScreen(
                 isSpeechConfigured = state.aiBuilderConnectionOK && aiBuilderToken.isNotEmpty(),
                 hideMicIcon = state.hideMicIcon,
                 pendingImages = state.pendingImages,
+                agentActivityText = if (state.isCurrentSessionBusy) currentActivity?.text else null,
+                agentStartedAtMillis = if (state.isCurrentSessionBusy) currentActivity?.startedAtMillis else null,
                 onTextChange = viewModel::setInputText,
                 onSend = { viewModel.sendMessage() },
                 onAbort = { viewModel.abortSession() },
@@ -316,3 +340,83 @@ private data class WorkspacePreviewRequest(
     val sessionId: String?,
     val workspaceDirectory: String
 )
+
+private data class CurrentSessionActivity(
+    val text: String,
+    val startedAtMillis: Long?,
+)
+
+private fun currentSessionActivity(
+    sessionId: String?,
+    status: SessionStatus?,
+    messages: List<MessageWithParts>,
+    streamingReasoningPart: Part?,
+    streamingPartTexts: Map<String, String>,
+    sendTimestamp: Long?,
+): CurrentSessionActivity? {
+    val sid = sessionId ?: return null
+    val startedAt = messages.lastOrNull { it.info.sessionId == sid && it.info.isUser }?.info?.time?.created
+        ?: sendTimestamp
+    val text = bestSessionActivityText(sid, status, messages, streamingReasoningPart, streamingPartTexts)
+    return CurrentSessionActivity(text = text, startedAtMillis = startedAt)
+}
+
+private fun bestSessionActivityText(
+    sessionId: String,
+    status: SessionStatus?,
+    messages: List<MessageWithParts>,
+    streamingReasoningPart: Part?,
+    streamingPartTexts: Map<String, String>,
+): String {
+    status?.message?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+
+    messages.asReversed().forEach { message ->
+        if (message.info.sessionId != sessionId) return@forEach
+        message.parts.asReversed().firstOrNull { it.isTool && it.stateDisplay == "running" }
+            ?.let { part -> formatStatusFromPart(part)?.let { return it } }
+    }
+
+    if (streamingReasoningPart?.sessionId == sessionId) {
+        val key = "${streamingReasoningPart.messageId}:${streamingReasoningPart.id}"
+        return formatThinkingFromReasoningText(streamingPartTexts[key].orEmpty())
+    }
+
+    messages.asReversed().forEach { message ->
+        if (message.info.sessionId != sessionId) return@forEach
+        message.parts.asReversed().firstOrNull()?.let { part ->
+            formatStatusFromPart(part)?.let { return it }
+        }
+    }
+
+    return status?.takeIf { it.isRetry }?.let { "Retrying" } ?: "Thinking"
+}
+
+private fun formatStatusFromPart(part: Part): String? {
+    if (part.isTool) {
+        val base = when (part.tool) {
+            "task" -> "Delegating"
+            "todowrite", "todoread" -> "Planning"
+            "read" -> "Gathering context"
+            "list", "grep", "glob" -> "Searching codebase"
+            "webfetch" -> "Searching web"
+            "edit", "write" -> "Making edits"
+            "bash" -> "Running commands"
+            else -> null
+        }
+        val topic = (part.toolReason ?: part.toolInputSummary)?.trim()?.takeIf { it.isNotEmpty() }
+        return when {
+            base != null && topic != null -> "$base - $topic"
+            base != null -> base
+            else -> null
+        }
+    }
+
+    if (part.isReasoning) return formatThinkingFromReasoningText(part.text.orEmpty())
+    if (part.isText) return "Gathering thoughts"
+    return null
+}
+
+private fun formatThinkingFromReasoningText(text: String): String {
+    val topic = Regex("^\\*\\*([^*]+)\\*\\*").find(text.trim())?.groupValues?.getOrNull(1)?.trim()
+    return if (!topic.isNullOrEmpty()) "Thinking - $topic" else "Thinking"
+}

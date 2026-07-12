@@ -43,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import com.yage.opencode_client.R
 import com.yage.opencode_client.data.model.PermissionRequest
 import com.yage.opencode_client.data.model.PermissionResponse
@@ -72,6 +74,8 @@ internal fun ChatInputBar(
     isSpeechConfigured: Boolean,
     hideMicIcon: Boolean,
     pendingImages: List<PendingImageUi>,
+    agentActivityText: String? = null,
+    agentStartedAtMillis: Long? = null,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onAbort: () -> Unit,
@@ -136,6 +140,14 @@ internal fun ChatInputBar(
                 }
             }
 
+            // Agent activity status row — shows what the agent is doing + elapsed time
+            if (isBusy && (agentActivityText != null || agentStartedAtMillis != null)) {
+                AgentActivityRow(
+                    activityText = agentActivityText,
+                    startedAtMillis = agentStartedAtMillis
+                )
+            }
+
             // Input row — text field + send button, full width
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -171,6 +183,52 @@ internal fun ChatInputBar(
             )
         }
     }
+}
+
+@Composable
+private fun AgentActivityRow(
+    activityText: String?,
+    startedAtMillis: Long?
+) {
+    var nowMillis by remember(startedAtMillis) { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(startedAtMillis) {
+        while (startedAtMillis != null) {
+            nowMillis = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp.uiScaled()),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (activityText != null) {
+            Text(
+                text = activityText,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        if (startedAtMillis != null) {
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Text(
+                text = formatElapsed(nowMillis - startedAtMillis),
+                style = MaterialTheme.typography.labelMedium,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+private fun formatElapsed(elapsedMillis: Long): String {
+    val seconds = (elapsedMillis.coerceAtLeast(0L) / 1_000L).toInt()
+    return "%d:%02d".format(seconds / 60, seconds % 60)
 }
 
 @Composable

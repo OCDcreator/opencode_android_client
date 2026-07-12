@@ -76,6 +76,9 @@ data class AppState(
     // Sessions with an in-flight sendMessage request. Prevents duplicate sends when the
     // user double-taps Send before currentSessionStatus flips to busy.
     val sendingSessionIds: Set<String> = emptySet(),
+    // Per-session send timestamps (epoch millis). Used as a fallback start time for the
+    // elapsed timer during the window between send and the server returning the user message.
+    val sessionSendTimestamps: Map<String, Long> = emptyMap(),
     // Per-session todo lists, keyed by sessionId. Populated by REST getSessionTodos after
     // loading messages and kept current by the "todo.updated" SSE event.
     val sessionTodos: Map<String, List<TodoItem>> = emptyMap(),
@@ -670,7 +673,12 @@ class MainViewModel @Inject constructor(
         if (images.any { it.isProcessing || it.error != null }) return
         if (images.any { !imageDataUris.containsKey(it.id) }) return
 
-        _state.update { it.copy(sendingSessionIds = it.sendingSessionIds + sessionId) }
+        _state.update {
+            it.copy(
+                sendingSessionIds = it.sendingSessionIds + sessionId,
+                sessionSendTimestamps = it.sessionSendTimestamps + (sessionId to System.currentTimeMillis())
+            )
+        }
 
         val agent = _state.value.selectedAgentName
         val model = buildSelectedModel(_state.value)
@@ -710,7 +718,12 @@ class MainViewModel @Inject constructor(
                 _state.update { it.copy(pendingImages = emptyList()) }
             },
             onComplete = {
-                _state.update { it.copy(sendingSessionIds = it.sendingSessionIds - sessionId) }
+                _state.update {
+                    it.copy(
+                        sendingSessionIds = it.sendingSessionIds - sessionId,
+                        sessionSendTimestamps = it.sessionSendTimestamps - sessionId
+                    )
+                }
             }
         )
     }
