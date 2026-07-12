@@ -67,15 +67,20 @@ fun SettingsScreen(
         }
     }
 
-    // Re-sync the Server Connection form whenever the active host profile changes, so the
-    // fields below reflect the selected profile's serverUrl/username/password/workingDirectory.
+    // Re-sync the Server Connection form ONLY when the user switches to a different profile.
+    // We track the last-seen profileId so that saves/test-connections (which also update state
+    // via refreshHostProfileState) do NOT clobber the user's in-progress edits.
+    var lastSyncedProfileId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.currentHostProfileId) {
-        val synced = viewModel.getSavedConnectionSettings()
-        serverUrl = synced.serverUrl
-        username = synced.username
-        password = synced.password
-        workingDirectory = state.workingDirectory.ifBlank { synced.workingDirectory }
-        recentWorkingDirectories = synced.recentWorkingDirectories
+        if (lastSyncedProfileId != null && lastSyncedProfileId != state.currentHostProfileId) {
+            val synced = viewModel.getSavedConnectionSettings()
+            serverUrl = synced.serverUrl
+            username = synced.username
+            password = synced.password
+            workingDirectory = state.workingDirectory.ifBlank { synced.workingDirectory }
+            recentWorkingDirectories = synced.recentWorkingDirectories
+        }
+        lastSyncedProfileId = state.currentHostProfileId
     }
 
     Column(modifier = Modifier.fillMaxSize()) {

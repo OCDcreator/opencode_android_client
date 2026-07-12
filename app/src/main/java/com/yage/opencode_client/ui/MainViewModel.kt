@@ -472,6 +472,24 @@ class MainViewModel @Inject constructor(
             settingsManager.setBasicAuthPassword(normalized.id, basicAuthPassword)
         }
         hostProfileStore.save(normalized)
+
+        // If we just saved the currently-active profile, sync its connection settings into
+        // settingsManager so the rest of the app (repository, Server Connection form) stays
+        // consistent. Without this, editing a profile's serverUrl in the dialog would persist
+        // to the profile JSON but never reach settingsManager, causing stale values on refresh.
+        val currentId = hostProfileStore.currentProfile().id
+        if (normalized.id == currentId) {
+            val password = normalized.basicAuth?.passwordId?.let { settingsManager.basicAuthPassword(it) }
+            syncSettingsManagerFromProfile(normalized, password)
+            repository.configure(
+                normalized.serverUrl,
+                normalized.basicAuth?.username,
+                password,
+                normalized.workingDirectory
+            )
+            lastHealthCheckTime = 0L
+        }
+
         refreshHostProfileState()
     }
 
