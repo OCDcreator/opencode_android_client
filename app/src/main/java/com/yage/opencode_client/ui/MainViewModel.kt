@@ -770,6 +770,14 @@ class MainViewModel @Inject constructor(
         launchUpdateSessionTitle(viewModelScope, repository, _state, sessionId, title)
     }
 
+    fun archiveSession(sessionId: String) {
+        launchSetSessionArchived(viewModelScope, repository, _state, sessionId, archived = true)
+    }
+
+    fun restoreSession(sessionId: String) {
+        launchSetSessionArchived(viewModelScope, repository, _state, sessionId, archived = false)
+    }
+
     fun deleteSession(sessionId: String) {
         launchDeleteSession(viewModelScope, repository, _state, sessionId, ::selectSession)
     }
@@ -789,6 +797,25 @@ class MainViewModel @Inject constructor(
                 sendingSessionIds = it.sendingSessionIds + sessionId,
                 sessionSendTimestamps = it.sessionSendTimestamps + (sessionId to System.currentTimeMillis())
             )
+        }
+
+        val currentSession = _state.value.currentSession
+
+        // If the session is archived, auto-restore before sending.
+        if (currentSession?.isArchived == true) {
+            viewModelScope.launch {
+                repository.updateSessionArchived(sessionId, -1L, settingsManager.workingDirectory.ifEmpty { null })
+                    .onSuccess { updated ->
+                        _state.update { state ->
+                            state.copy(sessions = state.sessions.map { session -> if (session.id == sessionId) updated else session })
+                        }
+                    }
+                    .onFailure { error ->
+                        _state.update { it.copy(error = "Failed to restore session: ${errorMessageOrFallback(error, "unknown error")}") }
+                        return@launch
+                    }
+            }
+            // Continue to send — the server processes the restore and the message sequentially.
         }
 
         val agent = _state.value.selectedAgentName

@@ -22,6 +22,10 @@ data class Session(
     val displayName: String
         get() = title ?: directory?.split("/")?.filter { it.isNotEmpty() }?.lastOrNull() ?: id
 
+    /** True when the session has been archived (time.archived > 0). */
+    val isArchived: Boolean
+        get() = (time?.archived ?: 0L) > 0L
+
     @Serializable
     data class TimeInfo(
         val created: Long? = null,

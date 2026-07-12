@@ -1062,6 +1062,159 @@ class MainViewModelTest {
     }
 
     @Test
+    fun `archiveSession calls repository to set archived timestamp`() = runTest {
+        val archivedSession = com.yage.opencode_client.data.model.Session(
+            id = "session-1",
+            directory = "/tmp",
+            time = com.yage.opencode_client.data.model.Session.TimeInfo(archived = 1000L)
+        )
+        coEvery { repository.updateSessionArchived("session-1", any()) } returns Result.success(archivedSession)
+
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                sessions = listOf(
+                    com.yage.opencode_client.data.model.Session(id = "session-1", directory = "/tmp")
+                )
+            )
+        }
+
+        viewModel.archiveSession("session-1")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            repository.updateSessionArchived(
+                "session-1",
+                match { it > 0L }
+            )
+        }
+        assertTrue(viewModel.state.value.sessions.single().isArchived)
+    }
+
+    @Test
+    fun `restoreSession calls repository with negative timestamp`() = runTest {
+        val restoredSession = com.yage.opencode_client.data.model.Session(
+            id = "session-1",
+            directory = "/tmp",
+            time = com.yage.opencode_client.data.model.Session.TimeInfo(archived = null)
+        )
+        coEvery { repository.updateSessionArchived("session-1", any()) } returns Result.success(restoredSession)
+
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                sessions = listOf(
+                    com.yage.opencode_client.data.model.Session(
+                        id = "session-1",
+                        directory = "/tmp",
+                        time = com.yage.opencode_client.data.model.Session.TimeInfo(archived = 1000L)
+                    )
+                )
+            )
+        }
+
+        viewModel.restoreSession("session-1")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            repository.updateSessionArchived(
+                "session-1",
+                match { it <= 0L }
+            )
+        }
+        assertFalse(viewModel.state.value.sessions.single().isArchived)
+    }
+
+    @Test
+    fun `archiveSession applies to entire subtree recursively`() = runTest {
+        coEvery { repository.updateSessionArchived(any(), any()) } returns Result.success(
+            com.yage.opencode_client.data.model.Session(id = "stub", directory = "/tmp")
+        )
+
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                sessions = listOf(
+                    com.yage.opencode_client.data.model.Session(id = "parent", directory = "/tmp"),
+                    com.yage.opencode_client.data.model.Session(id = "child1", directory = "/tmp", parentId = "parent"),
+                    com.yage.opencode_client.data.model.Session(id = "grandchild", directory = "/tmp", parentId = "child1"),
+                    com.yage.opencode_client.data.model.Session(id = "child2", directory = "/tmp", parentId = "parent")
+                )
+            )
+        }
+
+        viewModel.archiveSession("parent")
+        advanceUntilIdle()
+
+        // When archiving, children are processed before their parent (parentFirst = false),
+        // so the parent is archived last — it stays visible until its subtree is gone.
+        coVerify(ordering = io.mockk.Ordering.ORDERED) {
+            repository.updateSessionArchived("grandchild", any())
+            repository.updateSessionArchived("child1", any())
+            repository.updateSessionArchived("child2", any())
+            repository.updateSessionArchived("parent", any())
+        }
+        // Exactly the 4 subtree members, no more.
+        coVerify(exactly = 1) { repository.updateSessionArchived("parent", any()) }
+        coVerify(exactly = 1) { repository.updateSessionArchived("child1", any()) }
+        coVerify(exactly = 1) { repository.updateSessionArchived("grandchild", any()) }
+        coVerify(exactly = 1) { repository.updateSessionArchived("child2", any()) }
+    }
+
+    @Test
+    fun `sendMessage auto-restores archived session before sending`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+        val restoredSession = com.yage.opencode_client.data.model.Session(
+            id = "session-1",
+            directory = "/tmp",
+            time = com.yage.opencode_client.data.model.Session.TimeInfo(archived = null)
+        )
+        coEvery { repository.updateSessionArchived("session-1", any(), any()) } returns Result.success(restoredSession)
+
+        val viewModel = createViewModel()
+        updateState(viewModel) {
+            it.copy(
+                currentSessionId = "session-1",
+                sessions = listOf(
+                    com.yage.opencode_client.data.model.Session(
+                        id = "session-1",
+                        directory = "/tmp",
+                        time = com.yage.opencode_client.data.model.Session.TimeInfo(archived = 1000L)
+                    )
+                ),
+                inputText = "hello"
+            )
+        }
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        // Auto-restore fires with a non-positive timestamp (-1L).
+        coVerify(exactly = 1) {
+            repository.updateSessionArchived("session-1", -1L, any())
+        }
+        // The send still proceeds.
+        coVerify(exactly = 1) { repository.sendMessage(any(), any(), any(), any(), any(), any()) }
+        assertFalse(viewModel.state.value.sessions.single().isArchived)
+    }
+
+    @Test
+    fun `sendMessage does not restore when session is not archived`() = runTest {
+        coEvery { repository.sendMessage(any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
+
+        val viewModel = createViewModel()
+        viewModel.selectSession("session-1")
+        advanceUntilIdle()
+        viewModel.setInputText("hello")
+
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.updateSessionArchived(any(), any(), any()) }
+        coVerify(exactly = 1) { repository.sendMessage(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `respondPermission calls repository and removes pending permission`() = runTest {
         coEvery {
             repository.respondPermission("session-1", "perm-1", PermissionResponse.ALWAYS)
