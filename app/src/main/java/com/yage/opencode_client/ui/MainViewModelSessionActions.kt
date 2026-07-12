@@ -457,7 +457,8 @@ internal fun launchSendMessage(
     model: Message.ModelInfo?,
     imageParts: List<PromptRequest.PartInput.File> = emptyList(),
     onRefreshMessages: (String, Boolean) -> Unit,
-    onSuccess: (() -> Unit)? = null
+    onSuccess: (() -> Unit)? = null,
+    onComplete: (() -> Unit)? = null
 ) {
     scope.launch {
         repository.sendMessage(sessionId, text, agent, model, imageParts = imageParts)
@@ -483,5 +484,6 @@ internal fun launchSendMessage(
                 StreamDebugLogger.logSendFailed(sessionId, error)
                 state.update { it.copy(error = errorMessageOrFallback(error, "Failed to send message")) }
             }
+        onComplete?.invoke()
     }
 }

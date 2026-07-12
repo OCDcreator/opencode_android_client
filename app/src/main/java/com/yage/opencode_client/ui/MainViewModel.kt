@@ -73,6 +73,9 @@ data class AppState(
     val pendingQuestions: List<QuestionRequest> = emptyList(),
     val inputText: String = "",
     val pendingImages: List<PendingImageUi> = emptyList(),
+    // Sessions with an in-flight sendMessage request. Prevents duplicate sends when the
+    // user double-taps Send before currentSessionStatus flips to busy.
+    val sendingSessionIds: Set<String> = emptySet(),
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val languageMode: LanguageMode = LanguageMode.SYSTEM,
@@ -273,7 +276,8 @@ data class AppState(
         get() = currentSessionId?.let { sessionStatuses[it] }
 
     val isCurrentSessionBusy: Boolean
-        get() = currentSessionStatus?.isBusy == true
+        get() = currentSessionStatus?.isBusy == true ||
+            (currentSessionId != null && currentSessionId in sendingSessionIds)
 
     val canLoadMoreSessions: Boolean
         get() = hasMoreSessions && !isLoadingMoreSessions
@@ -655,12 +659,15 @@ class MainViewModel @Inject constructor(
 
     fun sendMessage() {
         val sessionId = _state.value.currentSessionId ?: return
+        if (sessionId in _state.value.sendingSessionIds) return
         val text = _state.value.inputText.trim()
         val images = _state.value.pendingImages
 
         if (text.isEmpty() && images.isEmpty()) return
         if (images.any { it.isProcessing || it.error != null }) return
         if (images.any { !imageDataUris.containsKey(it.id) }) return
+
+        _state.update { it.copy(sendingSessionIds = it.sendingSessionIds + sessionId) }
 
         val agent = _state.value.selectedAgentName
         val model = buildSelectedModel(_state.value)
@@ -698,6 +705,9 @@ class MainViewModel @Inject constructor(
                     compressionJobs.remove(id)
                 }
                 _state.update { it.copy(pendingImages = emptyList()) }
+            },
+            onComplete = {
+                _state.update { it.copy(sendingSessionIds = it.sendingSessionIds - sessionId) }
             }
         )
     }
