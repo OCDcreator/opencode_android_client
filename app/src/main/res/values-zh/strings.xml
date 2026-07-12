@@ -261,6 +261,7 @@
     <string name="ssh_key_copy">复制</string>
     <string name="ssh_key_copied">已复制</string>
     <string name="ssh_key_copied_toast">已复制到剪贴板</string>
+    <string name="ssh_tunnel_managed_hint">服务器地址和凭据由 SSH 隧道自动管理，这里只需配置工作目录。</string>
     <string name="ssh_key_rotate">轮换密钥</string>
     <string name="ssh_key_rotate_title">轮换 SSH 密钥</string>
     <string name="ssh_key_rotate_confirm">这将替换设备密钥对。新的公钥需要在服务器上重新授权。是否继续？</string>

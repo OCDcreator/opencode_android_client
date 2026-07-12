@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.yage.opencode_client.R
+import com.yage.opencode_client.data.model.HostTransport
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
@@ -110,6 +111,7 @@ fun SettingsScreen(
                 isTesting = isTesting,
                 state = state,
                 testResult = testResult,
+                isSshTunnel = state.hostProfiles.find { it.id == state.currentHostProfileId }?.transport == HostTransport.SSH_TUNNEL,
                 onServerUrlChange = {
                     serverUrl = it
                     testResult = null

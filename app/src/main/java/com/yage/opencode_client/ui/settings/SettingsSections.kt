@@ -92,6 +92,7 @@ internal fun ServerConnectionSection(
     isTesting: Boolean,
     state: AppState,
     testResult: TestResult?,
+    isSshTunnel: Boolean = false,
     onServerUrlChange: (String) -> Unit,
     onUsernameChange: (String) -> Unit,
     onWorkingDirectoryChange: (String) -> Unit,
@@ -107,28 +108,67 @@ internal fun ServerConnectionSection(
 
     SectionHeader(title = stringResource(R.string.server_connection))
 
-    OutlinedTextField(
-        value = serverUrl,
-        onValueChange = onServerUrlChange,
-        label = { Text(stringResource(R.string.server_url)) },
-        placeholder = { Text(stringResource(R.string.server_url_hint)) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
-    )
+    if (isSshTunnel) {
+        // SSH tunnel mode: server URL/username/password are managed by the tunnel automatically.
+        // Show a read-only summary + a hint, so the user understands these fields are auto-configured.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp.uiScaled()),
+            color = MaterialTheme.colorScheme.surfaceContainerLow
+        ) {
+            Column(modifier = Modifier.padding(12.dp.uiScaled())) {
+                Text(
+                    text = stringResource(R.string.ssh_tunnel_managed_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+    } else {
+        OutlinedTextField(
+            value = serverUrl,
+            onValueChange = onServerUrlChange,
+            label = { Text(stringResource(R.string.server_url)) },
+            placeholder = { Text(stringResource(R.string.server_url_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) }
+        )
 
-    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
-    OutlinedTextField(
-        value = username,
-        onValueChange = onUsernameChange,
-        label = { Text(stringResource(R.string.username_optional)) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
-    )
+        OutlinedTextField(
+            value = username,
+            onValueChange = onUsernameChange,
+            label = { Text(stringResource(R.string.username_optional)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+        )
 
-    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = onPasswordChange,
+            label = { Text(stringResource(R.string.password_optional)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            trailingIcon = {
+                IconButton(onClick = onTogglePasswordVisibility) {
+                    Icon(
+                        if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (showPassword) stringResource(R.string.hide_password_cd) else stringResource(R.string.show_password_cd)
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+    }
 
     OutlinedTextField(
         value = workingDirectory,
@@ -212,24 +252,6 @@ internal fun ServerConnectionSection(
             )
         }
     }
-
-    OutlinedTextField(
-        value = password,
-        onValueChange = onPasswordChange,
-        label = { Text(stringResource(R.string.password_optional)) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            IconButton(onClick = onTogglePasswordVisibility) {
-                Icon(
-                    if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = if (showPassword) stringResource(R.string.hide_password_cd) else stringResource(R.string.show_password_cd)
-                )
-            }
-        },
-        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
-    )
 
     Spacer(modifier = Modifier.height(16.dp.uiScaled()))
 

@@ -269,6 +269,7 @@
     <string name="ssh_key_copy">Copy</string>
     <string name="ssh_key_copied">Copied</string>
     <string name="ssh_key_copied_toast">Copied to clipboard</string>
+    <string name="ssh_tunnel_managed_hint">Server address and credentials are managed automatically by the SSH tunnel. Only the working directory needs to be configured here.</string>
     <string name="ssh_key_rotate">Rotate Key</string>
     <string name="ssh_key_rotate_title">Rotate SSH key</string>
     <string name="ssh_key_rotate_confirm">This replaces the device key pair. The new public key must be re-authorized on the server. Continue?</string>
