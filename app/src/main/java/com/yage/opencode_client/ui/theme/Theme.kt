@@ -16,25 +16,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = BrandPrimary,
+    onPrimary = OnSurfaceDark,
+    secondary = BrandPrimary,
+    tertiary = BrandGold,
+    error = StopRed,
+    background = BgDark,
+    onBackground = OnSurfaceDark,
+    surface = BgDark,
+    onSurface = OnSurfaceDark,
+    surfaceVariant = SurfaceDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    surfaceContainer = SurfaceDark,
+    surfaceContainerLow = ComposerDark,
+    surfaceContainerLowest = BgDark,
+    surfaceContainerHigh = SurfaceDark,
+    surfaceContainerHighest = SurfaceDark,
+    primaryContainer = BrandPrimary,
+    onPrimaryContainer = OnSurfaceDark,
+    outline = OutlineDark,
+    outlineVariant = OutlineDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = BrandPrimaryLight,
+    onPrimary = BgLight,
+    secondary = BrandPrimaryLight,
+    tertiary = BrandGold,
+    error = StopRed,
+    background = BgLight,
+    onBackground = OnSurfaceLight,
+    surface = BgLight,
+    onSurface = OnSurfaceLight,
+    surfaceVariant = SurfaceLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    surfaceContainer = SurfaceLight,
+    surfaceContainerLow = ComposerLight,
+    surfaceContainerLowest = BgLight,
+    surfaceContainerHigh = SurfaceLight,
+    surfaceContainerHighest = SurfaceLight,
+    primaryContainer = BrandPrimaryLight,
+    onPrimaryContainer = BgLight,
+    outline = OutlineLight,
+    outlineVariant = OutlineLight
 )
 
 @Composable
