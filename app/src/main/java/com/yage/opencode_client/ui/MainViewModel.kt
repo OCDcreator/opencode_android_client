@@ -586,7 +586,12 @@ class MainViewModel @Inject constructor(
     private fun syncSettingsManagerFromProfile(profile: HostProfile, password: String?) {
         settingsManager.serverUrl = profile.serverUrl
         settingsManager.username = profile.basicAuth?.username
-        settingsManager.password = password
+        // Only update the legacy password if the profile actually has one, so switching to an
+        // SSH profile (no basic auth) doesn't wipe the legacy password that other DIRECT profiles
+        // still reference via LEGACY_BASIC_AUTH_PASSWORD_ID.
+        if (profile.basicAuth != null && !password.isNullOrBlank()) {
+            settingsManager.password = password
+        }
         settingsManager.workingDirectory = profile.workingDirectory
         if (profile.workingDirectory.isNotBlank()) {
             settingsManager.rememberWorkingDirectory(profile.workingDirectory)
