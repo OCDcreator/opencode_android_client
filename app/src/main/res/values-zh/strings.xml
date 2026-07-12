@@ -210,4 +210,8 @@
     <string name="session_status_running">运行中</string>
     <string name="session_status_retrying">重试中</string>
     <string name="session_status_idle">空闲</string>
+    <string name="chat_todo">待办</string>
+    <string name="chat_todo_empty">暂无待办</string>
+    <string name="chat_todo_progress">%1$d/%2$d 已完成</string>
+    <string name="common_done">完成</string>
 </resources>

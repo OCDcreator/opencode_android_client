@@ -243,6 +243,16 @@ internal fun launchLoadMessages(
                     state.update { it.copy(isLoadingMessages = false) }
                 }
             }
+
+        // Best-effort: load session todos after messages (matches iOS behavior).
+        // Fails silently when the endpoint isn't available (e.g. test mocks).
+        try {
+            repository.getSessionTodos(sessionId)
+                .onSuccess { todos ->
+                    state.update { it.copy(sessionTodos = it.sessionTodos + (sessionId to todos)) }
+                }
+        } catch (_: Exception) {
+        }
     }
 }
 

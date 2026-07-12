@@ -85,6 +85,7 @@ fun ChatScreen(
                 selectedModelIndex = state.selectedModelIndex,
                 providers = state.providers?.providers ?: emptyList(),
                 contextUsage = cachedContextUsage,
+                sessionTodos = state.currentSessionId?.let { state.sessionTodos[it] } ?: emptyList(),
                 showSettingsButton = showSettingsButton,
                 showNewSessionInTopBar = showNewSessionInTopBar,
                 showSessionListInTopBar = showSessionListInTopBar

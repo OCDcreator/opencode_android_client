@@ -76,6 +76,9 @@ data class AppState(
     // Sessions with an in-flight sendMessage request. Prevents duplicate sends when the
     // user double-taps Send before currentSessionStatus flips to busy.
     val sendingSessionIds: Set<String> = emptySet(),
+    // Per-session todo lists, keyed by sessionId. Populated by REST getSessionTodos after
+    // loading messages and kept current by the "todo.updated" SSE event.
+    val sessionTodos: Map<String, List<TodoItem>> = emptyMap(),
     val error: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val languageMode: LanguageMode = LanguageMode.SYSTEM,

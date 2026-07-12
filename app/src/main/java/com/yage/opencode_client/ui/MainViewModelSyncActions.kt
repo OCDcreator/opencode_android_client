@@ -2,9 +2,13 @@ package com.yage.opencode_client.ui
 
 import com.yage.opencode_client.data.model.SessionStatus
 import com.yage.opencode_client.data.model.SSEEvent
+import com.yage.opencode_client.data.model.TodoItem
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -201,6 +205,16 @@ internal fun handleIncomingSseEvent(
                     }
                 )
             }
+        }
+        "todo.updated" -> {
+            val sessionId = event.payload.getString("sessionID") ?: return
+            val todosArray = event.payload.properties?.get("todos") as? JsonArray ?: return
+            val todos = try {
+                Json.decodeFromJsonElement<List<TodoItem>>(todosArray)
+            } catch (_: Exception) {
+                return
+            }
+            state.update { it.copy(sessionTodos = it.sessionTodos + (sessionId to todos)) }
         }
     }
 }
