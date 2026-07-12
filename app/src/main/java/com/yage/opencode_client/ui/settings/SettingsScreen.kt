@@ -66,6 +66,17 @@ fun SettingsScreen(
         }
     }
 
+    // Re-sync the Server Connection form whenever the active host profile changes, so the
+    // fields below reflect the selected profile's serverUrl/username/password/workingDirectory.
+    LaunchedEffect(state.currentHostProfileId) {
+        val synced = viewModel.getSavedConnectionSettings()
+        serverUrl = synced.serverUrl
+        username = synced.username
+        password = synced.password
+        workingDirectory = state.workingDirectory.ifBlank { synced.workingDirectory }
+        recentWorkingDirectories = synced.recentWorkingDirectories
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (onBack != null) {
             ProvideScaledDpDensity {
@@ -86,6 +97,10 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp.uiScaled())
         ) {
+            HostProfilesSection(viewModel = viewModel)
+
+            SettingsSectionDivider()
+
             ServerConnectionSection(
                 serverUrl = serverUrl,
                 username = username,
@@ -123,8 +138,8 @@ fun SettingsScreen(
                 onTestConnection = {
                     isTesting = true
                     testResult = null
-                    viewModel.configureServer(
-                        url = serverUrl,
+                    viewModel.updateCurrentProfileConnection(
+                        serverUrl = serverUrl,
                         username = username.ifBlank { null },
                         password = password.ifBlank { null },
                         workingDirectory = workingDirectory.ifBlank { null }
@@ -133,8 +148,8 @@ fun SettingsScreen(
                     viewModel.testConnection()
                 },
                 onSave = {
-                    viewModel.configureServer(
-                        url = serverUrl,
+                    viewModel.updateCurrentProfileConnection(
+                        serverUrl = serverUrl,
                         username = username.ifBlank { null },
                         password = password.ifBlank { null },
                         workingDirectory = workingDirectory.ifBlank { null }

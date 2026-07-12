@@ -31,7 +31,7 @@ class HostProfileStore @Inject constructor(
                 serverUrl = settingsManager.serverUrl,
                 username = settingsManager.username,
                 passwordId = SettingsManager.LEGACY_BASIC_AUTH_PASSWORD_ID.takeIf { !settingsManager.password.isNullOrBlank() }
-            )
+            ).copy(workingDirectory = settingsManager.workingDirectory)
         )
         saveProfiles(migrated, migrated.first().id)
         return migrated

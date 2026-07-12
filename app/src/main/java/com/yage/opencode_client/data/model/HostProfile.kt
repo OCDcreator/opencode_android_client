@@ -51,7 +51,8 @@ data class HostProfile(
     val serverUrl: String,
     val basicAuth: BasicAuthConfig? = null,
     val ssh: SshTunnelConfig? = null,
-    val lastUsedAt: Long? = null
+    val lastUsedAt: Long? = null,
+    val workingDirectory: String = ""
 ) {
     val displayName: String
         get() = name.trim().ifEmpty { "Untitled" }

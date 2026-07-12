@@ -20,16 +20,28 @@ internal fun applySavedSettings(
         "applySavedSettings serverUrl=${settingsManager.serverUrl} " +
             "workingDirectory=${settingsManager.workingDirectory}"
     )
-    repository.configure(
-        baseUrl = settingsManager.serverUrl,
-        username = settingsManager.username,
-        password = settingsManager.password,
-        workingDirectory = settingsManager.workingDirectory
-    )
 
-    // Load host profiles into state
+    // Load host profiles into state. The store auto-migrates legacy settings into a
+    // default profile on first access, so profiles() never returns empty in production.
     val profiles = hostProfileStore.profiles()
-    val currentProfileId = hostProfileStore.currentProfile().id
+    val currentProfile = if (profiles.isNotEmpty()) hostProfileStore.currentProfile() else null
+    val currentProfileId = currentProfile?.id ?: hostProfileStore.currentProfile().id
+
+    // Prefer the current profile's connection settings so the active profile is honored
+    // at startup; fall back to raw settingsManager values when no profiles exist.
+    val effectiveUrl = currentProfile?.serverUrl?.ifBlank { null } ?: settingsManager.serverUrl
+    val effectiveUsername = currentProfile?.basicAuth?.username ?: settingsManager.username
+    val effectivePassword = currentProfile?.basicAuth?.passwordId
+        ?.let { settingsManager.basicAuthPassword(it) } ?: settingsManager.password
+    val effectiveWorkingDir = currentProfile?.workingDirectory?.ifBlank { null }
+        ?: settingsManager.workingDirectory
+
+    repository.configure(
+        baseUrl = effectiveUrl,
+        username = effectiveUsername,
+        password = effectivePassword,
+        workingDirectory = effectiveWorkingDir
+    )
 
     val savedModelKey = settingsManager.selectedModelKey
     val modelIndex = if (savedModelKey.isNotEmpty()) {
@@ -47,7 +59,7 @@ internal fun applySavedSettings(
             fontSizeScale = settingsManager.fontSizeScale,
             uiScale = settingsManager.uiScale,
             hideMicIcon = settingsManager.hideMicIcon,
-            workingDirectory = settingsManager.workingDirectory,
+            workingDirectory = effectiveWorkingDir,
             hostProfiles = profiles,
             currentHostProfileId = currentProfileId
         )

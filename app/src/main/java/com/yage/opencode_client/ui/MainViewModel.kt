@@ -410,6 +410,46 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Update the active connection AND persist the changes into the currently selected host
+     * profile. This is the save/test handler for the Server Connection section: editing the
+     * fields below updates the current profile rather than acting as an independent config.
+     */
+    fun updateCurrentProfileConnection(
+        serverUrl: String,
+        username: String?,
+        password: String?,
+        workingDirectory: String?
+    ) {
+        // Update settingsManager (the source of truth for the active connection)
+        settingsManager.serverUrl = serverUrl
+        settingsManager.username = username
+        settingsManager.password = password
+        settingsManager.workingDirectory = workingDirectory.orEmpty()
+        settingsManager.rememberWorkingDirectory(workingDirectory)
+        repository.configure(serverUrl, username, password, workingDirectory)
+        _state.update { it.copy(workingDirectory = settingsManager.workingDirectory) }
+        lastHealthCheckTime = 0L
+
+        // Also persist into the current profile so it's remembered per-profile
+        val current = hostProfileStore.currentProfile()
+        val updatedProfile = current.copy(
+            serverUrl = serverUrl,
+            basicAuth = if (!username.isNullOrBlank()) {
+                current.basicAuth?.copy(username = username)
+                    ?: BasicAuthConfig(username = username, passwordId = current.id)
+            } else {
+                current.basicAuth
+            },
+            workingDirectory = workingDirectory.orEmpty()
+        )
+        if (updatedProfile.basicAuth != null) {
+            settingsManager.setBasicAuthPassword(updatedProfile.id, password)
+        }
+        hostProfileStore.save(updatedProfile)
+        refreshHostProfileState()
+    }
+
     fun getSavedConnectionSettings(): ConnectionFormSettings = ConnectionFormSettings(
         serverUrl = settingsManager.serverUrl,
         username = settingsManager.username ?: "",
@@ -483,9 +523,9 @@ class MainViewModel @Inject constructor(
             viewModelScope.launch { configureRepositoryForProfileAsync(profile) }
             return
         }
-        // FORK ADAPTATION: pass settingsManager.workingDirectory as the 4th arg
-        // so SSH-tunneled profiles keep the working directory context.
-        repository.configure(profile.serverUrl, profile.basicAuth?.username, password, settingsManager.workingDirectory)
+        // Sync profile -> settingsManager so the Server Connection section reflects the active profile.
+        syncSettingsManagerFromProfile(profile, password)
+        repository.configure(profile.serverUrl, profile.basicAuth?.username, password, profile.workingDirectory)
     }
 
     private suspend fun configureRepositoryForProfileAsync(profile: HostProfile): Boolean {
@@ -513,9 +553,27 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
-        // FORK ADAPTATION: pass workingDirectory as 4th arg
-        repository.configure(baseUrl, profile.basicAuth?.username, password, settingsManager.workingDirectory)
+        // FORK ADAPTATION: pass profile.workingDirectory as 4th arg
+        repository.configure(baseUrl, profile.basicAuth?.username, password, profile.workingDirectory)
+        // Sync profile -> settingsManager so the Server Connection section reflects the active profile.
+        syncSettingsManagerFromProfile(profile, password)
         return true
+    }
+
+    /**
+     * Mirror the active [profile]'s connection fields into [settingsManager] so the
+     * Server Connection section below the Host Profiles section stays in sync with the
+     * currently selected profile. Each profile remembers its own working directory.
+     */
+    private fun syncSettingsManagerFromProfile(profile: HostProfile, password: String?) {
+        settingsManager.serverUrl = profile.serverUrl
+        settingsManager.username = profile.basicAuth?.username
+        settingsManager.password = password
+        settingsManager.workingDirectory = profile.workingDirectory
+        if (profile.workingDirectory.isNotBlank()) {
+            settingsManager.rememberWorkingDirectory(profile.workingDirectory)
+        }
+        _state.update { it.copy(workingDirectory = profile.workingDirectory) }
     }
 
     fun getAIBuilderSettings(): AIBuilderSettings = AIBuilderSettings(
