@@ -20,6 +20,7 @@ data class FilesUiState(
     val selectedFileContent: FileContent? = null,
     val selectedFilePath: String? = null,
     val isLoading: Boolean = false,
+    val isPreviewRefreshing: Boolean = false,
     val error: String? = null
 )
 
@@ -60,8 +61,35 @@ class FilesViewModel @Inject constructor(
         _state.update {
             it.copy(
                 selectedFilePath = null,
-                selectedFileContent = null
+                selectedFileContent = null,
+                isPreviewRefreshing = false
             )
+        }
+    }
+
+    fun refreshPreview(sessionDirectory: String?) {
+        val pathToShow = _state.value.selectedFilePath ?: return
+        val relPath = resolveRelativePreviewPath(pathToShow, sessionDirectory)
+        viewModelScope.launch {
+            _state.update { it.copy(isPreviewRefreshing = true, error = null) }
+            repository.getFileContent(relPath)
+                .onSuccess { content ->
+                    if (!content.content.isNullOrBlank()) {
+                        _state.update {
+                            it.copy(
+                                selectedFileContent = content,
+                                selectedFilePath = pathToShow,
+                                isPreviewRefreshing = false,
+                                error = null
+                            )
+                        }
+                    } else {
+                        loadDirectoryPreview(pathToShow, relPath, isRefresh = true)
+                    }
+                }
+                .onFailure {
+                    loadDirectoryPreview(pathToShow, relPath, isRefresh = true)
+                }
         }
     }
 
@@ -97,7 +125,7 @@ class FilesViewModel @Inject constructor(
         }
     }
 
-    private fun setDirectoryPreview(path: String, relPath: String, tree: List<FileNode>) {
+    private fun setDirectoryPreview(path: String, relPath: String, tree: List<FileNode>, isRefresh: Boolean = false) {
         _state.update {
             it.copy(
                 selectedFilePath = path,
@@ -105,16 +133,22 @@ class FilesViewModel @Inject constructor(
                     type = "text",
                     content = buildDirectoryPreviewContent(relPath, tree)
                 ),
+                isPreviewRefreshing = if (isRefresh) false else it.isPreviewRefreshing,
                 error = null
             )
         }
     }
 
-    private suspend fun loadDirectoryPreview(path: String, relPath: String) {
+    private suspend fun loadDirectoryPreview(path: String, relPath: String, isRefresh: Boolean = false) {
         repository.getFileTree(relPath)
-            .onSuccess { tree -> setDirectoryPreview(path, relPath, tree) }
+            .onSuccess { tree -> setDirectoryPreview(path, relPath, tree, isRefresh) }
             .onFailure { throwable ->
-                _state.update { it.copy(error = throwable.message) }
+                _state.update {
+                    it.copy(
+                        isPreviewRefreshing = if (isRefresh) false else it.isPreviewRefreshing,
+                        error = throwable.message
+                    )
+                }
             }
     }
 

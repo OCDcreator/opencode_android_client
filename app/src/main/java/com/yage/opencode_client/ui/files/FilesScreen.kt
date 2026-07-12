@@ -88,6 +88,8 @@ fun FilesScreen(
                     fileContent = state.selectedFileContent!!,
                     repository = viewModel.repository,
                     sessionDirectory = sessionDirectory,
+                    isRefreshing = state.isPreviewRefreshing,
+                    onRefresh = { viewModel.refreshPreview(sessionDirectory) },
                     onClose = {
                         viewModel.closePreview()
                         onCloseFile()
