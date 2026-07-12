@@ -58,6 +58,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
@@ -732,7 +735,23 @@ private fun ToolCard(
     val cardColor = if (isWriteOrPatch && isDark) ToolWritePatchBackgroundDark else MaterialTheme.colorScheme.surfaceContainerHighest
     val contentColor = if (isWriteOrPatch && !isDark) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
-    Card(modifier = modifier.padding(vertical = 4.dp.uiScaled()), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+    // Accessibility: encode the read/write nature into testTag + contentDescription so the
+    // semantics tree can distinguish them (icon tint alone isn't exposed to accessibility).
+    val fileBaseName = firstFile?.substringAfterLast('/')
+    val readOrWrite = if (isReadOnlyTool) "read" else "write"
+    val a11yTag = fileBaseName?.let { "toolcard.$readOrWrite.$it" }
+    val a11yDescription = fileBaseName?.let { name ->
+        (if (isReadOnlyTool) "Read file $name" else "Write file $name") +
+            (if (toolName.isNotEmpty()) " via $toolName" else "")
+    }
+
+    Card(
+        modifier = modifier
+            .padding(vertical = 4.dp.uiScaled())
+            .then(if (a11yTag != null) Modifier.testTag(a11yTag) else Modifier)
+            .then(if (a11yDescription != null) Modifier.semantics { contentDescription = a11yDescription } else Modifier),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             Column(modifier = Modifier.padding(12.dp.uiScaled())) {
                 // Header row
