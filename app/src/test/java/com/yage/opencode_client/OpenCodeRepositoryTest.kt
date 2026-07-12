@@ -399,6 +399,37 @@ class OpenCodeRepositoryTest {
     }
 
     @Test
+    fun `revertSession calls api and returns session`() = runBlocking {
+        val session = Session(id = "session-1", directory = "/tmp/project")
+        server.enqueue(jsonResponse(json.encodeToString(session)))
+
+        val result = repository.revertSession("session-1", "msg-1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(session, result.getOrThrow())
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/session/session-1/revert", request.path)
+        assertEquals("{\"messageID\":\"msg-1\"}", request.body.readUtf8())
+    }
+
+    @Test
+    fun `revertSession with partId sends partID in body`() = runBlocking {
+        val session = Session(id = "session-1", directory = "/tmp/project")
+        server.enqueue(jsonResponse(json.encodeToString(session)))
+
+        val result = repository.revertSession("session-1", "msg-1", "part-9")
+
+        assertTrue(result.isSuccess)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/session/session-1/revert", request.path)
+        val body = request.body.readUtf8()
+        assertTrue(body.contains("\"messageID\":\"msg-1\""))
+        assertTrue(body.contains("\"partID\":\"part-9\""))
+    }
+
+    @Test
     fun `getPendingPermissions returns permission list`() = runBlocking {
         val permissions = listOf(
             PermissionRequest(

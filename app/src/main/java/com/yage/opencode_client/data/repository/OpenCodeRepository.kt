@@ -227,6 +227,10 @@ class OpenCodeRepository @Inject constructor() {
         api.forkSession(sessionId, effectiveDirectory(directory), ForkSessionRequest(messageId))
     }
 
+    suspend fun revertSession(sessionId: String, messageId: String, partId: String? = null): Result<Session> = runCatching {
+        api.revertSession(sessionId, RevertSessionRequest(messageId, partId))
+    }
+
     suspend fun getPendingPermissions(): Result<List<PermissionRequest>> = runCatching {
         api.getPendingPermissions(effectiveDirectory())
     }
