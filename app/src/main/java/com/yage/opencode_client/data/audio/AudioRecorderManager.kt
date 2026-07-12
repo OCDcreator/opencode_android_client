@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
 
 @Singleton
 class AudioRecorderManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     private var recorder: MediaRecorder? = null
     private var currentFile: File? = null
@@ -39,7 +39,12 @@ class AudioRecorderManager @Inject constructor(
             AudioRecorderConfig.tempFileSuffix,
             context.cacheDir
         )
-        val mediaRecorder = MediaRecorder()
+        @Suppress("DEPRECATION")
+        val mediaRecorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            MediaRecorder(context)
+        } else {
+            MediaRecorder()
+        }
 
         try {
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC)

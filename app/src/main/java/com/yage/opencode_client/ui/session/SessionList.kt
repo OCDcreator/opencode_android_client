@@ -1,11 +1,10 @@
 package com.yage.opencode_client.ui.session
 
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.anchoredDraggable
@@ -72,6 +71,14 @@ private fun SwipeRevealRow(
     }
     val titleColor = if (isBusy) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
+    // Fling/threshold config moved out of the deprecated AnchoredDraggableState constructor
+    // into AnchoredDraggableDefaults.flingBehavior, passed to Modifier.anchoredDraggable.
+    // Preserves the previous behavior: 50% positional threshold.
+    val dragFlingBehavior = AnchoredDraggableDefaults.flingBehavior(
+        state = dragState,
+        positionalThreshold = { total: Float -> total * 0.5f }
+    )
+
     Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
         Box(
             modifier = Modifier
@@ -95,7 +102,8 @@ private fun SwipeRevealRow(
                     state = dragState,
                     orientation = Orientation.Horizontal,
                     enabled = enabled,
-                    reverseDirection = true
+                    reverseDirection = true,
+                    flingBehavior = dragFlingBehavior
                 )
                 .background(rowBackgroundColor)
                 .clickable(onClick = onSelect)
@@ -239,19 +247,13 @@ fun SessionList(
                 val isExpanded = expandedSessionIds.contains(session.id)
                 val density = LocalDensity.current
                 val deleteWidthPx = with(density) { 56.dp.uiScaled().toPx() }
-                val swipeVelocityThresholdPx = with(density) { 100.dp.uiScaled().toPx() }
-                val decay = rememberSplineBasedDecay<Float>()
-                val dragState = remember(deleteWidthPx, swipeVelocityThresholdPx) {
+                val dragState = remember(deleteWidthPx) {
                     AnchoredDraggableState(
                         initialValue = SwipeAnchor.Start,
                         anchors = DraggableAnchors {
                             SwipeAnchor.Start at 0f
                             SwipeAnchor.End at deleteWidthPx
-                        },
-                        positionalThreshold = { total: Float -> total * 0.5f },
-                        velocityThreshold = { swipeVelocityThresholdPx },
-                        snapAnimationSpec = tween(),
-                        decayAnimationSpec = decay
+                        }
                     )
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
