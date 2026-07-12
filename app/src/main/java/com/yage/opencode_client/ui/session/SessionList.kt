@@ -11,15 +11,20 @@ import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +42,7 @@ import com.yage.opencode_client.R
 import com.yage.opencode_client.ui.theme.uiScaled
 import kotlin.math.roundToInt
 
-private enum class SwipeAnchor { Start, End }
+private enum class SwipeAnchor { Start, Center, End }
 
 @Composable
 private fun formatRelativeTime(updatedMs: Long): String {
@@ -81,7 +86,12 @@ private fun SwipeRevealRow(
     depth: Int = 0,
     hasChildren: Boolean = false,
     isCollapsed: Boolean = true,
-    onToggleCollapse: (() -> Unit)? = null
+    onToggleCollapse: (() -> Unit)? = null,
+    // Left-swipe action (Archive / Restore). When null, the row falls back to the
+    // legacy 2-anchor behavior and only the right-swipe Delete action is offered.
+    archiveEnabled: Boolean = false,
+    isArchived: Boolean = false,
+    onArchive: (() -> Unit)? = null
 ) {
     val selectedBackgroundColor = lerp(
         MaterialTheme.colorScheme.surface,
@@ -92,6 +102,11 @@ private fun SwipeRevealRow(
         MaterialTheme.colorScheme.surface,
         MaterialTheme.colorScheme.primaryContainer,
         0.28f
+    )
+    val archiveRevealBackgroundColor = lerp(
+        MaterialTheme.colorScheme.surface,
+        MaterialTheme.colorScheme.secondaryContainer,
+        0.30f
     )
     val rowBackgroundColor = when {
         isSelected -> selectedBackgroundColor
@@ -109,6 +124,7 @@ private fun SwipeRevealRow(
     )
 
     Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+        // Right-swipe reveal: Delete (red background, anchored at the end).
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -122,6 +138,26 @@ private fun SwipeRevealRow(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 12.dp.uiScaled())
             )
+        }
+        // Left-swipe reveal: Archive or Restore (shown only when wired).
+        // Layered on top so its icon is visible when the row is dragged to the right.
+        if (archiveEnabled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(archiveRevealBackgroundColor)
+                    .clickable(onClick = { onArchive?.invoke() }),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Icon(
+                    if (isArchived) Icons.Default.Restore else Icons.Default.Archive,
+                    contentDescription = stringResource(
+                        if (isArchived) R.string.sessions_restore_cd else R.string.sessions_archive_cd
+                    ),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 12.dp.uiScaled())
+                )
+            }
         }
         Row(
             modifier = Modifier
@@ -214,12 +250,23 @@ fun SessionList(
     onLoadMoreSessions: () -> Unit = {},
     onShowAllSessions: ((Boolean) -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
-    onCollapseSessions: (() -> Unit)? = null
+    onCollapseSessions: (() -> Unit)? = null,
+    onArchiveSession: ((String) -> Unit)? = null,
+    onRestoreSession: ((String) -> Unit)? = null
 ) {
-    val tree = remember(sessions) { buildSessionTree(sessions) }
+    // Active sessions feed the tree (tree rows exclude archived sessions).
+    val activeSessions = remember(sessions) { sessions.filter { !it.isArchived } }
+    val tree = remember(activeSessions) { buildSessionTree(activeSessions) }
     val visibleRows = remember(tree, expandedSessionIds) {
         flattenVisibleTree(tree, expandedSessionIds)
     }
+    // Archived sessions render as a flat list at the bottom, independent of the
+    // working-directory filter (the directory filter applies to the active tree).
+    val archivedSessions = remember(sessions) {
+        sessions.filter { it.isArchived }
+            .sortedByDescending { it.time?.updated ?: 0L }
+    }
+    var archivedSectionExpanded by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(listState, visibleRows.size, hasMoreSessions, isLoadingMoreSessions) {
@@ -314,11 +361,21 @@ fun SessionList(
                 val isExpanded = expandedSessionIds.contains(session.id)
                 val density = LocalDensity.current
                 val deleteWidthPx = with(density) { 56.dp.uiScaled().toPx() }
-                val dragState = remember(deleteWidthPx) {
+                val archiveEnabled = onArchiveSession != null
+                // Anchor map: when the left Archive/Restore action is wired, the row
+                // rests at Center (0f) and can be dragged left (End -> Delete) or right
+                // (Start -> Archive/Restore). When it is not wired, fall back to the
+                // legacy 2-anchor layout that starts resting at 0f and only reveals Delete.
+                val dragState = remember(deleteWidthPx, archiveEnabled) {
                     AnchoredDraggableState(
-                        initialValue = SwipeAnchor.Start,
+                        initialValue = if (archiveEnabled) SwipeAnchor.Center else SwipeAnchor.Start,
                         anchors = DraggableAnchors {
-                            SwipeAnchor.Start at 0f
+                            if (archiveEnabled) {
+                                SwipeAnchor.Start at -deleteWidthPx
+                                SwipeAnchor.Center at 0f
+                            } else {
+                                SwipeAnchor.Start at 0f
+                            }
                             SwipeAnchor.End at deleteWidthPx
                         }
                     )
@@ -338,9 +395,104 @@ fun SessionList(
                         depth = depth,
                         hasChildren = hasChildren,
                         isCollapsed = !isExpanded,
-                        onToggleCollapse = if (hasChildren) { { onToggleSessionExpanded(session.id) } } else null
+                        onToggleCollapse = if (hasChildren) { { onToggleSessionExpanded(session.id) } } else null,
+                        archiveEnabled = archiveEnabled,
+                        isArchived = session.isArchived,
+                        onArchive = { onArchiveSession?.invoke(session.id) }
                     )
                     if (index < visibleRows.size - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 12.dp.uiScaled()),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+            // Archived sessions: collapsible flat section at the bottom.
+            // Rendered independently of the working-directory filter that governs the active tree.
+            if (archivedSessions.isNotEmpty()) {
+                item(key = "archived-header") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .clickable { archivedSectionExpanded = !archivedSectionExpanded }
+                            .padding(
+                                start = 12.dp.uiScaled(),
+                                end = 12.dp.uiScaled(),
+                                top = 10.dp.uiScaled(),
+                                bottom = 10.dp.uiScaled()
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (archivedSectionExpanded) Icons.Default.KeyboardArrowDown
+                            else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp.uiScaled())
+                        )
+                        Spacer(modifier = Modifier.width(6.dp.uiScaled()))
+                        Text(
+                            text = stringResource(R.string.sessions_archived, archivedSessions.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (archivedSectionExpanded) {
+                    items(archivedSessions, key = { "archived-${it.id}" }) { session ->
+                        val isSelected = session.id == currentSessionId
+                        val archivedBackgroundColor = if (isSelected) {
+                            lerp(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.primaryContainer,
+                                0.30f
+                            )
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(archivedBackgroundColor)
+                                .clickable { onSelectSession(session.id) }
+                                .padding(
+                                    start = 12.dp.uiScaled(),
+                                    end = 8.dp.uiScaled(),
+                                    top = 10.dp.uiScaled(),
+                                    bottom = 10.dp.uiScaled()
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f, fill = false)) {
+                                Text(
+                                    text = session.displayName,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                val updatedTime = session.time?.updated
+                                if (updatedTime != null) {
+                                    Text(
+                                        text = formatRelativeTime(updatedTime),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            if (onRestoreSession != null) {
+                                TextButton(onClick = { onRestoreSession(session.id) }) {
+                                    Text(stringResource(R.string.sessions_restore))
+                                }
+                            }
+                            IconButton(onClick = { onDeleteSession(session.id) }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.delete_session_cd),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 12.dp.uiScaled()),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)

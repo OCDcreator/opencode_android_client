@@ -111,6 +111,8 @@ internal data class ChatTopBarActions(
     val onLoadMoreSessions: () -> Unit,
     val onToggleSessionExpanded: (String) -> Unit = {},
     val onShowAllSessions: (Boolean) -> Unit = {},
+    val onArchiveSession: (String) -> Unit = {},
+    val onRestoreSession: (String) -> Unit = {},
     val onSelectAgent: (String) -> Unit,
     val onSelectModel: (Int) -> Unit,
     val onOpenContextUsage: () -> Unit = {},
@@ -334,6 +336,8 @@ internal fun ChatTopBar(
                     onLoadMoreSessions = actions.onLoadMoreSessions,
                     onToggleSessionExpanded = actions.onToggleSessionExpanded,
                     onShowAllSessions = actions.onShowAllSessions,
+                    onArchiveSession = actions.onArchiveSession,
+                    onRestoreSession = actions.onRestoreSession,
                     onOpenSettings = null
                 )
             }

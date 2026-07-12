@@ -255,7 +255,9 @@ private fun TabletLayout(viewModel: MainViewModel) {
                         onLoadMoreSessions = { viewModel.loadMoreSessions() },
                         onToggleSessionExpanded = { viewModel.toggleSessionExpanded(it) },
                         onOpenSettings = { selectedTab = 1 },
-                        onCollapseSessions = { sessionsPaneCollapsed = true }
+                        onCollapseSessions = { sessionsPaneCollapsed = true },
+                        onArchiveSession = { viewModel.archiveSession(it) },
+                        onRestoreSession = { viewModel.restoreSession(it) }
                     )
                 }
             }

@@ -150,6 +150,8 @@ fun ChatScreen(
                 onLoadMoreSessions = viewModel::loadMoreSessions,
                 onToggleSessionExpanded = viewModel::toggleSessionExpanded,
                 onShowAllSessions = viewModel::setShowAllSessions,
+                onArchiveSession = viewModel::archiveSession,
+                onRestoreSession = viewModel::restoreSession,
                 onSelectAgent = viewModel::selectAgent,
                 onSelectModel = viewModel::selectModel,
                 onOpenContextUsage = { showContextUsageSheet = true },

@@ -224,4 +224,9 @@
     <string name="common_done">Done</string>
     <string name="collapse_sessions_pane">Collapse sessions pane</string>
     <string name="show_sessions_pane">Show sessions pane</string>
+    <string name="sessions_archived">Archived (%1$d)</string>
+    <string name="sessions_archive">Archive</string>
+    <string name="sessions_restore">Restore</string>
+    <string name="sessions_archive_cd">Archive session</string>
+    <string name="sessions_restore_cd">Restore session</string>
 </resources>

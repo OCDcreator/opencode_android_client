@@ -216,4 +216,9 @@
     <string name="common_done">完成</string>
     <string name="collapse_sessions_pane">折叠会话面板</string>
     <string name="show_sessions_pane">展开会话面板</string>
+    <string name="sessions_archived">已归档 (%1$d)</string>
+    <string name="sessions_archive">归档</string>
+    <string name="sessions_restore">恢复</string>
+    <string name="sessions_archive_cd">归档会话</string>
+    <string name="sessions_restore_cd">恢复会话</string>
 </resources>
