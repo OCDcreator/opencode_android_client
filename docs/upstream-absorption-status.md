@@ -1,12 +1,12 @@
 # 上游吸收状态文档
 
-> **最后更新**: 2026-07-12
+> **最后更新**: 2026-07-12 (第四批 P0-P4 完成)
 > **Fork**: OCDcreator/opencode_android_client ← grapeot/opencode_android_client
-> **当前状态**: 本地领先 44 commits,上游领先 140 commits(merge-base `42fd772`)
+> **当前状态**: 本地领先 55+ commits,上游领先 140 commits(merge-base `42fd772`)
 
 ---
 
-## 一、已完成吸收的功能(三批共 16 项)
+## 一、已完成吸收的功能(四批共 21 项)
 
 ### 第一批(高价值低冲突,已合并)
 
@@ -38,6 +38,16 @@
 | `846e1bb` | `88a0216`+`f6af110` | **Agent 活动+计时** — 实时状态字符串 + m:ss 计时器 + sessionSendTimestamps 预窗口 fallback |
 | `6654fa0` | `6d2f823` Layer-2 | **FileCard 无障碍** — testTag `toolcard.read/write.*` + contentDescription + 组件测试 |
 | `6d7763a` | `1f95db7` | **平板面板折叠** — sessionsPaneCollapsed + 浮层展开按钮 + rememberSaveable |
+
+### 第四批(P0-P4 高冲突项,逐项规划+子代理实现+验证)
+
+| Commit | 上游来源 | 功能 |
+|--------|----------|------|
+| `f3675c6` | — | **P0 EOL 统一** — `.gitattributes` + 6 文件 renormalize 为 LF,消除 cherry-pick 全行冲突 |
+| `6725bb6` | `7c441d9` | **P1 Edit Rewind API** — Session.revert + revertSession API + repository + 2 单测(步骤 A,UI 步骤 B 待做) |
+| `790a7dd` | `c8b06b1` | **P2 Quiet Tech 色彩** — 品牌蓝 #3B82F6 / 金 #D9A621 / 红 #E5484D + 中性灰阶,保留 fontSizeScale/uiScale |
+| `3f036f2` | `d43b2c4`+3 | **P3 SSH Host Profiles** — 完整 9 步:5 新文件(HostProfile/HostProfileStore/KnownHostStore/SSHKeyManager ed25519/TunnelManager JSch)+ deps + MainViewModel 7 参数 + Settings UI(profile 管理+编辑器+公钥)+ 3 单测 |
+| `6545bfc`+`26ae767` | `cbc5034` | **P4 会话归档** — 方案 A:active 分区内目录过滤(保留),archived 独立可折叠分区;双向滑动(左 Archive/Restore,右 Delete);递归子树;sendMessage 自动 restore |
 
 ### Fork 自有创新(非上游)
 
@@ -103,7 +113,19 @@
 ./gradlew testDebugUnitTest            # 全部单测通过
 ```
 
-当前状态(2026-07-12):
+当前状态(2026-07-12,第四批完成):
 - ✅ `assembleDebug` 零警告
-- ✅ 全部单测通过
+- ✅ 全部单测通过(279+ tests)
 - ✅ 已推送到 origin/master
+
+---
+
+## 五、后续待做项
+
+| 项 | 说明 | 优先级 |
+|----|------|--------|
+| Edit Rewind 步骤 B | VM editFromMessage + ChatMessageContent 溢出菜单"从此处编辑"+ visibleMessages 过滤 | 中 |
+| androidTest 修复 | ChatInputBarInstrumentedTest + SettingsSectionsInstrumentedTest 因 fork 参数差异(hideMicIcon/pendingImages)编译失败,需更新 | 低 |
+| Quiet Tech 视觉微调 | 色彩 token 已落地,可能需要截图对比几轮视觉验证 | 低 |
+| SSH 实机测试 | SSH Tunnel profile 需要真实 SSH 服务器验证端到端连接 | 按需 |
+
