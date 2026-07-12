@@ -207,4 +207,12 @@
     <string name="sessions_empty_filtered_hint">%1$d session(s) exist under other directories.</string>
     <string name="sessions_show_all">Show all sessions</string>
     <string name="sessions_show_filtered">Only show sessions in this directory</string>
+    <string name="common_close">Close</string>
+    <string name="common_refresh">Refresh</string>
+    <string name="files_preview_mode">Preview mode</string>
+    <string name="files_share">Share</string>
+    <string name="files_markdown_large_warning">This Markdown file is large. Web Preview may be slow or memory-heavy.</string>
+    <string name="files_open_web_preview">Open Web Preview</string>
+    <string name="files_open_native_preview">Open Native Preview</string>
+    <string name="files_open_markdown_source">Open Markdown Source</string>
 </resources>

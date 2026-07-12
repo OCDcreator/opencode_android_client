@@ -128,4 +128,39 @@ object MarkdownImageResolver {
             else -> "image/*"
         }
     }
+
+    /**
+     * Ensures standalone image lines (a line that is only `![alt](url)`) are followed by a
+     * blank line so the markdown parser treats them as separate block images rather than
+     * merging them with the following paragraph.
+     */
+    fun normalizeStandaloneImageBlocks(text: String): String {
+        val lines = text.split('\n')
+        if (lines.size <= 1) return text
+
+        val normalized = ArrayList<String>(lines.size)
+        for (index in lines.indices) {
+            val line = lines[index]
+            normalized.add(line)
+
+            if (!isStandaloneMarkdownImageLine(line)) continue
+            if (index + 1 >= lines.size) continue
+
+            val nextLine = lines[index + 1]
+            if (nextLine.trim().isNotEmpty()) {
+                normalized.add("")
+            }
+        }
+
+        return normalized.joinToString("\n")
+    }
+
+    private fun isStandaloneMarkdownImageLine(line: String): Boolean {
+        val trimmed = line.trim()
+        if (!trimmed.startsWith("![") || !trimmed.endsWith(")")) return false
+        val closeAlt = trimmed.indexOf(']')
+        if (closeAlt < 0 || closeAlt + 1 >= trimmed.length) return false
+        val afterAlt = trimmed.substring(closeAlt + 1)
+        return afterAlt.startsWith("(") && afterAlt.length > 1
+    }
 }

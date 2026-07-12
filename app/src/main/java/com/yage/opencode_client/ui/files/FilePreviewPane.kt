@@ -18,7 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,24 +45,28 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.yage.opencode_client.R
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.FileContent
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.markdownComponentsWithScrollableTable
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
-import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
-import com.yage.opencode_client.ui.theme.uiScaled
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.HttpImageHolder
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
-import androidx.compose.ui.res.stringResource
-import com.yage.opencode_client.R
+
+private enum class MarkdownPreviewMode {
+    Web,
+    Native,
+    Source
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +75,8 @@ internal fun FilePreviewPane(
     fileContent: FileContent,
     repository: OpenCodeRepository,
     sessionDirectory: String? = null,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -77,36 +87,79 @@ internal fun FilePreviewPane(
     val imagePayload = remember(path, content) {
         if (previewKind == FilePreviewUtils.PreviewContentKind.IMAGE) decodeImagePayload(content) else null
     }
+    var markdownPreviewMode by remember(path) { mutableStateOf(MarkdownPreviewMode.Web) }
+    var modeMenuExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ProvideScaledDpDensity {
-            TopAppBar(
-                title = { Text(path.substringAfterLast('/'), style = MaterialTheme.typography.titleSmall) },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
-                    }
-                },
-                actions = {
-                    if (imagePayload != null) {
-                        IconButton(onClick = { shareImage(context, path, imagePayload.bytes) }) {
-                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share_cd))
+        TopAppBar(
+            title = { Text(path.substringAfterLast('/'), style = MaterialTheme.typography.titleSmall) },
+            navigationIcon = {
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
+                }
+            },
+            actions = {
+                if (previewKind == FilePreviewUtils.PreviewContentKind.MARKDOWN) {
+                    Box {
+                        IconButton(onClick = { modeMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.files_preview_mode))
+                        }
+                        DropdownMenu(
+                            expanded = modeMenuExpanded,
+                            onDismissRequest = { modeMenuExpanded = false }
+                        ) {
+                            MarkdownPreviewMode.entries.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            when (mode) {
+                                                MarkdownPreviewMode.Web -> stringResource(R.string.files_open_web_preview)
+                                                MarkdownPreviewMode.Native -> stringResource(R.string.files_open_native_preview)
+                                                MarkdownPreviewMode.Source -> stringResource(R.string.files_open_markdown_source)
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        markdownPreviewMode = mode
+                                        modeMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-            )
-        }
+                IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
+                }
+                if (imagePayload != null) {
+                    IconButton(onClick = { shareImage(context, path, imagePayload.bytes) }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.files_share))
+                    }
+                }
+            }
+        )
 
         HorizontalDivider()
 
         when {
             imagePayload != null -> ImageViewer(bitmap = imagePayload.bitmap)
-            previewKind == FilePreviewUtils.PreviewContentKind.MARKDOWN -> PreviewMarkdown(
-                content = content,
-                filePath = path,
-                repository = repository,
-                sessionDirectory = sessionDirectory
-            )
+            previewKind == FilePreviewUtils.PreviewContentKind.MARKDOWN -> when (markdownPreviewMode) {
+                MarkdownPreviewMode.Web -> MarkdownWebPreviewPane(
+                    content = content,
+                    filePath = path,
+                    repository = repository,
+                    sessionDirectory = sessionDirectory,
+                    onOpenNative = { markdownPreviewMode = MarkdownPreviewMode.Native },
+                    onOpenSource = { markdownPreviewMode = MarkdownPreviewMode.Source }
+                )
+                MarkdownPreviewMode.Native -> PreviewMarkdown(
+                    content = content,
+                    filePath = path,
+                    repository = repository,
+                    sessionDirectory = sessionDirectory
+                )
+                MarkdownPreviewMode.Source -> PreviewPlainText(content = content)
+            }
             previewKind == FilePreviewUtils.PreviewContentKind.BINARY -> PreviewBinaryFallback()
             else -> PreviewPlainText(content = content)
         }
@@ -121,19 +174,20 @@ private fun PreviewMarkdown(
     sessionDirectory: String?
 ) {
     var resolvedContent by remember(content, filePath) { mutableStateOf<String?>(null) }
+    val normalizedContent = remember(content) { MarkdownImageResolver.normalizeStandaloneImageBlocks(content) }
     val resolverMarkdownPath = remember(filePath, sessionDirectory) {
         resolveRelativePreviewPath(filePath, sessionDirectory)
     }
 
-    LaunchedEffect(content, resolverMarkdownPath, sessionDirectory, repository) {
+    LaunchedEffect(normalizedContent, resolverMarkdownPath, sessionDirectory, repository) {
         resolvedContent = null
         resolvedContent = MarkdownImageResolver.resolveImages(
-            text = content,
+            text = normalizedContent,
             markdownFilePath = resolverMarkdownPath,
             workspaceDirectory = sessionDirectory,
             fetchContent = { path -> repository.getFileContent(path).getOrThrow() }
         )
-        val finalText = resolvedContent ?: content
+        val finalText = resolvedContent ?: normalizedContent
         val httpsUrls = """!\[[^\]]*\]\((https?://[^)]+)\)""".toRegex().findAll(finalText).map { it.groupValues[1] }.toList().distinct()
         for (url in httpsUrls) {
             HttpImageHolder.prefetch(url)
@@ -142,11 +196,11 @@ private fun PreviewMarkdown(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp.uiScaled())
+        contentPadding = PaddingValues(16.dp)
     ) {
         item {
             Markdown(
-                content = resolvedContent ?: content,
+                content = resolvedContent ?: normalizedContent,
                 typography = markdownTypographyCompact(),
                 components = markdownComponentsWithScrollableTable(),
                 modifier = Modifier.fillMaxWidth(),
@@ -163,7 +217,7 @@ private fun PreviewBinaryFallback() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(R.string.binary_not_supported),
+            text = "Binary file preview is not supported.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline
         )
@@ -174,7 +228,7 @@ private fun PreviewBinaryFallback() {
 private fun PreviewPlainText(content: String) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp.uiScaled())
+        contentPadding = PaddingValues(16.dp)
     ) {
         item {
             Text(
@@ -302,6 +356,6 @@ private fun shareImage(context: Context, path: String, bytes: ByteArray) {
     }
 
     context.startActivity(
-        Intent.createChooser(intent, context.getString(R.string.share_image)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        Intent.createChooser(intent, "Share image").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

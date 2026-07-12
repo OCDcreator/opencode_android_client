@@ -199,4 +199,12 @@
     <string name="sessions_empty_filtered_hint">其他目录下还有 %1$d 个会话。</string>
     <string name="sessions_show_all">显示所有会话</string>
     <string name="sessions_show_filtered">仅显示当前目录的会话</string>
+    <string name="common_close">关闭</string>
+    <string name="common_refresh">刷新</string>
+    <string name="files_preview_mode">预览模式</string>
+    <string name="files_share">分享</string>
+    <string name="files_markdown_large_warning">这个 Markdown 文件较大，Web 预览可能较慢或占用较多内存。</string>
+    <string name="files_open_web_preview">打开 Web 预览</string>
+    <string name="files_open_native_preview">打开原生预览</string>
+    <string name="files_open_markdown_source">打开 Markdown 源码</string>
 </resources>
