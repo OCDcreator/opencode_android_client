@@ -40,6 +40,42 @@ class SettingsManager @Inject constructor(
         get() = encryptedPrefs.getString(KEY_PASSWORD, null)
         set(value) = encryptedPrefs.edit().putString(KEY_PASSWORD, value).apply()
 
+    var hostProfilesJson: String?
+        get() = encryptedPrefs.getString(KEY_HOST_PROFILES, null)
+        set(value) = encryptedPrefs.edit().putString(KEY_HOST_PROFILES, value).apply()
+
+    var currentHostProfileId: String?
+        get() = encryptedPrefs.getString(KEY_CURRENT_HOST_PROFILE_ID, null)
+        set(value) = encryptedPrefs.edit().putString(KEY_CURRENT_HOST_PROFILE_ID, value).apply()
+
+    var sshPrivateKeyPem: String?
+        get() = encryptedPrefs.getString(KEY_SSH_PRIVATE_KEY, null)
+        set(value) = encryptedPrefs.edit().putString(KEY_SSH_PRIVATE_KEY, value).apply()
+
+    var sshPublicKey: String?
+        get() = encryptedPrefs.getString(KEY_SSH_PUBLIC_KEY, null)
+        set(value) = encryptedPrefs.edit().putString(KEY_SSH_PUBLIC_KEY, value).apply()
+
+    var knownHostsJson: String?
+        get() = encryptedPrefs.getString(KEY_KNOWN_HOSTS, null)
+        set(value) = encryptedPrefs.edit().putString(KEY_KNOWN_HOSTS, value).apply()
+
+    fun basicAuthPassword(passwordId: String): String? =
+        if (passwordId == LEGACY_BASIC_AUTH_PASSWORD_ID) password
+        else encryptedPrefs.getString(basicAuthPasswordKey(passwordId), null)
+
+    fun setBasicAuthPassword(passwordId: String, value: String?) {
+        if (passwordId == LEGACY_BASIC_AUTH_PASSWORD_ID) {
+            password = value
+        } else {
+            if (value != null) {
+                encryptedPrefs.edit().putString(basicAuthPasswordKey(passwordId), value).apply()
+            } else {
+                encryptedPrefs.edit().remove(basicAuthPasswordKey(passwordId)).apply()
+            }
+        }
+    }
+
     var workingDirectory: String
         get() = encryptedPrefs.getString(KEY_WORKING_DIRECTORY, "") ?: ""
         set(value) = encryptedPrefs.edit().putString(KEY_WORKING_DIRECTORY, value).apply()
@@ -208,6 +244,12 @@ class SettingsManager @Inject constructor(
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_USERNAME = "username"
         private const val KEY_PASSWORD = "password"
+        const val LEGACY_BASIC_AUTH_PASSWORD_ID = "legacy_basic_auth_password"
+        private const val KEY_HOST_PROFILES = "host_profiles_json"
+        private const val KEY_CURRENT_HOST_PROFILE_ID = "current_host_profile_id"
+        private const val KEY_SSH_PRIVATE_KEY = "ssh_private_key_pem"
+        private const val KEY_SSH_PUBLIC_KEY = "ssh_public_key"
+        private const val KEY_KNOWN_HOSTS = "ssh_known_hosts_json"
         private const val KEY_WORKING_DIRECTORY = "working_directory"
         private const val KEY_RECENT_WORKING_DIRECTORIES = "recent_working_directories"
         private const val KEY_SESSION_ID = "session_id"
@@ -229,6 +271,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_SESSION_MODELS = "session_models"
         private const val KEY_SESSION_AGENTS = "session_agents"
         private const val MAX_RECENT_WORKING_DIRECTORIES = 8
+        private fun basicAuthPasswordKey(passwordId: String): String = "basic_auth_password_$passwordId"
         private val LEGACY_MODEL_PRESETS = listOf(
             "zai-coding-plan" to "glm-5-turbo",
             "anthropic" to "claude-opus-4-6",
