@@ -571,10 +571,13 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
-        // FORK ADAPTATION: pass profile.workingDirectory as 4th arg
+        // Configure repository with the effective baseUrl (direct URL or tunnel local port).
         repository.configure(baseUrl, profile.basicAuth?.username, password, profile.workingDirectory)
-        // Sync profile -> settingsManager so the Server Connection section reflects the active profile.
-        syncSettingsManagerFromProfile(profile, password)
+        // Sync settingsManager so the app stays consistent. For SSH tunnel mode, the effective
+        // connection URL is the local tunnel port (e.g. http://127.0.0.1:4096), NOT profile.serverUrl
+        // — profile.serverUrl is irrelevant metadata in SSH mode. Writing it to settingsManager would
+        // cause applySavedSettings to connect to the wrong address on app restart (before the tunnel starts).
+        syncSettingsManagerFromProfile(profile, password, effectiveBaseUrl = baseUrl)
         return true
     }
 
@@ -583,8 +586,10 @@ class MainViewModel @Inject constructor(
      * Server Connection section below the Host Profiles section stays in sync with the
      * currently selected profile. Each profile remembers its own working directory.
      */
-    private fun syncSettingsManagerFromProfile(profile: HostProfile, password: String?) {
-        settingsManager.serverUrl = profile.serverUrl
+    private fun syncSettingsManagerFromProfile(profile: HostProfile, password: String?, effectiveBaseUrl: String? = null) {
+        // For SSH tunnel mode, the effective base URL is the local tunnel port (e.g. http://127.0.0.1:4096),
+        // not profile.serverUrl. For DIRECT mode, effectiveBaseUrl is null so we use profile.serverUrl.
+        settingsManager.serverUrl = effectiveBaseUrl ?: profile.serverUrl
         settingsManager.username = profile.basicAuth?.username
         // Only update the legacy password if the profile actually has one, so switching to an
         // SSH profile (no basic auth) doesn't wipe the legacy password that other DIRECT profiles

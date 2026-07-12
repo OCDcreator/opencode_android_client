@@ -2,6 +2,7 @@ package com.yage.opencode_client.ui
 
 import android.util.Log
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
+import com.yage.opencode_client.data.model.HostTransport
 import com.yage.opencode_client.data.repository.HostProfileStore
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.util.SettingsManager
@@ -27,9 +28,16 @@ internal fun applySavedSettings(
     val currentProfile = if (profiles.isNotEmpty()) hostProfileStore.currentProfile() else null
     val currentProfileId = currentProfile?.id ?: hostProfileStore.currentProfile().id
 
-    // Prefer the current profile's connection settings so the active profile is honored
-    // at startup; fall back to raw settingsManager values when no profiles exist.
-    val effectiveUrl = currentProfile?.serverUrl?.ifBlank { null } ?: settingsManager.serverUrl
+    // For DIRECT profiles: use profile.serverUrl (or settingsManager fallback).
+    // For SSH_TUNNEL profiles: the settingsManager.serverUrl already holds the local tunnel
+    // port (e.g. http://127.0.0.1:4096) from the last syncSettingsManagerFromProfile call.
+    // The tunnel itself will be (re)started by testConnection/selectHostProfile.
+    val isSshTunnel = currentProfile?.transport == HostTransport.SSH_TUNNEL
+    val effectiveUrl = if (isSshTunnel) {
+        settingsManager.serverUrl
+    } else {
+        currentProfile?.serverUrl?.ifBlank { null } ?: settingsManager.serverUrl
+    }
     val effectiveUsername = currentProfile?.basicAuth?.username ?: settingsManager.username
     val effectivePassword = currentProfile?.basicAuth?.passwordId
         ?.let { settingsManager.basicAuthPassword(it) } ?: settingsManager.password
