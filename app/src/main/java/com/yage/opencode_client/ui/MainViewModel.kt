@@ -480,13 +480,28 @@ class MainViewModel @Inject constructor(
         val currentId = hostProfileStore.currentProfile().id
         if (normalized.id == currentId) {
             val password = normalized.basicAuth?.passwordId?.let { settingsManager.basicAuthPassword(it) }
-            syncSettingsManagerFromProfile(normalized, password)
-            repository.configure(
-                normalized.serverUrl,
-                normalized.basicAuth?.username,
-                password,
-                normalized.workingDirectory
-            )
+            if (normalized.transport == HostTransport.SSH_TUNNEL) {
+                // SSH tunnel: must start the tunnel to get the local port. Don't use profile.serverUrl
+                // (it's irrelevant metadata in SSH mode). Sync working directory + credentials only;
+                // the tunnel restart will set settingsManager.serverUrl to the local port.
+                settingsManager.workingDirectory = normalized.workingDirectory
+                if (normalized.basicAuth != null && !password.isNullOrBlank()) {
+                    settingsManager.username = normalized.basicAuth.username
+                    settingsManager.password = password
+                }
+                _state.update { it.copy(workingDirectory = normalized.workingDirectory) }
+                viewModelScope.launch {
+                    configureRepositoryForProfileAsync(normalized)
+                }
+            } else {
+                syncSettingsManagerFromProfile(normalized, password)
+                repository.configure(
+                    normalized.serverUrl,
+                    normalized.basicAuth?.username,
+                    password,
+                    normalized.workingDirectory
+                )
+            }
             lastHealthCheckTime = 0L
         }
 

@@ -432,7 +432,7 @@ internal fun HostProfileEditorDialog(
     }
 
     val nameError = name.trim().isEmpty()
-    val urlError = serverUrl.trim().isEmpty()
+    val urlError = transport != HostTransport.SSH_TUNNEL && serverUrl.trim().isEmpty()
     val portError = sshPort.toIntOrNull()?.let { it <= 0 } ?: true
     val remotePortError = remotePort.toIntOrNull()?.let { it <= 0 } ?: true
     val sshHostError = transport == HostTransport.SSH_TUNNEL && sshHost.trim().isEmpty()
@@ -485,22 +485,27 @@ internal fun HostProfileEditorDialog(
 
                 Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
-                OutlinedTextField(
-                    value = serverUrl,
-                    onValueChange = { serverUrl = it },
-                    label = {
-                        Text(stringResource(R.string.host_profile_server_url))
-                    },
-                    placeholder = { Text(defaultServerUrl(transport)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = urlError,
-                    supportingText = if (urlError) {
-                        { Text(stringResource(R.string.host_profile_server_url_required)) }
-                    } else if (transport == HostTransport.SSH_TUNNEL) {
-                        { Text(stringResource(R.string.host_profile_ssh_hint)) }
-                    } else null
-                )
+                // Server URL field: only show for DIRECT mode. In SSH_TUNNEL mode the
+                // connection URL is the local tunnel port (auto-assigned), so this field
+                // is irrelevant and showing it causes confusion.
+                if (transport != HostTransport.SSH_TUNNEL) {
+                    OutlinedTextField(
+                        value = serverUrl,
+                        onValueChange = { serverUrl = it },
+                        label = {
+                            Text(stringResource(R.string.host_profile_server_url))
+                        },
+                        placeholder = { Text(defaultServerUrl(transport)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = urlError,
+                        supportingText = if (urlError) {
+                            { Text(stringResource(R.string.host_profile_server_url_required)) }
+                        } else null
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+                }
 
                 Spacer(modifier = Modifier.height(12.dp.uiScaled()))
 
