@@ -7,7 +7,11 @@ import com.yage.opencode_client.data.api.PromptRequest
 import com.yage.opencode_client.data.audio.AudioRecorderManager
 import com.yage.opencode_client.data.image.ImageAttachmentCompressor
 import com.yage.opencode_client.data.model.*
+import com.yage.opencode_client.data.repository.HostProfileStore
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import com.yage.opencode_client.ssh.SSHKeyManager
+import com.yage.opencode_client.ssh.TunnelManager
+import com.yage.opencode_client.ssh.TunnelResult
 import com.yage.opencode_client.util.SettingsManager
 import com.yage.opencode_client.util.LanguageMode
 import com.yage.opencode_client.util.ThemeMode
@@ -49,6 +53,9 @@ data class AppState(
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val serverVersion: String? = null,
+    val hostProfiles: List<HostProfile> = emptyList(),
+    val currentHostProfileId: String? = null,
+    val connectionPhase: String? = null,
     val sessions: List<Session> = emptyList(),
     val loadedSessionLimit: Int = MainViewModelTimings.sessionPageSize,
     val hasMoreSessions: Boolean = true,
@@ -358,7 +365,10 @@ class MainViewModel @Inject constructor(
     internal val repository: OpenCodeRepository,
     private val settingsManager: SettingsManager,
     private val audioRecorderManager: AudioRecorderManager,
-    private val imageCompressor: ImageAttachmentCompressor
+    private val imageCompressor: ImageAttachmentCompressor,
+    private val hostProfileStore: HostProfileStore,
+    private val tunnelManager: TunnelManager,
+    private val sshKeyManager: SSHKeyManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppState())
@@ -378,7 +388,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun loadSettings() {
-        applySavedSettings(repository, settingsManager, _state)
+        applySavedSettings(repository, settingsManager, hostProfileStore, _state)
     }
 
     fun configureServer(
@@ -407,6 +417,106 @@ class MainViewModel @Inject constructor(
         workingDirectory = settingsManager.workingDirectory,
         recentWorkingDirectories = settingsManager.getRecentWorkingDirectories()
     )
+
+    fun getHostProfiles(): List<HostProfile> = hostProfileStore.profiles()
+
+    fun currentHostProfile(): HostProfile = hostProfileStore.currentProfile()
+
+    fun saveHostProfile(profile: HostProfile, basicAuthPassword: String? = null) {
+        val normalized = if (profile.basicAuth != null) {
+            profile.copy(basicAuth = profile.basicAuth.copy(passwordId = profile.id))
+        } else {
+            profile
+        }
+        if (normalized.basicAuth != null) {
+            settingsManager.setBasicAuthPassword(normalized.id, basicAuthPassword)
+        }
+        hostProfileStore.save(normalized)
+        refreshHostProfileState()
+    }
+
+    fun selectHostProfile(profileId: String) {
+        viewModelScope.launch {
+            val profile = hostProfileStore.select(profileId)
+            configureRepositoryForProfileAsync(profile)
+            refreshHostProfileState()
+            testConnection()
+        }
+    }
+
+    fun duplicateHostProfile(profileId: String) {
+        hostProfileStore.duplicate(profileId)
+        refreshHostProfileState()
+    }
+
+    fun deleteHostProfile(profileId: String) {
+        hostProfileStore.delete(profileId)
+        val current = hostProfileStore.currentProfile()
+        configureRepositoryForProfile(current, startTunnel = false)
+        refreshHostProfileState()
+    }
+
+    fun importHostProfile(payload: String): Result<HostProfile> = runCatching {
+        hostProfileStore.importJson(payload).also { refreshHostProfileState() }
+    }
+
+    fun exportHostProfile(profile: HostProfile): String = hostProfileStore.exportJson(profile)
+
+    fun ensureSshPublicKey(): String = sshKeyManager.ensureKeyPair()
+
+    fun sshPublicKey(): String? = sshKeyManager.publicKey()
+
+    fun rotateSshKey(): String = sshKeyManager.rotateKey()
+
+    private fun refreshHostProfileState() {
+        _state.update {
+            it.copy(
+                hostProfiles = hostProfileStore.profiles(),
+                currentHostProfileId = hostProfileStore.currentProfile().id
+            )
+        }
+    }
+
+    private fun configureRepositoryForProfile(profile: HostProfile, startTunnel: Boolean) {
+        val password = profile.basicAuth?.passwordId?.let { settingsManager.basicAuthPassword(it) }
+        if (profile.transport == HostTransport.SSH_TUNNEL && startTunnel) {
+            viewModelScope.launch { configureRepositoryForProfileAsync(profile) }
+            return
+        }
+        // FORK ADAPTATION: pass settingsManager.workingDirectory as the 4th arg
+        // so SSH-tunneled profiles keep the working directory context.
+        repository.configure(profile.serverUrl, profile.basicAuth?.username, password, settingsManager.workingDirectory)
+    }
+
+    private suspend fun configureRepositoryForProfileAsync(profile: HostProfile): Boolean {
+        val password = profile.basicAuth?.passwordId?.let { settingsManager.basicAuthPassword(it) }
+        val baseUrl = when (profile.transport) {
+            HostTransport.DIRECT -> profile.serverUrl
+            HostTransport.SSH_TUNNEL -> {
+                val ssh = profile.ssh ?: run {
+                    _state.update { it.copy(error = "SSH profile is missing tunnel settings") }
+                    return false
+                }
+                when (val result = tunnelManager.ensureStarted(ssh)) {
+                    is TunnelResult.Success -> result.localUrl
+                    is TunnelResult.Failure -> {
+                        _state.update {
+                            it.copy(
+                                isConnected = false,
+                                isConnecting = false,
+                                connectionPhase = result.phase.name,
+                                error = result.message
+                            )
+                        }
+                        return false
+                    }
+                }
+            }
+        }
+        // FORK ADAPTATION: pass workingDirectory as 4th arg
+        repository.configure(baseUrl, profile.basicAuth?.username, password, settingsManager.workingDirectory)
+        return true
+    }
 
     fun getAIBuilderSettings(): AIBuilderSettings = AIBuilderSettings(
         baseURL = settingsManager.aiBuilderBaseURL,
@@ -558,6 +668,7 @@ class MainViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         if (now - lastHealthCheckTime < 30_000) return
         lastHealthCheckTime = now
+        _state.update { it.copy(connectionPhase = "connecting") }
         launchConnectionTest(viewModelScope, repository, _state) {
             loadInitialData()
             startSSE()
