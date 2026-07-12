@@ -6,7 +6,15 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.UserInfo
 import com.yage.opencode_client.data.model.SshTunnelConfig
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.net.ServerSocket
@@ -17,6 +25,13 @@ import javax.inject.Singleton
 interface TunnelManager {
     suspend fun ensureStarted(config: SshTunnelConfig): TunnelResult
     fun disconnect()
+    /**
+     * Whether the active SSH session is still alive. Returns false if no tunnel was ever started
+     * or if the JSch session has dropped (network change, server-side idle timeout, etc.).
+     */
+    fun isAlive(): Boolean
+    /** The last [SshTunnelConfig] a tunnel was successfully started with, or null. */
+    fun lastConfig(): SshTunnelConfig?
 }
 
 @Singleton
@@ -25,6 +40,10 @@ class JschTunnelManager @Inject constructor(
     private val knownHostStore: KnownHostStore
 ) : TunnelManager {
     private var active: ActiveTunnel? = null
+    // The last config we successfully started a tunnel with. Used by the health monitor to
+    // reconnect without needing the caller to re-supply the config.
+    @Volatile
+    private var lastConfig: SshTunnelConfig? = null
 
     override suspend fun ensureStarted(config: SshTunnelConfig): TunnelResult = withContext(Dispatchers.IO) {
         config.validationError?.let { return@withContext TunnelResult.Failure(ConnectionPhase.SSH_GATEWAY, it) }
@@ -63,16 +82,27 @@ class JschTunnelManager @Inject constructor(
         }
 
         try {
+            AppLogger.i(
+                LogCategory.SSH,
+                "Tunnel",
+                "SSH connected to ${config.host}:${config.port} as ${config.username}, forwarding local :$localPort -> remote 127.0.0.1:${config.remotePort}"
+            )
             session.setPortForwardingL(localPort, "127.0.0.1", config.remotePort)
         } catch (error: Exception) {
+            AppLogger.w(LogCategory.SSH, "Tunnel", "Local port forwarding failed: ${error.message}")
             session.disconnect()
             return@withContext TunnelResult.Failure(ConnectionPhase.LOCAL_TUNNEL, error.message ?: "Local tunnel failed")
         }
 
         val tunnel = ActiveTunnel(config = config, localPort = localPort, session = session)
         active = tunnel
+        lastConfig = config
         TunnelResult.Success(tunnel.localUrl)
     }
+
+    override fun isAlive(): Boolean = active?.session?.isConnected == true
+
+    override fun lastConfig(): SshTunnelConfig? = lastConfig
 
     override fun disconnect() {
         active?.session?.disconnect()

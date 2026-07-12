@@ -1,10 +1,11 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import com.yage.opencode_client.data.api.PromptRequest
 import com.yage.opencode_client.data.model.Message
 import com.yage.opencode_client.data.model.ProvidersResponse
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import com.yage.opencode_client.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -23,7 +24,7 @@ internal fun launchLoadSessions(
     scope.launch {
         val limit = MainViewModelTimings.sessionPageSize
         val ignoreDir = state.value.showAllSessions
-        debugSessionLog("loadSessions start limit=$limit ignoreDir=$ignoreDir")
+        AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadSessions start limit=$limit ignoreDir=$ignoreDir")
         state.update {
             it.copy(
                 loadedSessionLimit = limit,
@@ -33,7 +34,7 @@ internal fun launchLoadSessions(
         }
         repository.getSessions(limit, ignoreDirectoryFilter = ignoreDir)
             .onSuccess { sessions ->
-                debugSessionLog("loadSessions success count=${sessions.size}")
+                AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadSessions success count=${sessions.size}")
                 // When filtering by directory, fetch the unfiltered count once so the
                 // empty state can hint "N sessions exist under other directories".
                 val totalCount = if (!ignoreDir && sessions.isEmpty()) {
@@ -67,7 +68,7 @@ internal fun launchLoadSessions(
                 }
             }
             .onFailure { error ->
-                debugSessionLog("loadSessions failed", error)
+                AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadSessions failed", error)
                 state.update {
                     it.copy(
                         isLoadingMoreSessions = false,
@@ -98,10 +99,10 @@ internal fun launchLoadMoreSessions(
     if (!shouldLaunch) return
     val ignoreDir = state.value.showAllSessions
     scope.launch {
-        debugSessionLog("loadMoreSessions start limit=$nextLimit ignoreDir=$ignoreDir")
+        AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadMoreSessions start limit=$nextLimit ignoreDir=$ignoreDir")
         repository.getSessions(nextLimit, ignoreDirectoryFilter = ignoreDir)
             .onSuccess { sessions ->
-                debugSessionLog("loadMoreSessions success count=${sessions.size}")
+                AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadMoreSessions success count=${sessions.size}")
                 if (state.value.loadedSessionLimit > nextLimit) {
                     state.update { it.copy(isLoadingMoreSessions = false) }
                     return@onSuccess
@@ -124,7 +125,7 @@ internal fun launchLoadMoreSessions(
                 }
             }
             .onFailure { error ->
-                debugSessionLog("loadMoreSessions failed", error)
+                AppLogger.d(LogCategory.SESSION, SESSION_ACTIONS_TAG, "loadMoreSessions failed", error)
                 state.update {
                     it.copy(
                         isLoadingMoreSessions = false,
@@ -136,14 +137,6 @@ internal fun launchLoadMoreSessions(
 }
 
 private const val SESSION_ACTIONS_TAG = "MainViewModelSessions"
-
-private fun debugSessionLog(message: String, throwable: Throwable? = null) {
-    try {
-        if (throwable == null) Log.d(SESSION_ACTIONS_TAG, message) else Log.d(SESSION_ACTIONS_TAG, message, throwable)
-    } catch (_: RuntimeException) {
-        // android.util.Log is not mocked in local JVM unit tests.
-    }
-}
 
 internal fun launchLoadSessionStatus(
     scope: CoroutineScope,

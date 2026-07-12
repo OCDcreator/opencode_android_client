@@ -3,7 +3,6 @@ package com.yage.opencode_client.ui.util
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import android.util.Log
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
@@ -14,6 +13,8 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale
 import com.mikepenz.markdown.model.ImageData
 import com.mikepenz.markdown.model.ImageTransformer
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -46,7 +47,7 @@ object DataUriImageTransformer : ImageTransformer {
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 bitmap?.let { bitmapToImageData(it) }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to load data URI image", e)
+                AppLogger.w(LogCategory.UI, TAG, "Failed to load data URI image", e)
                 null
             }
         }
@@ -81,10 +82,10 @@ object HttpImageHolder {
             if (bitmap != null) {
                 cachedBitmaps[url] = bitmap
             } else {
-                Log.w(TAG, "Decoded null bitmap for markdown image: ${url.take(120)}")
+                AppLogger.w(LogCategory.UI, TAG, "Decoded null bitmap for markdown image: ${url.take(120)}")
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to prefetch image from $url", e)
+            AppLogger.w(LogCategory.UI, TAG, "Failed to prefetch image from $url", e)
         } finally {
             inflightUrls.remove(url)
         }

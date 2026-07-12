@@ -1,6 +1,5 @@
 package com.yage.opencode_client.data.repository
 
-import android.util.Log
 import com.yage.opencode_client.data.api.*
 import com.yage.opencode_client.data.model.*
 import kotlinx.coroutines.flow.Flow
@@ -10,6 +9,8 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import java.util.Base64
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -299,11 +300,7 @@ class OpenCodeRepository @Inject constructor() {
     fun connectSSE(): Flow<Result<SSEEvent>> = sseClient.connect(baseUrl, username, password)
 
     private fun debugLog(message: String, throwable: Throwable? = null) {
-        try {
-            if (throwable == null) Log.d(TAG, message) else Log.d(TAG, message, throwable)
-        } catch (_: RuntimeException) {
-            // android.util.Log is not mocked in local JVM unit tests.
-        }
+        AppLogger.d(LogCategory.REPOSITORY, TAG, message, throwable)
     }
 
     companion object {

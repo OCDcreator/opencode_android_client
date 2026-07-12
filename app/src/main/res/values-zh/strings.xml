@@ -160,6 +160,36 @@
     <string name="version_format">版本 %1$s</string>
     <string name="about_description">OpenCode AI 编程助手的原生 Android 客户端。</string>
 
+    <!-- Diagnostics / Logging -->
+    <string name="logging_title">诊断日志</string>
+    <string name="logging_subtitle">应用内日志缓冲区，用于排查连接和隧道问题。</string>
+    <string name="logging_level">最低级别</string>
+    <string name="logging_view">查看日志（%1$d）</string>
+    <string name="logging_clear">清空日志</string>
+    <string name="logging_export">导出</string>
+    <string name="logging_empty">暂无日志记录。</string>
+    <string name="logging_viewer_title">日志</string>
+    <string name="logging_filter_level">级别：%1$s</string>
+    <string name="logging_filter_all_levels">全部</string>
+    <string name="logging_search_hint">搜索消息</string>
+    <string name="logging_copy">复制</string>
+    <string name="logging_copied">日志已复制到剪贴板</string>
+    <string name="logging_shared">正在分享日志文件…</string>
+    <string name="logging_share_error">导出日志失败</string>
+    <string name="logging_entry_count_format">共 %1$d 条</string>
+    <string name="logging_level_debug">调试</string>
+    <string name="logging_level_info">信息</string>
+    <string name="logging_level_warn">警告</string>
+    <string name="logging_level_error">错误</string>
+    <string name="logging_category_connection">连接</string>
+    <string name="logging_category_ssh">SSH</string>
+    <string name="logging_category_session">会话</string>
+    <string name="logging_category_stream">流式</string>
+    <string name="logging_category_repository">仓库</string>
+    <string name="logging_category_audio">音频</string>
+    <string name="logging_category_ui">界面</string>
+    <string name="logging_category_general">通用</string>
+
     <!-- Sessions -->
     <string name="sessions_title">会话</string>
     <string name="delete_session_cd">删除会话</string>

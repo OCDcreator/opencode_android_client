@@ -58,3 +58,4 @@ ENV/
 # Logs
 *.log
 .superpowers/
+.zcode/

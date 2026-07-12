@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.webkit.WebView
+import com.yage.opencode_client.util.LogFileWriter
 import com.yage.opencode_client.util.wrapWithLanguage
 import dagger.hilt.android.HiltAndroidApp
 
@@ -15,6 +16,9 @@ class OpenCodeApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Initialize persistent log storage early so every subsequent AppLogger call can flush
+        // to disk. Survives app restart for post-mortem debugging of connection/SSH issues.
+        LogFileWriter.init(this)
         warmUpWebViewAfterLaunch()
     }
 

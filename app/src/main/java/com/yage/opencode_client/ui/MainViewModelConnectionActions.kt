@@ -1,10 +1,11 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.data.model.HostTransport
 import com.yage.opencode_client.data.repository.HostProfileStore
 import com.yage.opencode_client.data.repository.OpenCodeRepository
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import com.yage.opencode_client.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,9 @@ internal fun applySavedSettings(
     hostProfileStore: HostProfileStore,
     state: MutableStateFlow<AppState>
 ) {
-    debugConnectionLog(
+    AppLogger.d(
+        LogCategory.CONNECTION,
+        CONNECTION_ACTIONS_TAG,
         "applySavedSettings serverUrl=${settingsManager.serverUrl} " +
             "workingDirectory=${settingsManager.workingDirectory}"
     )
@@ -69,9 +72,14 @@ internal fun applySavedSettings(
             hideMicIcon = settingsManager.hideMicIcon,
             workingDirectory = effectiveWorkingDir,
             hostProfiles = profiles,
-            currentHostProfileId = currentProfileId
+            currentHostProfileId = currentProfileId,
+            logMinLevel = settingsManager.logMinLevel
         )
     }
+
+    // Sync the persisted log level into AppLogger so the ring buffer filters correctly from
+    // the very first log call, before any UI has a chance to invoke setLogMinLevel.
+    AppLogger.setMinLevel(settingsManager.logMinLevel)
 
     val savedSignature = settingsManager.aiBuilderLastOKSignature
     val currentSignature = aiBuilderSignature(
@@ -93,7 +101,7 @@ internal fun launchConnectionTest(
         state.update { it.copy(isConnecting = true, error = null) }
         repository.checkHealth()
             .onSuccess { health ->
-                debugConnectionLog("testConnection success healthy=${health.healthy} version=${health.version}")
+                AppLogger.d(LogCategory.CONNECTION, CONNECTION_ACTIONS_TAG, "testConnection success healthy=${health.healthy} version=${health.version}")
                 state.update {
                     it.copy(
                         isConnected = health.healthy,
@@ -107,7 +115,7 @@ internal fun launchConnectionTest(
                 }
             }
             .onFailure { error ->
-                debugConnectionLog("testConnection failed", error)
+                AppLogger.d(LogCategory.CONNECTION, CONNECTION_ACTIONS_TAG, "testConnection failed", error)
                 state.update {
                     it.copy(
                         isConnected = false,
@@ -121,14 +129,6 @@ internal fun launchConnectionTest(
 }
 
 private const val CONNECTION_ACTIONS_TAG = "MainViewModelConnection"
-
-private fun debugConnectionLog(message: String, throwable: Throwable? = null) {
-    try {
-        if (throwable == null) Log.d(CONNECTION_ACTIONS_TAG, message) else Log.d(CONNECTION_ACTIONS_TAG, message, throwable)
-    } catch (_: RuntimeException) {
-        // android.util.Log is not mocked in local JVM unit tests.
-    }
-}
 
 internal fun launchAIBuilderConnectionTest(
     scope: CoroutineScope,

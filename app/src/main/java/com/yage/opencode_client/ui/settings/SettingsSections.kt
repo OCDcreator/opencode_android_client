@@ -78,7 +78,9 @@ import com.yage.opencode_client.data.model.FileNode
 import com.yage.opencode_client.ui.AIBuilderSettings
 import com.yage.opencode_client.ui.AppState
 import com.yage.opencode_client.ui.theme.uiScaled
+import com.yage.opencode_client.util.AppLogger
 import com.yage.opencode_client.util.LanguageMode
+import com.yage.opencode_client.util.LogLevel
 import com.yage.opencode_client.util.ThemeMode
 import kotlin.math.roundToInt
 
@@ -955,6 +957,69 @@ internal fun SpeechRecognitionSection(
             )
         )
     }
+}
+
+@Composable
+internal fun LoggingSection(
+    logMinLevel: LogLevel,
+    logVersion: Int,
+    onMinLevelSelected: (LogLevel) -> Unit,
+    onClearLogs: () -> Unit
+) {
+    SectionHeader(title = stringResource(R.string.logging_title))
+
+    Text(
+        stringResource(R.string.logging_subtitle),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline
+    )
+
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+
+    Text(
+        text = stringResource(R.string.logging_level),
+        style = MaterialTheme.typography.bodyMedium
+    )
+    LogLevel.values().forEach { level ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp.uiScaled()),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = logMinLevel == level,
+                onClick = { onMinLevelSelected(level) }
+            )
+            Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+            Text(
+                when (level) {
+                    LogLevel.DEBUG -> stringResource(R.string.logging_level_debug)
+                    LogLevel.INFO -> stringResource(R.string.logging_level_info)
+                    LogLevel.WARN -> stringResource(R.string.logging_level_warn)
+                    LogLevel.ERROR -> stringResource(R.string.logging_level_error)
+                }
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(12.dp.uiScaled()))
+
+    val entryCount = AppLogger.size()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
+    ) {
+        OutlinedButton(
+            onClick = onClearLogs,
+            enabled = entryCount > 0,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(stringResource(R.string.logging_clear))
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp.uiScaled()))
 }
 
 @Composable

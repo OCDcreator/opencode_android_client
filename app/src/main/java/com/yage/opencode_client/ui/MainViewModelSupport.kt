@@ -1,11 +1,12 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import com.yage.opencode_client.data.model.Part
 import com.yage.opencode_client.data.model.QuestionRequest
 import com.yage.opencode_client.data.model.SSEEvent
 import com.yage.opencode_client.data.model.Session
 import com.yage.opencode_client.data.model.SessionStatus
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import java.security.MessageDigest
@@ -128,11 +129,7 @@ internal fun reasoningPartOrNull(partType: String, partId: String, messageId: St
 }
 
 internal fun reportNonFatalIssue(tag: String, message: String, throwable: Throwable? = null) {
-    if (throwable != null) {
-        Log.w(tag, message, throwable)
-    } else {
-        Log.w(tag, message)
-    }
+    AppLogger.w(LogCategory.GENERAL, tag, message, throwable)
 }
 
 internal fun mergedSpeechInput(prefix: String, transcript: String): String {

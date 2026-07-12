@@ -1,6 +1,7 @@
 package com.yage.opencode_client.data.audio
 
-import android.util.Log
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,7 +54,7 @@ object AIBuildersAudioClient {
                 if (response.code >= 400) {
                     throw IOException("Connection test failed with status ${response.code}")
                 }
-                Log.d(TAG, "Connection test passed: ${response.code}")
+                AppLogger.d(LogCategory.AUDIO, TAG, "Connection test passed: ${response.code}")
             }
             Unit
         }
@@ -84,10 +85,10 @@ object AIBuildersAudioClient {
                 prompt = prompt,
                 terms = terms
             )
-            Log.d(TAG, "Realtime session created: ${session.sessionId}")
+            AppLogger.d(LogCategory.AUDIO, TAG, "Realtime session created: ${session.sessionId}")
 
             val websocketURL = realtimeWebSocketURL(normalizedBase, session.wsUrl)
-            Log.d(TAG, "Realtime websocket URL: $websocketURL")
+            AppLogger.d(LogCategory.AUDIO, TAG, "Realtime websocket URL: $websocketURL")
 
             streamPCMOverWebSocket(
                 client = client,
@@ -236,7 +237,7 @@ object AIBuildersAudioClient {
 
         val listener = object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.d(TAG, "WebSocket opened")
+                AppLogger.d(LogCategory.AUDIO, TAG, "WebSocket opened")
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -244,7 +245,7 @@ object AIBuildersAudioClient {
                     val event = JSONObject(text)
                     when (event.optString("type")) {
                         "session_ready" -> {
-                            Log.d(TAG, "WebSocket session ready")
+                            AppLogger.d(LogCategory.AUDIO, TAG, "WebSocket session ready")
                             if (!readySignal.isCompleted) {
                                 readySignal.complete(Unit)
                             }
@@ -255,7 +256,7 @@ object AIBuildersAudioClient {
                             if (delta.isNotEmpty()) {
                                 partialBuffer.append(delta)
                                 val partialText = partialBuffer.toString()
-                                Log.d(TAG, "Partial transcript received: ${partialText.length} chars")
+                                AppLogger.d(LogCategory.AUDIO, TAG, "Partial transcript received: ${partialText.length} chars")
                                 onPartialTranscript?.invoke(partialText)
                             }
                         }
@@ -265,13 +266,13 @@ object AIBuildersAudioClient {
                             if (finalText.isEmpty()) {
                                 finalText = partialBuffer.toString().trim()
                             }
-                            Log.d(TAG, "Transcript completed: ${finalText.length} chars")
+                            AppLogger.d(LogCategory.AUDIO, TAG, "Transcript completed: ${finalText.length} chars")
                             webSocket.send("{\"type\":\"stop\"}")
                         }
 
                         "session_stopped" -> {
                             if (closed.compareAndSet(false, true)) {
-                                Log.d(TAG, "WebSocket session stopped")
+                                AppLogger.d(LogCategory.AUDIO, TAG, "WebSocket session stopped")
                                 val textResult = if (finalText.isNotEmpty()) {
                                     finalText
                                 } else {
@@ -321,7 +322,8 @@ object AIBuildersAudioClient {
                 (pcmAudio.size + AudioTranscriptionConfig.sendChunkSizeBytes - 1) /
                     AudioTranscriptionConfig.sendChunkSizeBytes
             }
-            Log.d(
+            AppLogger.d(
+                LogCategory.AUDIO,
                 TAG,
                 "Sending PCM audio: bytes=${pcmAudio.size}, chunks=$chunkCount, targetRate=${AudioRecorderConfig.targetPcmSampleRate}"
             )
@@ -342,7 +344,7 @@ object AIBuildersAudioClient {
             if (!webSocket.send("{\"type\":\"commit\"}")) {
                 throw IOException("Failed to send commit event")
             }
-            Log.d(TAG, "Commit event sent")
+            AppLogger.d(LogCategory.AUDIO, TAG, "Commit event sent")
 
             val result = resultSignal.await()
             webSocket.close(1000, "done")

@@ -5,9 +5,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -16,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,6 +28,7 @@ import com.yage.opencode_client.data.model.HostTransport
 import com.yage.opencode_client.ui.MainViewModel
 import com.yage.opencode_client.ui.theme.ProvideScaledDpDensity
 import com.yage.opencode_client.ui.theme.uiScaled
+import com.yage.opencode_client.util.AppLogger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +56,7 @@ fun SettingsScreen(
     var aiBuilderCustomPrompt by remember { mutableStateOf(savedAIBuilder.customPrompt) }
     var aiBuilderTerminology by remember { mutableStateOf(savedAIBuilder.terminology) }
     var showAIBuilderToken by remember { mutableStateOf(false) }
+    var showLogViewer by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isConnecting) {
         if (!state.isConnecting && isTesting) {
@@ -222,7 +227,43 @@ fun SettingsScreen(
 
             SettingsSectionDivider()
 
+            LoggingSection(
+                logMinLevel = state.logMinLevel,
+                logVersion = state.logVersion,
+                onMinLevelSelected = viewModel::setLogMinLevel,
+                onClearLogs = viewModel::clearLogs
+            )
+
+            val entryCount = AppLogger.size()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp.uiScaled())
+            ) {
+                OutlinedButton(
+                    onClick = { showLogViewer = true },
+                    enabled = entryCount > 0,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp.uiScaled())
+                    )
+                    Spacer(modifier = Modifier.width(8.dp.uiScaled()))
+                    Text(stringResource(R.string.logging_view, entryCount))
+                }
+            }
+
+            SettingsSectionDivider()
+
             AboutSection()
         }
+    }
+
+    if (showLogViewer) {
+        LogViewerDialog(
+            logVersion = state.logVersion,
+            onDismiss = { showLogViewer = false }
+        )
     }
 }

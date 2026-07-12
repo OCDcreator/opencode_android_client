@@ -161,6 +161,36 @@
     <string name="version_format">Version %1$s</string>
     <string name="about_description">A native Android client for OpenCode AI coding agent.</string>
 
+    <!-- Diagnostics / Logging -->
+    <string name="logging_title">Diagnostics</string>
+    <string name="logging_subtitle">In-app log buffer for troubleshooting connection and tunnel issues.</string>
+    <string name="logging_level">Minimum level</string>
+    <string name="logging_view">View logs (%1$d)</string>
+    <string name="logging_clear">Clear logs</string>
+    <string name="logging_export">Export</string>
+    <string name="logging_empty">No log entries yet.</string>
+    <string name="logging_viewer_title">Logs</string>
+    <string name="logging_filter_level">Level: %1$s</string>
+    <string name="logging_filter_all_levels">All</string>
+    <string name="logging_search_hint">Search messages</string>
+    <string name="logging_copy">Copy</string>
+    <string name="logging_copied">Logs copied to clipboard</string>
+    <string name="logging_shared">Sharing log file…</string>
+    <string name="logging_share_error">Failed to export logs</string>
+    <string name="logging_entry_count_format">%1$d entries</string>
+    <string name="logging_level_debug">Debug</string>
+    <string name="logging_level_info">Info</string>
+    <string name="logging_level_warn">Warn</string>
+    <string name="logging_level_error">Error</string>
+    <string name="logging_category_connection">Connection</string>
+    <string name="logging_category_ssh">SSH</string>
+    <string name="logging_category_session">Session</string>
+    <string name="logging_category_stream">Stream</string>
+    <string name="logging_category_repository">Repository</string>
+    <string name="logging_category_audio">Audio</string>
+    <string name="logging_category_ui">UI</string>
+    <string name="logging_category_general">General</string>
+
     <!-- Sessions -->
     <string name="sessions_title">Sessions</string>
     <string name="delete_session_cd">Delete session</string>

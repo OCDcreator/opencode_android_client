@@ -5,8 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
-import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -41,11 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.R
-import com.yage.opencode_client.BuildConfig
 import com.yage.opencode_client.data.repository.OpenCodeRepository
 import com.yage.opencode_client.ui.theme.markdownTypographyCompact
 import com.yage.opencode_client.ui.util.DataUriImageTransformer
 import com.yage.opencode_client.ui.util.MarkdownImageResolver
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import org.json.JSONObject
 
 private const val webPreviewMaxTotalLength = 60_000
@@ -271,9 +270,7 @@ private fun WebView.renderMarkdown(markdown: String, theme: String) {
 }
 
 private fun webPreviewLog(message: String) {
-    if (BuildConfig.DEBUG) {
-        Log.d(webPreviewLogTag, "${SystemClock.uptimeMillis()} $message")
-    }
+    AppLogger.d(LogCategory.UI, webPreviewLogTag, message)
 }
 
 @Composable

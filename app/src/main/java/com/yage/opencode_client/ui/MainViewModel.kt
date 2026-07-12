@@ -1,6 +1,5 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yage.opencode_client.data.api.PromptRequest
@@ -13,12 +12,17 @@ import com.yage.opencode_client.ssh.SSHKeyManager
 import com.yage.opencode_client.ssh.TunnelManager
 import com.yage.opencode_client.ssh.TunnelResult
 import com.yage.opencode_client.util.SettingsManager
+import com.yage.opencode_client.util.AppLogger
 import com.yage.opencode_client.util.LanguageMode
+import com.yage.opencode_client.util.LogCategory
+import com.yage.opencode_client.util.LogLevel
 import com.yage.opencode_client.util.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -105,7 +109,11 @@ data class AppState(
     val speechError: String? = null,
     val aiBuilderConnectionOK: Boolean = false,
     val aiBuilderConnectionError: String? = null,
-    val isTestingAIBuilderConnection: Boolean = false
+    val isTestingAIBuilderConnection: Boolean = false,
+    // Diagnostic log viewer config. logMinLevel is persisted; logVersion mirrors AppLogger's
+    // revision counter so the viewer only re-snapshots when the buffer actually changes.
+    val logMinLevel: LogLevel = LogLevel.DEBUG,
+    val logVersion: Int = 0
 ) {
     data class ModelOption(val displayName: String, val providerId: String, val modelId: String) {
         val shortName: String
@@ -201,6 +209,11 @@ data class AppState(
         val filePreviewOriginRoute: String? = null
     )
 
+    data class LogState(
+        val minLevel: LogLevel = LogLevel.DEBUG,
+        val revision: Int = 0
+    )
+
     data class SettingsState(
         val error: String? = null,
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -262,6 +275,12 @@ data class AppState(
         get() = FileUiState(
             filePathToShowInFiles = filePathToShowInFiles,
             filePreviewOriginRoute = filePreviewOriginRoute
+        )
+
+    val logState: LogState
+        get() = LogState(
+            minLevel = logMinLevel,
+            revision = logVersion
         )
 
     val settingsState: SettingsState
@@ -380,6 +399,16 @@ class MainViewModel @Inject constructor(
     private var sseJob: Job? = null
     private var pollJob: Job? = null
     private var lastHealthCheckTime = 0L
+    // True while the SSH tunnel is being (re)built on cold start. While set, testConnection() must
+    // defer — the repository is still pointed at a tunnel local port that isn't listening yet, so a
+    // premature health check would fail. The cold-start SSH coroutine clears this once the tunnel
+    // either comes up (and itself drives testConnection) or fails.
+    @Volatile
+    private var sshStartupInProgress = false
+    // Background job that periodically checks if the SSH tunnel session is still alive and
+    // rebuilds it (+ reconfigures repository + restarts SSE) when the JSch session drops.
+    // Only started when the active profile is SSH_TUNNEL.
+    private var tunnelMonitorJob: Job? = null
     private val imageDataUris = mutableMapOf<String, String>()
     private val compressionJobs = mutableMapOf<String, Job>()
 
@@ -389,6 +418,44 @@ class MainViewModel @Inject constructor(
 
     private fun loadSettings() {
         applySavedSettings(repository, settingsManager, hostProfileStore, _state)
+        // On cold start, ensure the SSH tunnel for the active profile is (re)built. Without
+        // this, applySavedSettings would trust the stale settingsManager.serverUrl and connect
+        // directly — e.g. the user selected an SSH profile, but after a process restart the app
+        // silently used the leftover direct URL (ocodemac.ltreen.tech) instead of the tunnel.
+        // selectHostProfile/saveHostProfile already rebuild the tunnel; the cold-start path did not.
+        val current = hostProfileStore.currentProfile()
+        if (current.transport == HostTransport.SSH_TUNNEL) {
+            AppLogger.i(
+                LogCategory.SSH,
+                "Startup",
+                "Cold start with SSH profile '${current.name}' (id=${current.id}); rebuilding tunnel + testing connection"
+            )
+            // Block premature health checks (e.g. the MainActivity STARTED lifecycle call) until the
+            // tunnel is either up or definitively failed, so they don't race the tunnel and hit a
+            // dead local port.
+            sshStartupInProgress = true
+            viewModelScope.launch {
+                try {
+                    val tunnelOK = configureRepositoryForProfileAsync(current)
+                    if (tunnelOK) {
+                        // Tunnel is up — clear the guard BEFORE testConnection so it doesn't defer
+                        // itself, then reset the debounce so this first post-tunnel check actually
+                        // runs and drives the full connection sequence (health → loadInitialData → SSE).
+                        sshStartupInProgress = false
+                        lastHealthCheckTime = 0L
+                        testConnection()
+                    } else {
+                        AppLogger.w(
+                            LogCategory.SSH,
+                            "Startup",
+                            "Tunnel rebuild failed on cold start; not testing connection (would use stale URL)"
+                        )
+                    }
+                } finally {
+                    sshStartupInProgress = false
+                }
+            }
+        }
     }
 
     fun configureServer(
@@ -494,6 +561,9 @@ class MainViewModel @Inject constructor(
                     configureRepositoryForProfileAsync(normalized)
                 }
             } else {
+                // Switched to DIRECT mode: stop the SSH tunnel monitor + tear down any live tunnel.
+                stopTunnelMonitor()
+                tunnelManager.disconnect()
                 syncSettingsManagerFromProfile(normalized, password)
                 repository.configure(
                     normalized.serverUrl,
@@ -573,6 +643,11 @@ class MainViewModel @Inject constructor(
                 when (val result = tunnelManager.ensureStarted(ssh)) {
                     is TunnelResult.Success -> result.localUrl
                     is TunnelResult.Failure -> {
+                        AppLogger.e(
+                            LogCategory.SSH,
+                            "Tunnel",
+                            "Tunnel start failed: phase=${result.phase} message=${result.message}"
+                        )
                         _state.update {
                             it.copy(
                                 isConnected = false,
@@ -587,13 +662,80 @@ class MainViewModel @Inject constructor(
             }
         }
         // Configure repository with the effective baseUrl (direct URL or tunnel local port).
+        AppLogger.i(
+            LogCategory.SSH,
+            "Tunnel",
+            "repository.configure baseUrl=$baseUrl (transport=${profile.transport}, profile.serverUrl=${profile.serverUrl})"
+        )
         repository.configure(baseUrl, profile.basicAuth?.username, password, profile.workingDirectory)
         // Sync settingsManager so the app stays consistent. For SSH tunnel mode, the effective
         // connection URL is the local tunnel port (e.g. http://127.0.0.1:4096), NOT profile.serverUrl
         // — profile.serverUrl is irrelevant metadata in SSH mode. Writing it to settingsManager would
         // cause applySavedSettings to connect to the wrong address on app restart (before the tunnel starts).
         syncSettingsManagerFromProfile(profile, password, effectiveBaseUrl = baseUrl)
+        // For SSH tunnels, start a background health monitor so a dropped session (network change,
+        // server-side idle timeout) is detected and rebuilt automatically. Without this the SSE
+        // retry loop would hammer a dead local port forever and the app would silently "stop working".
+        if (profile.transport == HostTransport.SSH_TUNNEL) {
+            startTunnelMonitor()
+        }
         return true
+    }
+
+    /**
+     * Periodically poll [tunnelManager.isAlive]. When the SSH session drops, rebuild the tunnel
+     * via [configureRepositoryForProfileAsync], reconfigure the repository to the new local port,
+     * and re-run the connection sequence (testConnection → loadInitialData → SSE restart) so the
+     * app recovers without a manual restart.
+     */
+    private fun startTunnelMonitor() {
+        tunnelMonitorJob?.cancel()
+        tunnelMonitorJob = viewModelScope.launch {
+            while (isActive) {
+                delay(TUNNEL_HEALTH_CHECK_INTERVAL_MS)
+                if (sshStartupInProgress) continue
+                if (!tunnelManager.isAlive()) {
+                    val config = tunnelManager.lastConfig() ?: continue
+                    AppLogger.w(LogCategory.SSH, "Tunnel", "Tunnel session dropped; attempting reconnect")
+                    // Rebuild tunnel. ensureStarted will disconnect the stale session + start fresh.
+                    val result = tunnelManager.ensureStarted(config)
+                    when (result) {
+                        is TunnelResult.Success -> {
+                            val current = hostProfileStore.currentProfile()
+                            AppLogger.i(LogCategory.SSH, "Tunnel", "Tunnel reconnected: ${result.localUrl}; reconfiguring repository")
+                            // Reconfigure repository to the new local port + restart connection sequence.
+                            val password = current.basicAuth?.passwordId?.let { settingsManager.basicAuthPassword(it) }
+                            repository.configure(result.localUrl, current.basicAuth?.username, password, current.workingDirectory)
+                            syncSettingsManagerFromProfile(current, password, effectiveBaseUrl = result.localUrl)
+                            // Force a fresh connection sequence: reset debounce, stop stale SSE, re-test.
+                            lastHealthCheckTime = 0L
+                            sseJob?.cancel()
+                            pollJob?.cancel()
+                            testConnection()
+                        }
+                        is TunnelResult.Failure -> {
+                            AppLogger.e(
+                                LogCategory.SSH,
+                                "Tunnel",
+                                "Tunnel reconnect failed: phase=${result.phase} message=${result.message}"
+                            )
+                            _state.update {
+                                it.copy(
+                                    isConnected = false,
+                                    connectionPhase = result.phase.name,
+                                    error = result.message
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopTunnelMonitor() {
+        tunnelMonitorJob?.cancel()
+        tunnelMonitorJob = null
     }
 
     /**
@@ -642,12 +784,13 @@ class MainViewModel @Inject constructor(
     fun toggleRecording() {
         val currentState = _state.value
         val speechConfig = currentSpeechInputConfig(settingsManager)
-        Log.d(
+        AppLogger.d(
+            LogCategory.AUDIO,
             TAG,
             "toggleRecording clicked: recording=${currentState.isRecording}, transcribing=${currentState.isTranscribing}, aiBuilderOK=${currentState.aiBuilderConnectionOK}, tokenSet=${speechConfig.token.isNotEmpty()}"
         )
         if (currentState.isTranscribing) {
-            Log.w(TAG, "Ignoring toggle while transcription is in progress")
+            AppLogger.w(LogCategory.AUDIO, TAG, "Ignoring toggle while transcription is in progress")
             _state.update {
                 it.copy(speechError = "Still transcribing previous audio, please wait.")
             }
@@ -657,7 +800,7 @@ class MainViewModel @Inject constructor(
             val file = audioRecorderManager.stop()
             _state.update { it.copy(isRecording = false, isTranscribing = true) }
             if (file == null) {
-                Log.e(TAG, "Recording stop returned null file")
+                AppLogger.e(LogCategory.AUDIO, TAG, "Recording stop returned null file")
                 _state.update { it.copy(isTranscribing = false, speechError = "Recording failed: no file") }
                 return
             }
@@ -672,14 +815,14 @@ class MainViewModel @Inject constructor(
             )
         } else {
             if (speechConfig.token.isEmpty()) {
-                Log.w(TAG, "Speech start blocked: missing AI Builder token")
+                AppLogger.w(LogCategory.AUDIO, TAG, "Speech start blocked: missing AI Builder token")
                 _state.update {
                     it.copy(speechError = "Speech recognition requires an AI Builder token. Configure it in Settings.")
                 }
                 return
             }
             if (!currentState.aiBuilderConnectionOK) {
-                Log.w(TAG, "Speech start blocked: AI Builder connection test has not passed")
+                AppLogger.w(LogCategory.AUDIO, TAG, "Speech start blocked: AI Builder connection test has not passed")
                 _state.update {
                     it.copy(speechError = "AI Builder connection test has not passed. Please test in Settings first.")
                 }
@@ -687,10 +830,10 @@ class MainViewModel @Inject constructor(
             }
             try {
                 audioRecorderManager.start()
-                Log.d(TAG, "Recording started")
+                AppLogger.d(LogCategory.AUDIO, TAG, "Recording started")
                 _state.update { it.copy(isRecording = true) }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start recording", e)
+                AppLogger.e(LogCategory.AUDIO, TAG, "Failed to start recording", e)
                 _state.update { it.copy(speechError = "Failed to start recording: ${errorMessageOrFallback(e, "unknown error")}") }
             }
         }
@@ -768,6 +911,13 @@ class MainViewModel @Inject constructor(
     fun testConnection() {
         val now = System.currentTimeMillis()
         if (now - lastHealthCheckTime < 30_000) return
+        // If the SSH tunnel is mid-rebuild on cold start, defer — the repository is pointed at a
+        // tunnel local port that isn't listening yet. The SSH startup coroutine drives its own
+        // testConnection once the tunnel is up.
+        if (sshStartupInProgress) {
+            AppLogger.d(LogCategory.SSH, "Startup", "testConnection deferred: SSH tunnel rebuild in progress")
+            return
+        }
         lastHealthCheckTime = now
         _state.update { it.copy(connectionPhase = "connecting") }
         launchConnectionTest(viewModelScope, repository, _state) {
@@ -1048,6 +1198,28 @@ class MainViewModel @Inject constructor(
         settingsManager.uiScale = _state.value.uiScale
     }
 
+    fun setLogMinLevel(level: LogLevel) {
+        settingsManager.logMinLevel = level
+        AppLogger.setMinLevel(level)
+        _state.update { it.copy(logMinLevel = level) }
+    }
+
+    fun clearLogs() {
+        AppLogger.clear()
+        _state.update { it.copy(logVersion = it.logVersion + 1) }
+    }
+
+    /**
+     * Pull the latest [AppLogger] revision into state so the log viewer re-snapshots.
+     * Called by the viewer's refresh loop; cheap because it only writes when the value changed.
+     */
+    fun syncLogRevision() {
+        val latest = AppLogger.revision.value
+        if (_state.value.logVersion != latest) {
+            _state.update { it.copy(logVersion = latest) }
+        }
+    }
+
     fun respondPermission(sessionId: String, permissionId: String, response: PermissionResponse) {
         viewModelScope.launch {
             repository.respondPermission(sessionId, permissionId, response)
@@ -1069,7 +1241,7 @@ class MainViewModel @Inject constructor(
                     _state.update { it.copy(pendingPermissions = permissions) }
                 }
                 .onFailure { error ->
-                    Log.w(TAG, "Failed to load permissions: ${error.message}")
+                    AppLogger.w(LogCategory.SESSION, TAG, "Failed to load permissions: ${error.message}")
                 }
         }
     }
@@ -1081,7 +1253,7 @@ class MainViewModel @Inject constructor(
                     _state.update { it.copy(pendingQuestions = questions) }
                 }
                 .onFailure { error ->
-                    Log.w(TAG, "Failed to load questions: ${error.message}")
+                    AppLogger.w(LogCategory.SESSION, TAG, "Failed to load questions: ${error.message}")
                 }
         }
     }
@@ -1095,7 +1267,7 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    Log.w(TAG, "Failed to reply question: ${error.message}")
+                    AppLogger.w(LogCategory.SESSION, TAG, "Failed to reply question: ${error.message}")
                     onError()
                 }
         }
@@ -1110,7 +1282,7 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    Log.w(TAG, "Failed to reject question: ${error.message}")
+                    AppLogger.w(LogCategory.SESSION, TAG, "Failed to reject question: ${error.message}")
                 }
         }
     }
@@ -1156,5 +1328,9 @@ class MainViewModel @Inject constructor(
 
     private companion object {
         private const val TAG = "MainViewModel"
+        // How often the SSH tunnel health monitor checks if the session is still alive.
+        // 15s balances responsiveness (user notices reconnection within ~15s of a drop) against
+        // the cost of polling isConnected (cheap, but no point running it every second).
+        private const val TUNNEL_HEALTH_CHECK_INTERVAL_MS = 15_000L
     }
 }

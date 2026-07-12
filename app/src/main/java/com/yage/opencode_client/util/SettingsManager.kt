@@ -165,6 +165,10 @@ class SettingsManager @Inject constructor(
         get() = encryptedPrefs.getLong(KEY_AI_BUILDER_LAST_OK_TESTED, 0L)
         set(value) = encryptedPrefs.edit().putLong(KEY_AI_BUILDER_LAST_OK_TESTED, value).apply()
 
+    var logMinLevel: LogLevel
+        get() = LogLevel.fromName(encryptedPrefs.getString(KEY_LOG_MIN_LEVEL, LogLevel.DEBUG.name) ?: LogLevel.DEBUG.name)
+        set(value) = encryptedPrefs.edit().putString(KEY_LOG_MIN_LEVEL, value.name).apply()
+
     fun getDraftText(sessionId: String): String {
         val json = encryptedPrefs.getString(KEY_SESSION_DRAFTS, null) ?: return ""
         return try {
@@ -267,6 +271,7 @@ class SettingsManager @Inject constructor(
         private const val KEY_AI_BUILDER_TERMINOLOGY = "ai_builder_terminology"
         private const val KEY_AI_BUILDER_LAST_OK_SIG = "ai_builder_last_ok_sig"
         private const val KEY_AI_BUILDER_LAST_OK_TESTED = "ai_builder_last_ok_tested"
+        private const val KEY_LOG_MIN_LEVEL = "log_min_level"
         private const val KEY_SESSION_DRAFTS = "session_drafts"
         private const val KEY_SESSION_MODELS = "session_models"
         private const val KEY_SESSION_AGENTS = "session_agents"

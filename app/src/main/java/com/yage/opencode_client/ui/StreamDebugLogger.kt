@@ -1,8 +1,8 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
-import com.yage.opencode_client.BuildConfig
 import com.yage.opencode_client.data.model.Message
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import java.util.concurrent.ConcurrentHashMap
 
 internal object StreamDebugLogger {
@@ -38,24 +38,20 @@ internal object StreamDebugLogger {
         agent: String,
         model: Message.ModelInfo?
     ) {
-        if (!BuildConfig.DEBUG) return
         val modelLabel = model?.let { "${it.providerId}/${it.modelId}" } ?: "default"
-        Log.d(TAG, "send.request session=$sessionId chars=$textLength agent=$agent model=$modelLabel")
+        AppLogger.d(LogCategory.STREAM, TAG, "send.request session=$sessionId chars=$textLength agent=$agent model=$modelLabel")
     }
 
     fun logSendAccepted(sessionId: String) {
-        if (!BuildConfig.DEBUG) return
-        Log.d(TAG, "send.accepted session=$sessionId")
+        AppLogger.d(LogCategory.STREAM, TAG, "send.accepted session=$sessionId")
     }
 
     fun logSendFailed(sessionId: String, error: Throwable) {
-        if (!BuildConfig.DEBUG) return
-        Log.d(TAG, "send.failed session=$sessionId error=${errorMessageOrFallback(error, "unknown error")}")
+        AppLogger.d(LogCategory.STREAM, TAG, "send.failed session=$sessionId error=${errorMessageOrFallback(error, "unknown error")}")
     }
 
     fun logMessageRefreshScheduled(sessionId: String, reason: String, resetLimit: Boolean) {
-        if (!BuildConfig.DEBUG) return
-        Log.d(TAG, "messages.refresh.schedule session=$sessionId reason=$reason resetLimit=$resetLimit")
+        AppLogger.d(LogCategory.STREAM, TAG, "messages.refresh.schedule session=$sessionId reason=$reason resetLimit=$resetLimit")
     }
 
     fun logMessagesLoaded(
@@ -64,16 +60,15 @@ internal object StreamDebugLogger {
         limit: Int,
         isCurrentSession: Boolean
     ) {
-        if (!BuildConfig.DEBUG) return
-        Log.d(
+        AppLogger.d(
+            LogCategory.STREAM,
             TAG,
             "messages.loaded session=$sessionId count=$messageCount limit=$limit current=$isCurrentSession"
         )
     }
 
     fun logMessageCreated(sessionId: String, isCurrentSession: Boolean) {
-        if (!BuildConfig.DEBUG) return
-        Log.d(TAG, "sse.message.created session=$sessionId current=$isCurrentSession")
+        AppLogger.d(LogCategory.STREAM, TAG, "sse.message.created session=$sessionId current=$isCurrentSession")
     }
 
     fun logStreamDelta(
@@ -83,7 +78,6 @@ internal object StreamDebugLogger {
         partType: String,
         deltaLength: Int
     ) {
-        if (!BuildConfig.DEBUG) return
         val now = System.currentTimeMillis()
         val key = streamKey(sessionId, messageId, partId)
         val previous = streamTraces[key]
@@ -103,7 +97,8 @@ internal object StreamDebugLogger {
             updated.totalChars - previous.lastLoggedChars >= PROGRESS_LOG_CHAR_STEP ||
             now - previous.lastLoggedAt >= PROGRESS_LOG_INTERVAL_MS
         if (shouldLog) {
-            Log.d(
+            AppLogger.d(
+                LogCategory.STREAM,
                 TAG,
                 "stream.delta session=$sessionId message=$messageId part=$partId type=$partType chunks=${updated.chunkCount} chars=${updated.totalChars}"
             )
@@ -117,17 +112,17 @@ internal object StreamDebugLogger {
     }
 
     fun logStreamCompleted(sessionId: String, reason: String, messageId: String? = null, partId: String? = null) {
-        if (!BuildConfig.DEBUG) return
         if (messageId != null && partId != null) {
             val key = streamKey(sessionId, messageId, partId)
             val trace = streamTraces.remove(key)
             if (trace != null) {
-                Log.d(
+                AppLogger.d(
+                    LogCategory.STREAM,
                     TAG,
                     "stream.finish session=$sessionId message=$messageId part=$partId type=${trace.partType} chunks=${trace.chunkCount} chars=${trace.totalChars} reason=$reason"
                 )
             } else {
-                Log.d(TAG, "stream.finish session=$sessionId message=$messageId part=$partId reason=$reason")
+                AppLogger.d(LogCategory.STREAM, TAG, "stream.finish session=$sessionId message=$messageId part=$partId reason=$reason")
             }
             return
         }
@@ -137,14 +132,15 @@ internal object StreamDebugLogger {
         var finished = 0
         matching.forEach { (key, trace) ->
             finished += 1
-            Log.d(
+            AppLogger.d(
+                LogCategory.STREAM,
                 TAG,
                 "stream.finish session=$sessionId message=${trace.messageId} part=${trace.partId} type=${trace.partType} chunks=${trace.chunkCount} chars=${trace.totalChars} reason=$reason"
             )
             streamTraces.remove(key)
         }
         if (finished == 0) {
-            Log.d(TAG, "stream.finish session=$sessionId reason=$reason active=0")
+            AppLogger.d(LogCategory.STREAM, TAG, "stream.finish session=$sessionId reason=$reason active=0")
         }
         uiTraces.remove(sessionId)
     }
@@ -157,7 +153,6 @@ internal object StreamDebugLogger {
         hasStreamingReasoning: Boolean,
         shouldAutoScroll: Boolean
     ) {
-        if (!BuildConfig.DEBUG) return
         if (streamingParts <= 0 && !hasStreamingReasoning) {
             uiTraces.remove(sessionId)
             return
@@ -178,7 +173,8 @@ internal object StreamDebugLogger {
             streamingChars == previous.streamingChars -> "steady"
             else -> "shift"
         }
-        Log.d(
+        AppLogger.d(
+            LogCategory.STREAM,
             TAG,
             "ui.stream session=$sessionId messages=$messageCount parts=$streamingParts chars=$streamingChars reasoning=$hasStreamingReasoning autoScroll=$shouldAutoScroll trend=$trend"
         )

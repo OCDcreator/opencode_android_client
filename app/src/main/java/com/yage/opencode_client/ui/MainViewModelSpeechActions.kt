@@ -1,8 +1,9 @@
 package com.yage.opencode_client.ui
 
-import android.util.Log
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.data.audio.AudioRecorderManager
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import com.yage.opencode_client.util.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +38,9 @@ internal fun launchSpeechTranscription(
 ) {
     scope.launch {
         try {
-            Log.d(tag, "Converting recorded audio to PCM: ${recordingFile.absolutePath}")
+            AppLogger.d(LogCategory.AUDIO, tag, "Converting recorded audio to PCM: ${recordingFile.absolutePath}")
             val pcmData = audioRecorderManager.convertToPCM(recordingFile)
-            Log.d(tag, "Submitting audio for transcription: bytes=${pcmData.size}")
+            AppLogger.d(LogCategory.AUDIO, tag, "Submitting audio for transcription: bytes=${pcmData.size}")
             val result = AIBuildersAudioClient.transcribe(
                 baseURL = config.baseURL,
                 token = config.token,
@@ -54,7 +55,7 @@ internal fun launchSpeechTranscription(
 
             result.onSuccess { response ->
                 val cleaned = response.text.trim()
-                Log.d(tag, "Transcription success: chars=${cleaned.length}")
+                AppLogger.d(LogCategory.AUDIO, tag, "Transcription success: chars=${cleaned.length}")
                 state.update {
                     it.copy(
                         inputText = mergedSpeechInput(existingInput, cleaned),
@@ -62,7 +63,7 @@ internal fun launchSpeechTranscription(
                     )
                 }
             }.onFailure { error ->
-                Log.e(tag, "Transcription failed", error)
+                AppLogger.e(LogCategory.AUDIO, tag, "Transcription failed", error)
                 state.update {
                     it.copy(
                         inputText = existingInput,
@@ -72,7 +73,7 @@ internal fun launchSpeechTranscription(
                 }
             }
         } catch (error: Exception) {
-            Log.e(tag, "Speech processing failed", error)
+            AppLogger.e(LogCategory.AUDIO, tag, "Speech processing failed", error)
             state.update {
                 it.copy(
                     inputText = existingInput,

@@ -5,7 +5,8 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaRecorder
-import android.util.Log
+import com.yage.opencode_client.util.AppLogger
+import com.yage.opencode_client.util.LogCategory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -59,9 +60,9 @@ class AudioRecorderManager @Inject constructor(
 
             recorder = mediaRecorder
             currentFile = outputFile
-            Log.d(TAG, "Recording started: ${outputFile.absolutePath}")
+            AppLogger.d(LogCategory.AUDIO, TAG, "Recording started: ${outputFile.absolutePath}")
         } catch (error: Exception) {
-            Log.e(TAG, "Failed to start recording", error)
+            AppLogger.e(LogCategory.AUDIO, TAG, "Failed to start recording", error)
             mediaRecorder.release()
             if (outputFile.exists()) {
                 outputFile.delete()
@@ -77,10 +78,10 @@ class AudioRecorderManager @Inject constructor(
 
         return try {
             activeRecorder.stop()
-            Log.d(TAG, "Recording stopped: ${outputFile?.absolutePath}")
+            AppLogger.d(LogCategory.AUDIO, TAG, "Recording stopped: ${outputFile?.absolutePath}")
             outputFile
         } catch (error: Exception) {
-            Log.e(TAG, "Failed to stop recording", error)
+            AppLogger.e(LogCategory.AUDIO, TAG, "Failed to stop recording", error)
             null
         } finally {
             activeRecorder.release()
@@ -90,7 +91,7 @@ class AudioRecorderManager @Inject constructor(
     }
 
     suspend fun convertToPCM(m4aFile: File): ByteArray = withContext(Dispatchers.Default) {
-        Log.d(TAG, "Converting M4A to PCM: ${m4aFile.absolutePath}")
+        AppLogger.d(LogCategory.AUDIO, TAG, "Converting M4A to PCM: ${m4aFile.absolutePath}")
         val decodeResult = decodeM4aToPCM(m4aFile)
         val pcmSamples = if (decodeResult.sampleRate != AudioRecorderConfig.targetPcmSampleRate) {
             resamplePCM(
@@ -109,7 +110,8 @@ class AudioRecorderManager @Inject constructor(
             pcmBytes.putShort(sample)
         }
 
-        Log.d(
+        AppLogger.d(
+            LogCategory.AUDIO,
             TAG,
             "PCM conversion complete. inputRate=${decodeResult.sampleRate}, outputRate=${AudioRecorderConfig.targetPcmSampleRate}, bytes=${pcmBytes.array().size}"
         )
