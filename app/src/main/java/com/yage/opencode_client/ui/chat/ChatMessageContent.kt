@@ -707,6 +707,9 @@ private fun ToolCard(
     val isRunning = status == "running"
     val firstFile = filePaths.firstOrNull()
     val isWriteOrPatch = toolName == "write" || toolName == "patch" || toolName.contains("write")
+    // Read-only tools (read, grep, glob, list, webfetch, task, todoread, ...) get a neutral gray
+    // icon tint so write/patch tools — the ones that actually change the workspace — stand out.
+    val isReadOnlyTool = ToolCardClassifier.readOnlyToolPrefixes.any { toolName.startsWith(it) }
     val isDark = isSystemInDarkTheme()
     val cardColor = if (isWriteOrPatch && isDark) ToolWritePatchBackgroundDark else MaterialTheme.colorScheme.surfaceContainerHighest
     val contentColor = if (isWriteOrPatch && !isDark) MaterialTheme.colorScheme.primary else LocalContentColor.current
@@ -719,7 +722,12 @@ private fun ToolCard(
                     if (isRunning) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp.uiScaled()), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(16.dp.uiScaled()))
+                        Icon(
+                            Icons.Default.Build,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp.uiScaled()),
+                            tint = if (isReadOnlyTool) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp.uiScaled()))
                     Text(text = toolName.ifEmpty { reason ?: stringResource(R.string.tool) }, style = MaterialTheme.typography.labelLarge)

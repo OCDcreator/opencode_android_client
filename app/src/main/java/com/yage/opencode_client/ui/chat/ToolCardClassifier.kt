@@ -37,6 +37,14 @@ object ToolCardClassifier {
     val readToolPrefixes = listOf("read_file", "read")
 
     /**
+     * Read-only tool prefixes — tools that never modify the workspace.
+     * Used to give their icons a neutral gray tint so write/patch tools stand out.
+     * Loose prefix match so "grep"+"glob"+"list"+"webfetch"+"task"+"todoread"
+     * and their variants all count.
+     */
+    val readOnlyToolPrefixes = listOf("read_file", "read", "grep", "glob", "list", "webfetch", "task", "todoread")
+
+    /**
      * True when this part is a `read` whose tool output reports a directory.
      * The server embeds `<type>directory</type>` in the read output for a folder
      * (vs. `<type>file</type>` for a file).

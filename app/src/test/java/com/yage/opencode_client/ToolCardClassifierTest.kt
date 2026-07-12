@@ -246,4 +246,23 @@ class ToolCardClassifierTest {
         assertEquals(listOf("only", "file.txt"), entries.map { it.name })
         assertEquals(listOf(true, false), entries.map { it.isDirectory })
     }
+
+    @Test
+    fun `readOnlyToolPrefixes matches read tools and not write tools`() {
+        // Read-only tools match
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "read".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "read_file".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "grep".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "glob".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "list".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "webfetch".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "task".startsWith(it) })
+        assertTrue(ToolCardClassifier.readOnlyToolPrefixes.any { "todoread".startsWith(it) })
+
+        // Write tools do NOT match
+        assertFalse(ToolCardClassifier.readOnlyToolPrefixes.any { "write".startsWith(it) })
+        assertFalse(ToolCardClassifier.readOnlyToolPrefixes.any { "edit".startsWith(it) })
+        assertFalse(ToolCardClassifier.readOnlyToolPrefixes.any { "apply_patch".startsWith(it) })
+        assertFalse(ToolCardClassifier.readOnlyToolPrefixes.any { "bash".startsWith(it) })
+    }
 }
