@@ -1,5 +1,6 @@
 package com.yage.opencode_client.ui.session
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.background
@@ -38,6 +39,32 @@ import kotlin.math.roundToInt
 
 private enum class SwipeAnchor { Start, End }
 
+@Composable
+private fun formatRelativeTime(updatedMs: Long): String {
+    return DateUtils.getRelativeTimeSpanString(
+        updatedMs,
+        System.currentTimeMillis(),
+        DateUtils.MINUTE_IN_MILLIS,
+        DateUtils.FORMAT_ABBREV_RELATIVE
+    ).toString()
+}
+
+@Composable
+private fun sessionStatusLabel(status: SessionStatus?): String? = when {
+    status == null -> null
+    status.isBusy -> stringResource(R.string.session_status_running)
+    status.isRetry -> stringResource(R.string.session_status_retrying)
+    status.isIdle -> stringResource(R.string.session_status_idle)
+    else -> null
+}
+
+@Composable
+private fun sessionStatusColor(status: SessionStatus?): androidx.compose.ui.graphics.Color = when {
+    status?.isBusy == true -> MaterialTheme.colorScheme.primary
+    status?.isRetry == true -> MaterialTheme.colorScheme.tertiary
+    else -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SwipeRevealRow(
@@ -48,6 +75,8 @@ private fun SwipeRevealRow(
     isSelected: Boolean,
     isBusy: Boolean,
     displayName: String,
+    updatedTime: Long? = null,
+    status: SessionStatus? = null,
     onSelect: () -> Unit,
     depth: Int = 0,
     hasChildren: Boolean = false,
@@ -129,12 +158,41 @@ private fun SwipeRevealRow(
             } else if (hasChildren) {
                 Spacer(modifier = Modifier.size(24.dp.uiScaled()))
             }
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = titleColor,
+            Column(
                 modifier = Modifier.weight(1f, fill = false)
-            )
+            ) {
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = titleColor
+                )
+                val statusLabel = sessionStatusLabel(status)
+                if (updatedTime != null || statusLabel != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (updatedTime != null) {
+                            Text(
+                                text = formatRelativeTime(updatedTime),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (statusLabel != null && updatedTime != null) {
+                            Text(
+                                text = "  ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (statusLabel != null) {
+                            Text(
+                                text = statusLabel,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = sessionStatusColor(status)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -265,6 +323,8 @@ fun SessionList(
                         isSelected = isSelected,
                         isBusy = sessionStatuses[session.id]?.isBusy == true,
                         displayName = session.displayName,
+                        updatedTime = session.time?.updated,
+                        status = sessionStatuses[session.id],
                         onSelect = { onSelectSession(session.id) },
                         depth = depth,
                         hasChildren = hasChildren,

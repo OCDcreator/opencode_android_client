@@ -207,4 +207,7 @@
     <string name="files_open_web_preview">打开 Web 预览</string>
     <string name="files_open_native_preview">打开原生预览</string>
     <string name="files_open_markdown_source">打开 Markdown 源码</string>
+    <string name="session_status_running">运行中</string>
+    <string name="session_status_retrying">重试中</string>
+    <string name="session_status_idle">空闲</string>
 </resources>

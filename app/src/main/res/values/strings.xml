@@ -215,4 +215,7 @@
     <string name="files_open_web_preview">Open Web Preview</string>
     <string name="files_open_native_preview">Open Native Preview</string>
     <string name="files_open_markdown_source">Open Markdown Source</string>
+    <string name="session_status_running">Running</string>
+    <string name="session_status_retrying">Retrying</string>
+    <string name="session_status_idle">Idle</string>
 </resources>
