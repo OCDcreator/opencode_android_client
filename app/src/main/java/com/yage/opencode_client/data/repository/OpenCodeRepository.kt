@@ -49,6 +49,29 @@ class OpenCodeRepository @Inject constructor() {
                     .build()
                 chain.proceed(request)
             }
+            // Retry 502/503 (frp tunnel briefly disconnected) with backoff. These are transient
+            // gateway errors — the tunnel usually reconnects within 1-2 seconds, so a quick retry
+            // succeeds without surfacing the error to the user. Only applied to safe GET/HEAD
+            // requests and limited to 2 retries to avoid amplifying load.
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val isSafeToRetry = request.method == "GET" || request.method == "HEAD"
+                if (!isSafeToRetry) {
+                    chain.proceed(request)
+                } else {
+                    var attempt = 0
+                    val maxRetries = 2
+                    var response = chain.proceed(request)
+                    while ((response.code == 502 || response.code == 503) && attempt < maxRetries) {
+                        response.close()
+                        attempt++
+                        // Backoff: 500ms, then 1000ms — gives the frp tunnel time to reconnect.
+                        Thread.sleep(500L * attempt)
+                        response = chain.proceed(request)
+                    }
+                    response
+                }
+            }
             .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS)
             .build()
