@@ -1,14 +1,18 @@
 package com.yage.opencode_client.ui.chat
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +35,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yage.opencode_client.R
 import com.yage.opencode_client.data.audio.AIBuildersAudioClient
 import com.yage.opencode_client.ui.MainViewModel
+import com.yage.opencode_client.ui.files.FilesScreen
+import com.yage.opencode_client.ui.files.WorkspaceMarkdownLinkResolver
 import com.yage.opencode_client.ui.theme.uiScaled
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +67,31 @@ fun ChatScreen(
     ) { uris ->
         uris.forEach { uri ->
             viewModel.addImage(uri, context.contentResolver)
+        }
+    }
+
+    // Workspace link preview: clicking a markdown link in an assistant message opens a
+    // full-screen Dialog hosting FilesScreen pointed at the resolved path.
+    var previewRequest by remember { mutableStateOf<WorkspacePreviewRequest?>(null) }
+    var linkError by remember { mutableStateOf<String?>(null) }
+
+    fun handleAssistantMarkdownLink(href: String) {
+        val workspaceDirectory = state.currentSession?.directory
+        when (val resolution = WorkspaceMarkdownLinkResolver.resolve(href, workspaceDirectory)) {
+            is WorkspaceMarkdownLinkResolver.Resolution.External -> {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(resolution.url))
+                runCatching { context.startActivity(intent) }
+                    .onFailure { linkError = it.message ?: "Could not open link" }
+            }
+            is WorkspaceMarkdownLinkResolver.Resolution.Preview -> {
+                previewRequest = WorkspacePreviewRequest(
+                    path = resolution.path,
+                    sessionId = state.currentSessionId,
+                    workspaceDirectory = workspaceDirectory.orEmpty()
+                )
+            }
+            WorkspaceMarkdownLinkResolver.Resolution.Ignored -> Unit
+            is WorkspaceMarkdownLinkResolver.Resolution.Rejected -> linkError = resolution.message
         }
     }
 
@@ -127,6 +158,7 @@ fun ChatScreen(
                     workspaceDirectory = state.currentSession?.directory,
                     onLoadMore = { viewModel.loadMoreMessages() },
                     onFileClick = onNavigateToFiles,
+                    onMarkdownLinkClick = ::handleAssistantMarkdownLink,
                     onForkFromMessage = { messageId ->
                         state.currentSessionId?.let { sessionId ->
                             viewModel.forkSession(sessionId, messageId)
@@ -145,6 +177,44 @@ fun ChatScreen(
                     }
                 ) {
                     Text(error)
+                }
+            }
+
+            linkError?.let { error ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp.uiScaled()),
+                    action = {
+                        TextButton(onClick = { linkError = null }) {
+                            Text(stringResource(R.string.dismiss))
+                        }
+                    }
+                ) {
+                    Text(error)
+                }
+            }
+        }
+
+        previewRequest?.let { request ->
+            // Auto-dismiss if the user switches sessions while the preview is open.
+            if (request.sessionId != state.currentSessionId ||
+                request.workspaceDirectory != state.currentSession?.directory
+            ) {
+                androidx.compose.runtime.LaunchedEffect(request, state.currentSessionId, state.currentSession?.directory) {
+                    previewRequest = null
+                    linkError = "Workspace changed; reopen the link from the current session."
+                }
+            } else {
+                Dialog(
+                    onDismissRequest = { previewRequest = null },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        FilesScreen(
+                            pathToShow = request.path,
+                            sessionDirectory = request.workspaceDirectory,
+                            onCloseFile = { previewRequest = null }
+                        )
+                    }
                 }
             }
         }
@@ -240,3 +310,9 @@ fun ChatScreen(
             }
     }
 }
+
+private data class WorkspacePreviewRequest(
+    val path: String,
+    val sessionId: String?,
+    val workspaceDirectory: String
+)

@@ -62,6 +62,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import com.yage.opencode_client.data.model.MessageWithParts
@@ -95,6 +97,7 @@ internal fun ChatMessageList(
     workspaceDirectory: String?,
     onLoadMore: () -> Unit,
     onFileClick: (String) -> Unit,
+    onMarkdownLinkClick: (String) -> Unit,
     onForkFromMessage: (String) -> Unit
 ) {
     // Per-session scroll state so each session remembers its position when you switch away and back.
@@ -228,6 +231,7 @@ internal fun ChatMessageList(
                 repository = repository,
                 workspaceDirectory = workspaceDirectory,
                 onFileClick = onFileClick,
+                onMarkdownLinkClick = onMarkdownLinkClick,
                 onForkFromMessage = onForkFromMessage
             )
         }
@@ -278,6 +282,7 @@ private fun MessageRow(
     repository: OpenCodeRepository,
     workspaceDirectory: String?,
     onFileClick: (String) -> Unit,
+    onMarkdownLinkClick: (String) -> Unit,
     onForkFromMessage: (String) -> Unit
 ) {
     val isUser = message.info.isUser
@@ -417,6 +422,7 @@ private fun MessageRow(
                     repository = repository,
                     workspaceDirectory = workspaceDirectory,
                     onFileClick = onFileClick,
+                    onMarkdownLinkClick = onMarkdownLinkClick,
                     modifier = Modifier.fillMaxWidth()
                 )
                 i += 1
@@ -480,6 +486,7 @@ private fun PartView(
     repository: OpenCodeRepository,
     workspaceDirectory: String?,
     onFileClick: (String) -> Unit,
+    onMarkdownLinkClick: (String) -> Unit = {},
     modifier: Modifier = Modifier.fillMaxWidth(),
     toolExpanded: Boolean = false,
     onToolExpandedChange: (Boolean) -> Unit = {}
@@ -490,7 +497,8 @@ private fun PartView(
             isUser = isUser,
             modifier = modifier,
             repository = repository,
-            workspaceDirectory = workspaceDirectory
+            workspaceDirectory = workspaceDirectory,
+            onMarkdownLinkClick = onMarkdownLinkClick
         )
         part.isReasoning -> ReasoningCard(streamingTextOverride ?: part.text ?: "", part.toolReason, false, modifier)
         part.isTool -> ToolCard(
@@ -536,7 +544,8 @@ private fun TextPart(
     isUser: Boolean,
     modifier: Modifier = Modifier.fillMaxWidth(),
     repository: OpenCodeRepository? = null,
-    workspaceDirectory: String? = null
+    workspaceDirectory: String? = null,
+    onMarkdownLinkClick: (String) -> Unit = {}
 ) {
     val innerModifier = modifier.padding(12.dp.uiScaled())
     if (isUser) {
@@ -585,6 +594,7 @@ private fun TextPart(
                 text = text,
                 repository = repository,
                 workspaceDirectory = workspaceDirectory,
+                onMarkdownLinkClick = onMarkdownLinkClick,
                 modifier = innerModifier
             )
         } else {
@@ -602,6 +612,7 @@ private fun ResolvedMarkdownText(
     text: String,
     repository: OpenCodeRepository,
     workspaceDirectory: String?,
+    onMarkdownLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var resolvedText by remember(text, workspaceDirectory) { mutableStateOf<String?>(null) }
@@ -621,7 +632,14 @@ private fun ResolvedMarkdownText(
     }
 
     SelectionContainer {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+            LocalUriHandler provides object : UriHandler {
+                override fun openUri(uri: String) {
+                    onMarkdownLinkClick(uri)
+                }
+            }
+        ) {
             Markdown(
                 content = resolvedText ?: text,
                 typography = markdownTypographyCompact(),
